@@ -1,0 +1,19 @@
+
+TODO:
+    - find a nice way to embed make JSX happy with jshint
+        - maybe http://jscs.info/overview.html
+        - https://github.com/bodnaristvan/JavascriptHinter.tmbundle
+        - https://github.com/Benvie/JavaScriptNext.tmLanguage
+    - build general layout, header/footer stuff
+    - set up ungrid
+    - create left menu with various actions
+    - some actions require GH login, when that happens prompt for it
+    - create repo
+    - import repo
+    - handle forks (?)
+    - handle PR, PR comments, set status
+    - add group (can we check that someone is on a GH team? limit to w3c owners or something like that)
+    - remove group
+    - pump information into Pheme
+    - report, list status
+    - approve/reject pending users

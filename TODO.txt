@@ -1,9 +1,6 @@
 
 TODO:
-    - find a nice way to embed make JSX happy with jshint
-        - maybe http://jscs.info/overview.html
-        - https://github.com/bodnaristvan/JavascriptHinter.tmbundle
-        - https://github.com/Benvie/JavaScriptNext.tmLanguage
+    ✓ find a nice way to embed make JSX happy with jshint
     - build general layout, header/footer stuff
     - set up ungrid
     - create left menu with various actions

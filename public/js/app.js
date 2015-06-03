@@ -19817,6 +19817,8 @@ var _react = require("react");
 
 var _react2 = _interopRequireDefault(_react);
 
+if (true) dothis();
+
 _react2["default"].render(_react2["default"].createElement(
     "h1",
     null,

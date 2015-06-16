@@ -18,6 +18,19 @@ h1 {
     padding:    0 0 0 10px;
     border-bottom:  1px solid silver;
 }
+h2 {
+    font-weight:    300;
+    font-size:  30px;
+    margin-bottom:  10px;
+}
+a {
+    color:  #f1647c;
+    text-decoration:    underline #84df5d;
+}
+a:hover {
+    color:  #84df5d;
+    text-decoration:    underline #f1647c;
+}
 
 /* navigation */
 .col.nav {
@@ -51,16 +64,22 @@ h1 {
     padding-left:   30px;
 }
 
-a {
-    color:  #f1647c;
-    text-decoration:    underline #84df5d;
+/* boxes */
+.login-box {
+    width:  350px;
+    border: 1px solid silver;
+    padding:    10px 20px;
 }
-a:hover {
-    color:  #84df5d;
-    text-decoration:    underline #f1647c;
+
+/* forms */
+.formline {
+    width:  auto;
+    padding-bottom: 10px;
 }
-h2 {
-    font-weight:    300;
-    font-size:  30px;
-    margin-bottom:  10px;
+.formline label {
+    display:    block;
+    font-weight:    bold;
+}
+.formline.actions {
+    text-align: right;
 }

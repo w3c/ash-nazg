@@ -10,18 +10,8 @@ import Col from "./components/col.jsx";
 import NavBox from "./components/nav-box.jsx";
 import NavItem from "./components/nav-item.jsx";
 
-class Welcome extends React.Component {
-    render () {
-        return  <div className="primary-app">
-                    <h2>Welcome!</h2>
-                    <p>
-                        Use this site to manage your usage of GitHub repositories for W3C
-                        projects.
-                    </p>
-                </div>
-        ;
-    }
-}
+import Welcome from "./application/welcome.jsx";
+import RepoNew from "./application/repo/new.jsx";
 
 class AshNazg extends React.Component {
     render () {
@@ -42,7 +32,9 @@ class AshNazg extends React.Component {
 
 React.render(
     <Router history={BrowserHistory}>
-        <Route path="/" component={AshNazg}></Route>
+        <Route path="/" component={AshNazg}>
+            <Route path="repo/new" component={RepoNew}/>
+        </Route>
     </Router>
 ,   document.body
 );

@@ -1,6 +1,9 @@
 
 TODO:
     ✓ find a nice way to embed make JSX happy with jshint
+        - we probably want jshint back, too
+        - have only one for JSX
+        - have both for JS
     - build general layout, header/footer stuff
     - set up ungrid
     - create left menu with various actions

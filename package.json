@@ -4,10 +4,28 @@
   "scripts": {
     "start": "node server.js",
     "watch-server": "nodemon -w server.js --exec 'npm run start'",
-    "build-js": "browserify app.js > public/js/app.js",
+    "build-js": "browserify app.jsx > public/js/app.js",
+    "watch-js": "nodemon -e jsx --watch app.jsx --watch ./components/ --exec 'npm run build-js'",
     "build-css": "cleancss -o ./public/css/app.min.css app.css",
+    "watch-css": "nodemon --ignore ./public/ -e css --exec 'npm run build-css'",
     "build": "npm run build-css && npm run build-js",
-    "watch": "nodemon --ignore ./public/ -e js,css,html,png,jpg,svg --exec 'npm run build'"
+    "watch": "npm run watch-css & npm run watch-js"
+  },
+  "aggregate-commands": {
+    "watch": [
+      [
+        "css",
+        "npm",
+        "run",
+        "watch-css"
+      ],
+      [
+        "js",
+        "npm",
+        "run",
+        "watch-js"
+      ]
+    ]
   },
   "repository": {
     "type": "git",
@@ -20,15 +38,16 @@
     "browserify": "^10.1.3",
     "clean-css": "^3.2.10",
     "nodemon": "1.3.7",
-    "normalize.css": "^3.0.3"
+    "normalize.css": "^3.0.3",
+    "react-router": "1.0.0-beta1",
+    "ungrid": "^1.0.1",
+    "whatwg-fetch": "^0.7.0",
+    "react": "^0.13.3"
   },
   "dependencies": {
     "express": "^4.12.4",
     "express-winston": "^0.3.1",
-    "react": "^0.13.3",
-    "react-router": "^0.13.2",
     "serve-static": "^1.9.3",
-    "whatwg-fetch": "^0.7.0",
     "winston": "^1.0.0"
   },
   "browserify": {

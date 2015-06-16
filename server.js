@@ -5,6 +5,7 @@ var express = require("express")
 ,   winston = require("winston")
 ,   exwin = require("express-winston")
 ,   serveStatic = require("serve-static")
+,   jn = require("path").join
 ,   app = express()
 ,   transports = []
 ,   version = require("./package.json").version
@@ -29,6 +30,13 @@ app.use(exwin.logger({
 }));
 app.use(serveStatic("public"));
 
+
+// handler for client-side routing
+function showIndex (req, res) {
+    res.sendFile(jn(__dirname, "public/index.html"));
+}
+app.get("/repo/*", showIndex);
+app.get("/welcome", showIndex);
 
 // make port configurable
 app.listen(3043, function (err) {

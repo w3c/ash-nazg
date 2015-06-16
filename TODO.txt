@@ -1,13 +1,13 @@
 
 TODO:
     ✓ find a nice way to embed make JSX happy with jshint
-        - we probably want jshint back, too
-        - have only one for JSX
-        - have both for JS
-    - build general layout, header/footer stuff
-    - set up ungrid
-    - create left menu with various actions
-    - some actions require GH login, when that happens prompt for it
+        ✓ we probably want jshint back, too
+        ✓ have only one for JSX
+        ✓ have both for JS
+    ✓ build general layout, header/footer stuff
+    ✓ set up ungrid
+    ✓ create left menu with various actions
+    ✓ some actions require GH login, when that happens prompt for it
     - create repo
     - import repo
     - handle forks (?)
@@ -20,13 +20,6 @@ TODO:
 
 
 NEXT:
-    - a GHUser store that's interested in gh-login and gh-logout actions
-        it also emits when the login box gives it the information it needs
-        it has isLoggedIn() that returns true/false
-    - this here view needs to render something different dependending on whether the user is
-        logged in or not, as an if statement in render()
-        it listens to changes on GHUser to know if it needs to show login or UI
-    - a bunch of action types for everything (seems slightly ugly but weirdly neater too)
     - always show an affordance to logout once logged in
     - when we show UI, we will need a similar store for what's going on with octokat, but we'll
         get there later

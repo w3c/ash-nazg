@@ -83,3 +83,10 @@ a:hover {
 .formline.actions {
     text-align: right;
 }
+
+/* ui */
+.spinner {
+    background: url("../img/spinner.svg");
+    width:  52px;
+    height:  52px;
+}

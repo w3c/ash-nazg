@@ -9,7 +9,8 @@ function val (ref) {
 export default class GHLogin extends React.Component {
     submit (e) {
         e.preventDefault();
-        GHUserActions.login(val(this.refs.username), val(this.refs.password));
+        GHUserActions.login(val(this.refs.username), val(this.refs.password), val(this.refs.save));
+        console.log(val(this.refs.save), !!val(this.refs.save));
     }
     
     render () {
@@ -22,6 +23,9 @@ export default class GHLogin extends React.Component {
                     <div className="formline">
                         <label htmlFor="password">password</label>
                         <input type="password" id="password" placeholder="password" ref="password"/>
+                    </div>
+                    <div className="formline">
+                        <label>save my details: <input type="checkbox" ref="save"/></label>
                     </div>
                     <div className="formline actions">
                         <button>Log in</button>

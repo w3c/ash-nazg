@@ -2,6 +2,7 @@
 import AshNazgDispatch from "../application/dispatcher";
 import EventEmitter from "events";
 import assign from "object-assign";
+import GHUserActions from "../actions/gh-user-actions";
 
 let _user = null
 ,   GHUserStore = module.exports = assign({}, EventEmitter.prototype, {
@@ -17,6 +18,9 @@ let _user = null
         }
     }
 );
+function save () {
+    localStorage.setItem("ghUserStore", JSON.stringify(_user));
+}
 GHUserStore.dispatchToken = AshNazgDispatch.register((action) => {
     switch (action.type) {
         case "gh-login":
@@ -27,12 +31,19 @@ GHUserStore.dispatchToken = AshNazgDispatch.register((action) => {
             _user = {
                 username:   action.username
             ,   password:   action.password
+            ,   save:       action.save
             };
+            if (action.save) save();
             GHUserStore.emitChange();
             break;
         case "gh-logout":
             _user = null;
+            save();
             GHUserStore.emitChange();
             break;
     }
 });
+if (localStorage.getItem("ghUserStore")) {
+    let data = JSON.parse(localStorage.getItem("ghUserStore"));
+    if (data) GHUserActions.login(data.username, data.password, data.save);
+}

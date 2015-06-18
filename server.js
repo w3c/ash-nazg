@@ -7,6 +7,7 @@ var express = require("express")
 ,   FileStore = require("session-file-store")(session)
 ,   serveStatic = require("serve-static")
 ,   cookieParser = require("cookie-parser")
+,   bp = require("body-parser")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   jn = require("path").join
@@ -160,7 +161,12 @@ app.get("/api/orgs", ensureAPIAuth, function (req, res) {
         res.json(data);
     });
 });
-
+app.post("/api/create-repo", ensureAPIAuth, bp.json(), function (req, res) {
+    new GH(req.user).createRepo(req.body, function (err, data) {
+        if (err) return res.status(500).json({ error: err });
+        res.json(data);
+    });
+});
 
 // handler for client-side routing
 function showIndex (req, res) {

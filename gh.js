@@ -14,9 +14,14 @@ GH.prototype = {
         }.bind(this));
     }
 ,   createRepo: function (data, cb) {
+        // { org: ..., repo: ... }
+        console.log("createRepo", data);
         // create the repo
         // add the files one by one (or batch if possible?)
         // add the hook back to us
+        // call cb with a description of the tasks that were carried out
+        // or if it's an error, give an error that makes sense
+        cb(null);
     }
 };
 

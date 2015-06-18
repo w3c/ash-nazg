@@ -12,6 +12,7 @@ var express = require("express")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
 ,   log = require("./log")
+,   GH = require("./gh")
 ,   Store = require("./store")
 ,   store = new Store()
 ,   app = express()
@@ -96,10 +97,10 @@ app.use(serveStatic("public"));
 // use this as middleware on any call that requires authentication
 // this is for API use, not in the human URL space
 // it passes if authentication has happened, otherwise it will return a 401
-// function ensureAPIAuth (req, res, next) {
-//     if (req.isAuthenticated()) { return next(); }
-//     res.error(401).json({ error: "Authentication required." });
-// }
+function ensureAPIAuth (req, res, next) {
+    if (req.isAuthenticated()) return next();
+    res.error(401).json({ error: "Authentication required." });
+}
 
 // GET this (not as an API), it will redirect the user to GitHub to authenticate
 // use ?back=http://... for the URL to which to return later
@@ -145,6 +146,19 @@ app.get("/api/logout", function (req, res) {
     log.info("User logging out.");
     req.logout();
     res.json({ ok: true });
+});
+
+// check if the user is logged in
+app.get("/api/logged-in", function (req, res) {
+    res.json({ ok: req.isAuthenticated() });
+});
+
+// GITHUB APIs
+app.get("/api/orgs", ensureAPIAuth, function (req, res) {
+    new GH(req.user).userOrgs(function (err, data) {
+        if (err) return res.status(500).json({ error: err });
+        res.json(data);
+    });
 });
 
 

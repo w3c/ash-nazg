@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "start": "node server.js",
-    "watch-server": "nodemon -w server.js --exec 'npm run start'",
+    "watch-server": "nodemon -w server.js -w gh.js -w store.js -w log.js --exec 'npm run start'",
     "build-js": "browserify app.jsx --debug | exorcist public/js/app.js.map > public/js/app.js",
     "watch-js": "nodemon -e jsx,js --watch app.jsx --watch ./components/ --watch ./application/ --watch ./stores/ --watch ./actions/ --exec 'npm run build-js'",
     "build-css": "cleancss -o ./public/css/app.min.css app.css",

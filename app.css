@@ -43,6 +43,9 @@ a:hover {
     width:  200px;
     padding:    0 10px;
 }
+.nav-box {
+    margin-bottom:  20px;
+}
 .nav-box-header {
     font-weight:    bold;
     color:  darkgrey;
@@ -54,7 +57,10 @@ a:hover {
     margin: 0;
 }
 .nav-box li a, .nav-box li button {
+    color:  #f1647c;
     display:    block;
+    width:  100%;
+    text-align: left;
     padding:    5px;
     text-decoration:    none;
     cursor: pointer;

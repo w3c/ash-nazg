@@ -47,7 +47,7 @@ class AshNazg extends React.Component {
         ,   nav
         ,   body;
         // when logged in show an actual menu and content
-        if (st.isLoggedIn === true) {
+        if (st.loggedIn === true) {
             nav = <Col className="nav">
                     <NavBox title="Manage">
                         <NavItem><Link to="/repo/new">New Repository</Link></NavItem>
@@ -60,7 +60,7 @@ class AshNazg extends React.Component {
             body = <Col>{ this.props.children || <Welcome/> }</Col>;
         }
         // when logged out off to log in
-        else if (st.isLoggedIn === false) {
+        else if (st.loggedIn === false) {
             nav = <Col className="nav"><NavBox title="Login"/></Col>;
             body = <Col><LoginWelcome/></Col>;
         }

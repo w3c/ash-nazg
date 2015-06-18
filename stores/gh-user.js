@@ -18,6 +18,7 @@ let _user = null
         }
     }
 );
+// XXX code smell
 function save () {
     localStorage.setItem("ghUserStore", JSON.stringify(_user));
 }
@@ -43,6 +44,7 @@ GHUserStore.dispatchToken = AshNazgDispatch.register((action) => {
             break;
     }
 });
+// XXX code smell
 if (localStorage.getItem("ghUserStore")) {
     let data = JSON.parse(localStorage.getItem("ghUserStore"));
     if (data) GHUserActions.login(data.username, data.password, data.save);

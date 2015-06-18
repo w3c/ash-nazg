@@ -18,6 +18,8 @@ var express = require("express")
 ,   version = require("./package.json").version
 ;
 
+
+// logging
 if (config.logToConsole) {
     transports.push(
         new (winston.transports.Console)({
@@ -44,21 +46,21 @@ var log = new (winston.Logger)({ transports: transports });
 // GitHub auth handling
 passport.serializeUser(function (user, done) {
     // XXX
-    // here, store the user into a DB
+    // here we map the profile we get as `user` onto what we need to store in the session
+    // we probably just return with done(null, user.id);
     // TEMP DOCS
-    // user is the profile see in GitHubStrategy
+    // user is the profile seen in GitHubStrategy
     log.info("serializeUser");
     console.log("Serialising USER", user);
     done(null, user);
 });
 
-passport.deserializeUser(function (obj, done) {
+passport.deserializeUser(function (id, done) {
     // XXX
-    // here, get the user by ID
-    // OBJ is the profile, get called with every access
-    // XXX XXX XXX I have no idea what to do with this -- CHECK PASSPORT CORE DOCS
+    // here, we get whatever we put in the session in serializeUser
+    // use the provided id to grab the user from the DB
     log.info("deserializeUser");
-    done(null, obj);
+    done(null, id);
 });
 
 passport.use(
@@ -69,7 +71,11 @@ passport.use(
     }
 ,   function (accessToken, refreshToken, profile, done) {
         // XXX
-        // here find GH user in our database and return that as `profile` ?
+        //  here what we do is that we find or create a user in the DB with the given ID
+        //  we can use this step to update the information we have from the profile
+        //  we store the accessToken
+        //  we return a simplified profile that doesn't have all the additional _raw/_json crap
+        //  but just the bits that we're interested in
         log.info("cb for GitHubStrategy");
         console.log("auth from GH Strategy", accessToken, refreshToken, profile);
         // TEMP DOCS
@@ -144,8 +150,6 @@ app.get(
             )(req, res, next);
         }
 );
-
-// XXX where do I get the OAuth token in here so I can reuse it? it's `accessToken`
 
 // this is the callback that we get from GH
 // if all worked according to plan, it has a ?back=http://... with the location we wish to redirect

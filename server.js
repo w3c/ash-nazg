@@ -12,30 +12,23 @@ var express = require("express")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
 ,   log = require("./log")
+,   Store = require("./store")
+,   store = new Store()
 ,   app = express()
 ,   config = require("./config.json")
 ,   version = require("./package.json").version
 ;
 
-
-// GitHub auth handling
-passport.serializeUser(function (user, done) {
-    // XXX
-    // here we map the profile we get as `user` onto what we need to store in the session
-    // we probably just return with done(null, user.id);
-    // TEMP DOCS
-    // user is the profile seen in GitHubStrategy
-    log.info("serializeUser");
-    console.log("Serialising USER", user);
-    done(null, user);
+// passport uses this when a user is create to decide what we want to write into the session
+// in our case we need nothing more than the username with which to retrieve it later
+passport.serializeUser(function (profile, done) {
+    done(null, profile.username);
 });
 
+// this is the reverse operation, our session contains the key we provided above and passport gives
+// us that in order to have a user. We get it from the store of course.
 passport.deserializeUser(function (id, done) {
-    // XXX
-    // here, we get whatever we put in the session in serializeUser
-    // use the provided id to grab the user from the DB
-    log.info("deserializeUser");
-    done(null, id);
+    store.getUser(id, done);
 });
 
 passport.use(
@@ -45,22 +38,28 @@ passport.use(
     ,   callbackURL:    config.url + "auth/github/callback"
     }
 ,   function (accessToken, refreshToken, profile, done) {
-        // XXX
-        //  here what we do is that we find or create a user in the DB with the given ID
-        //  we can use this step to update the information we have from the profile
-        //  we store the accessToken
-        //  we return a simplified profile that doesn't have all the additional _raw/_json crap
-        //  but just the bits that we're interested in
-        log.info("cb for GitHubStrategy");
-        console.log("auth from GH Strategy", accessToken, refreshToken, profile);
-        // TEMP DOCS
-        //  accessToken=hex string (this is the token we're looking for to user afterwards, store in session or DB?)
-        //  refreshToken=undefined
-        //  profile=normalised as per passport, contains:
-        //      id: numeric ID, displayName (Robin Berjon), username (darobin), profileUrl (gh URL),
-        //      _json (bunch of other fields including avatar_url, blog), emails (array of value: email@address)
-        
-        return done(null, profile);
+        log.info("Login attempt for user " + profile.username);
+        // we have a user logging in, could be new, could be old, we add it to the store
+        // but first we need to massage it a bit
+        profile.ghID = profile.id;
+        delete profile.id;
+        delete profile._raw;
+        var pics = profile.photos || []
+        ,   json = profile._json
+        ;
+        if (json.avatar_url) pics.push({ value: json.avatar_url });
+        profile.photos = pics;
+        if (json.blog) profile.blog = json.blog;
+        if (json.company) profile.company = json.company;
+        delete profile._json;
+        profile.accessToken = accessToken;
+        profile.refreshToken = refreshToken;
+
+        store.findOrCreateUser(profile, function (err) {
+            if (err) return done(err);
+            log.info("Login successful: " + profile.username);
+            done(null, profile);
+        });
     }
 ));
 
@@ -133,7 +132,6 @@ app.get(
         "/auth/github/callback"
     ,   function (req, res, next) {
             var redir = req.query.back;
-            log.info("GitHub auth callback with redir=" + redir);
             passport.authenticate("github", { failureRedirect: redir + "?failure" })(req, res, next);
         }
     ,   function (req, res) {

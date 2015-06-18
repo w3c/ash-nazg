@@ -11,6 +11,7 @@
 // this ought to be doable relatively easily when the repo has been created or imported through our
 // interface. Wait... this implies that all the repos we manage need to be created/imported here.
 // Ok, can live with that.
+// We can create a special token for the w3c organisation
 
 var cradle = require("cradle")
 // ,   isArray = require("util").isArray
@@ -71,6 +72,8 @@ Store.prototype = {
 ,   findOrCreateUser:   function (profile, cb) {
         var store = this;
         store.getUser(profile.username, function (err, user) {
+            // XXX we should check if the user exists, and if so merge their properties in case they
+            // have changed
             if (err) return cb(err);
             if (user) return cb(null, user);
             store.addUser(profile, cb);
@@ -82,7 +85,7 @@ Store.prototype = {
         log.info("Looking for user " + username);
         store.db.view("users/by_username", { key: username }, function (err, docs) {
             if (err) return cb(err);
-            log.info("Got user " + docs);
+            log.info("Returning user " + username + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
         });
     }

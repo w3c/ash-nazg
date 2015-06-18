@@ -18,16 +18,26 @@ var express = require("express")
 ,   version = require("./package.json").version
 ;
 
-// XXX
-// make this configurable so that console logging can be optional
-transports.push(
-    new (winston.transports.Console)({
-            handleExceptions:                   true
-        ,   colorize:                           true
-        ,   maxsize:                            200000000
-        ,   humanReadableUnhandledException:    true
-    })
-);
+if (config.logToConsole) {
+    transports.push(
+        new (winston.transports.Console)({
+                handleExceptions:                   true
+            ,   colorize:                           true
+            ,   maxsize:                            200000000
+            ,   humanReadableUnhandledException:    true
+        })
+    );
+}
+if (config.logToFile) {
+    transports.push(
+        new (winston.transports.File)({
+                    filename:                           config.logToFile
+                ,   handleExceptions:                   true
+                ,   timestamp:                          true
+                ,   humanReadableUnhandledException:    true
+        })
+    );
+}
 var log = new (winston.Logger)({ transports: transports });
 
 

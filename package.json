@@ -29,8 +29,8 @@
     "react": "^0.13.3",
     "react-router": "1.0.0-beta1",
     "uglifyify": "^3.0.1",
-    "ungrid": "^1.0.1",
-    "whatwg-fetch": "^0.7.0"
+    "isomorphic-fetch": "^2.1.0",
+    "ungrid": "^1.0.1"
   },
   "dependencies": {
     "async": "^1.2.1",

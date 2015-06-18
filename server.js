@@ -2,7 +2,6 @@
 // this is where the express app goes
 // 3043
 var express = require("express")
-,   winston = require("winston")
 ,   exwin = require("express-winston")
 ,   session = require("express-session")
 ,   FileStore = require("session-file-store")(session)
@@ -12,35 +11,11 @@ var express = require("express")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
+,   log = require("./log")
 ,   app = express()
-,   transports = []
 ,   config = require("./config.json")
 ,   version = require("./package.json").version
 ;
-
-
-// logging
-if (config.logToConsole) {
-    transports.push(
-        new (winston.transports.Console)({
-                handleExceptions:                   true
-            ,   colorize:                           true
-            ,   maxsize:                            200000000
-            ,   humanReadableUnhandledException:    true
-        })
-    );
-}
-if (config.logToFile) {
-    transports.push(
-        new (winston.transports.File)({
-                    filename:                           config.logToFile
-                ,   handleExceptions:                   true
-                ,   timestamp:                          true
-                ,   humanReadableUnhandledException:    true
-        })
-    );
-}
-var log = new (winston.Logger)({ transports: transports });
 
 
 // GitHub auth handling

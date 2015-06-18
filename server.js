@@ -35,6 +35,8 @@ var log = new (winston.Logger)({ transports: transports });
 passport.serializeUser(function (user, done) {
     // XXX
     // here, store the user into a DB
+    // TEMP DOCS
+    // user is the profile see in GitHubStrategy
     log.info("serializeUser");
     console.log("Serialising USER", user);
     done(null, user);
@@ -43,8 +45,9 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (obj, done) {
     // XXX
     // here, get the user by ID
+    // OBJ is the profile, get called with every access
+    // XXX XXX XXX I have no idea what to do with this -- CHECK PASSPORT CORE DOCS
     log.info("deserializeUser");
-    console.log("Deserialising OBJ", obj);
     done(null, obj);
 });
 
@@ -56,9 +59,16 @@ passport.use(
     }
 ,   function (accessToken, refreshToken, profile, done) {
         // XXX
-        // here find GH user in our database and return that as `profile`
+        // here find GH user in our database and return that as `profile` ?
         log.info("cb for GitHubStrategy");
         console.log("auth from GH Strategy", accessToken, refreshToken, profile);
+        // TEMP DOCS
+        //  accessToken=hex string (this is the token we're looking for to user afterwards, store in session or DB?)
+        //  refreshToken=undefined
+        //  profile=normalised as per passport, contains:
+        //      id: numeric ID, displayName (Robin Berjon), username (darobin), profileUrl (gh URL),
+        //      _json (bunch of other fields including avatar_url, blog), emails (array of value: email@address)
+        
         return done(null, profile);
     }
 ));
@@ -119,13 +129,12 @@ app.get(
                                             ,   "write:repo_hook"
                                             ,   "read:org"
                                             ]
-                                    ,   redirect_uri:   redir
+                                    ,   callbackURL:    redir
                                     }
             )(req, res, next);
         }
 );
 
-// XXX how to redirect to the page the user was on?
 // XXX where do I get the OAuth token in here so I can reuse it? it's `accessToken`
 
 // this is the callback that we get from GH
@@ -135,11 +144,11 @@ app.get(
         "/auth/github/callback"
     ,   function (req, res, next) {
             var redir = req.query.back;
-            log.info("auth callback with redir=" + redir);
+            log.info("GitHub auth callback with redir=" + redir);
             passport.authenticate("github", { failureRedirect: redir + "?failure" })(req, res, next);
         }
     ,   function (req, res) {
-            log.info("auth success, redir=" + req.query.back);
+            log.info("GitHub auth success");
             res.redirect(req.query.back || "/");
         }
 );

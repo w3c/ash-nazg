@@ -104,3 +104,24 @@ a:hover {
     padding:    20px;
     text-align: center;
 }
+th {
+    text-align: left;
+}
+th, td {
+    padding:    5px;
+    vertical-align: top;
+}
+tr {
+    border-bottom:  1px solid silver;
+}
+tbody tr:nth-of-type(even) {
+    background: #eee;
+}
+
+
+/* specific areas */
+.users-list .admin {
+    color:  #333;
+}
+
+

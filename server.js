@@ -154,16 +154,29 @@ app.get("/api/logged-in", function (req, res) {
     res.json({ ok: req.isAuthenticated() });
 });
 
+// the handler for everything that might error, or might send data
+function makeRes (res) {
+    return function (err, data) {
+        if (err) return res.status(500).json({ error: err });
+        res.json(data);
+    };
+}
+
+// GROUPS
+app.get("/api/groups", function (req, res) {
+    store.groups(makeRes(res));
+});
+app.post("/api/groups", ensureAPIAuth, bp.json(), function (req, res) {
+    // group must specifiy: name, w3cid, groupType{cg, wg, ig}
+});
+
 // GITHUB APIs
 function loadGH (req, res, next) {
     req.gh = new GH(req.user);
     next();
 }
 app.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
-    req.gh.userOrgs(function (err, data) {
-        if (err) return res.status(500).json({ error: err });
-        res.json(data);
-    });
+    req.gh.userOrgs(makeRes(res));
 });
 app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, function (req, res) {
     req.gh.createRepo(req.body, function (err, data) {

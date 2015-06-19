@@ -11,7 +11,7 @@ function newFile (repo, name, content) {
     return repo.contents(name)
                 .add({
                     message:    "Adding baseline " + name
-                ,   content:    content // XXX base64
+                ,   content:    new Buffer(content).toString("base64")
                 })
     ;
 }
@@ -54,6 +54,7 @@ GH.prototype = {
             .then(function () {
                 actions.push("File 'w3c.json' added.");
                 // XXX add hook, returning a promise
+                // the hook needs to have its own secret, which needs to be returned at the end
             })
             .then(function () {
                 actions.push("Hook installed");

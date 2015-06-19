@@ -56,6 +56,25 @@ Store.prototype = {
                     }
                 }
             }
+
+            // groups
+        ,   {
+                id:         "_design/groups"
+            ,   views:  {
+                    by_w3cid: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "group") return;
+                                    emit(doc.w3cid, doc);
+                                }.toString()
+                    }
+                ,   by_grouptype: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "group") return;
+                                    emit(doc.groupType, doc);
+                                }.toString()
+                    }
+                }
+            }
         ];
         async.each(
             ddocs
@@ -95,6 +114,39 @@ Store.prototype = {
         delete profile._rev; // don't use this to update users
         log.info("Adding user " + profile.username);
         this.add(profile, cb);
+    }
+
+
+    // GROUPS
+,   addGroup:    function (group, cb) {
+        group.id = "group-" + group.w3cid;
+        group.type = "group";
+        delete group._rev; // don't use this to update groups
+        log.info("Adding group " + group.name);
+        this.add(group, cb);
+    }
+    // get a group by w3cid
+,   getGroup:   function (w3cid, cb) {
+        var store = this;
+        log.info("Looking for group " + w3cid);
+        store.db.view("groups/by_w3cid", { key: w3cid }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning group " + w3cid + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.length ? docs[0].value : null);
+        });
+    }
+,   groups:   function (cb) {
+        var store = this;
+        log.info("Getting all groups");
+        store.db.view("groups/by_w3cid", function (err, docs) {
+            if (err) return cb(err);
+            log.info("Found " + docs.length + " groups");
+            // sort them by name
+            docs = docs.toArray().sort(function (a, b) {
+                return a.name.localeCompare(b.name);
+            });
+            cb(null, docs);
+        });
     }
 
 

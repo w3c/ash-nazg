@@ -155,15 +155,22 @@ app.get("/api/logged-in", function (req, res) {
 });
 
 // GITHUB APIs
-app.get("/api/orgs", ensureAPIAuth, function (req, res) {
-    new GH(req.user).userOrgs(function (err, data) {
+function loadGH (req, res, next) {
+    req.gh = new GH(req.user);
+    next();
+}
+app.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
+    req.gh.userOrgs(function (err, data) {
         if (err) return res.status(500).json({ error: err });
         res.json(data);
     });
 });
-app.post("/api/create-repo", ensureAPIAuth, bp.json(), function (req, res) {
-    new GH(req.user).createRepo(req.body, function (err, data) {
+app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, function (req, res) {
+    req.gh.createRepo(req.body, function (err, data) {
         if (err) return res.status(500).json({ error: err });
+        // XXX if this is successful, we need to add the repo to the store
+        // notify a list by email of the creation
+        // how does a repo get associated with a group?
         res.json(data);
     });
 });

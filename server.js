@@ -21,6 +21,38 @@ var express = require("express")
 ,   version = require("./package.json").version
 ;
 
+// HELPERS
+// the handler for everything that might error, or might send data
+function makeRes (res) {
+    return function (err, data) {
+        if (err) return res.status(500).json({ error: err });
+        res.json(data);
+    };
+}
+// a handler for when the response is just ok
+function makeOK (res) {
+    return function (err) {
+        if (err) return res.status(500).json({ error: err });
+        res.json({ ok: true });
+    };
+}
+
+// use this as middleware on any call that requires authentication
+// this is for API use, not in the human URL space
+// it passes if authentication has happened, otherwise it will return a 401
+function ensureAPIAuth (req, res, next) {
+    if (req.isAuthenticated()) return next();
+    res.error(401).json({ error: "Authentication required." });
+}
+
+// same as above, but user has to be admin too
+function ensureAdmin (req, res, next) {
+    ensureAPIAuth(req, res, function () {
+        if (!req.user.admin) res.error(403).json({ error: "Forbidden" });
+        next();
+    });
+}
+
 // passport uses this when a user is create to decide what we want to write into the session
 // in our case we need nothing more than the username with which to retrieve it later
 passport.serializeUser(function (profile, done) {
@@ -94,15 +126,6 @@ app.use(passport.session());
 // static resources
 app.use(serveStatic("public"));
 
-
-// use this as middleware on any call that requires authentication
-// this is for API use, not in the human URL space
-// it passes if authentication has happened, otherwise it will return a 401
-function ensureAPIAuth (req, res, next) {
-    if (req.isAuthenticated()) return next();
-    res.error(401).json({ error: "Authentication required." });
-}
-
 // GET this (not as an API), it will redirect the user to GitHub to authenticate
 // use ?back=http://... for the URL to which to return later
 app.get(
@@ -151,23 +174,28 @@ app.get("/api/logout", function (req, res) {
 
 // check if the user is logged in
 app.get("/api/logged-in", function (req, res) {
-    res.json({ ok: req.isAuthenticated() });
+    res.json({ ok: req.isAuthenticated(), admin: req.user ? req.user.admin : false });
 });
 
-// the handler for everything that might error, or might send data
-function makeRes (res) {
-    return function (err, data) {
-        if (err) return res.status(500).json({ error: err });
-        res.json(data);
-    };
-}
+// list all the users known to the system
+app.get("/api/users", function (req, res) {
+    store.users(makeRes(res));
+});
+// make user an admin
+app.put("/api/user/:username/admin", ensureAdmin, function (req, res) {
+    store.makeUserAdmin(req.params.username, makeOK(res));
+});
+
 
 // GROUPS
+// list all the groups known to the system
 app.get("/api/groups", function (req, res) {
     store.groups(makeRes(res));
 });
+// add a group to the list of those that the system knows about
 app.post("/api/groups", ensureAPIAuth, bp.json(), function (req, res) {
     // group must specifiy: name, w3cid, groupType{cg, wg, ig}
+    store.addGroup(req.body, makeOK(res));
 });
 
 // GITHUB APIs

@@ -13,6 +13,9 @@
 // Ok, can live with that.
 // We can create a special token for the w3c organisation
 
+// XXX
+// this could use some DRY love
+
 var cradle = require("cradle")
 // ,   isArray = require("util").isArray
 ,   async = require("async")
@@ -108,6 +111,18 @@ Store.prototype = {
             cb(null, docs.length ? docs[0].value : null);
         });
     }
+,   users:   function (cb) {
+        var store = this;
+        log.info("Listing users");
+        store.db.view("users/by_username", function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning " + docs.length + "users");
+            docs = docs.toArray().sort(function (a, b) {
+                return a.fullName.localeCompare(b.fullName);
+            });
+            cb(null, docs);
+        });
+    }
 ,   addUser:    function (profile, cb) {
         profile.id = "user-" + profile.username;
         profile.type = "user";
@@ -115,7 +130,9 @@ Store.prototype = {
         log.info("Adding user " + profile.username);
         this.add(profile, cb);
     }
-
+,   makeUserAdmin:  function (username, cb) {
+        this.db.merge("user-" + username, { admin: true }, cb);
+    }
 
     // GROUPS
 ,   addGroup:    function (group, cb) {

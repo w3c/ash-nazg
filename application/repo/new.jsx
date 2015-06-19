@@ -11,13 +11,21 @@ export default class RepoNew extends React.Component {
         this.state = {
             status: "loading"
         ,   orgs:   null
+        ,   groups: null
         };
     }
     componentDidMount () {
+        let orgs;
         fetch("/api/orgs")
             .then(utils.jsonHandler)
             .then((data) => {
-                this.setState({ orgs: data, status: "ready" });
+                orgs = data;
+                return fetch("/api/groups")
+                        .then(utils.jsonHandler)
+                        .then((data) => {
+                            this.setState({ orgs: orgs, groups: data, status: "ready" });
+                        })
+                ;
             })
             .catch(utils.catchHandler);
         
@@ -26,18 +34,16 @@ export default class RepoNew extends React.Component {
         console.log("submit");
         React.findDOMNode(this.refs.form).disabled = true;
         this.setState({ status: "submitting" });
-        // XXX
-        // here we POST the relevant information to the server, and wait (possibly a long time)
-        // for the feedback. The hope is that the "long time" isn't all that long.
         fetch(
             "/api/create-repo"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
-            ,   body:   {
+            ,   body:   JSON.stringify({
                     org:    utils.val(this.refs.org)
                 ,   repo:   utils.val(this.refs.repo)
-                }
+                ,   group:  utils.val(this.refs.group)
+                })
             }
         )
         .then(utils.jsonHandler)
@@ -65,10 +71,16 @@ export default class RepoNew extends React.Component {
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
                                 <select ref="org">
-                                    {st.orgs.map((org) => { return <option value={org}>{org}</option>; })}
+                                    {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
                                 <input type="text" ref="repo"/>
+                            </div>
+                            <div className="formline">
+                                <label htmlFor="group">relevant group</label>
+                                <select ref="group">
+                                    {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
+                                </select>
                             </div>
                             <div className="formline actions">
                                 <button>Create</button>

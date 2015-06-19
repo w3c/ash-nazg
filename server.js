@@ -22,20 +22,26 @@ var express = require("express")
 ;
 
 // HELPERS
+// all errors
+function error (res, err) {
+    log.error(err);
+    res.status(500).json({ error: err });
+}
 // the handler for everything that might error, or might send data
 function makeRes (res) {
     return function (err, data) {
-        if (err) return res.status(500).json({ error: err });
+        if (err) return error(res, err);
         res.json(data);
     };
 }
 // a handler for when the response is just ok
 function makeOK (res) {
     return function (err) {
-        if (err) return res.status(500).json({ error: err });
+        if (err) return error(res, err);
         res.json({ ok: true });
     };
 }
+
 
 // use this as middleware on any call that requires authentication
 // this is for API use, not in the human URL space
@@ -207,12 +213,19 @@ app.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
     req.gh.userOrgs(makeRes(res));
 });
 app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, function (req, res) {
-    req.gh.createRepo(req.body, function (err, data) {
-        if (err) return res.status(500).json({ error: err });
-        // XXX if this is successful, we need to add the repo to the store
-        // notify a list by email of the creation
-        // how does a repo get associated with a group?
-        res.json(data);
+    // need to user the req.body.group to fetch the group from the list we manage
+    // so that we can fill it out for createRepo
+    var data = req.body;
+    store.getGroup(data.group, function (err, group) {
+        if (err) return error(res, err);
+        data.group = group;
+        req.gh.createRepo(data, function (err, data) {
+            if (err) return error(res, err);
+            // XXX if this is successful, we need to add the repo to the store
+            // notify a list by email of the creation
+            // how does a repo get associated with a group?
+            res.json(data);
+        });
     });
 });
 

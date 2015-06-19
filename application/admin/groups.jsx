@@ -1,9 +1,19 @@
 
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
+import GroupLine from "./group-line.jsx";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   groupTypes = {
+        "community group":      "CG"
+    ,   "working group":        "WG"
+    ,   "business group":       "BG"
+    ,   "coordination group":   "CO"
+    ,   "interest group":       "IG"
+    }
+,   ourGroupMap = {}
+;
 
 export default class AdminGroups extends React.Component {
     constructor (props) {
@@ -18,14 +28,25 @@ export default class AdminGroups extends React.Component {
         var ourGroups;
         fetch("/api/groups")
             .then(utils.jsonHandler)
-            .then((data) => { ourGroups = data; })
+            .then((data) => {
+                ourGroups = data;
+                ourGroups.forEach((g) => { ourGroupMap[g.w3cid] = true; });
+            })
             .then(() => {
-                return fetch("XXX") // XXX URL for W3C list of groupe
+                return fetch("https://api-test.w3.org/groups?items=500&embed=true")
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            // XXX
-                            // munge the data to be in a usable format
-                            // remove groups that are already in ourGroups
+                            data = data._embedded
+                                        .groups
+                                        .map((g) => {
+                                            return {
+                                                w3cid:      g.id
+                                            ,   name:       g.name
+                                            ,   groupType:  groupTypes[g.type] || "XX"
+                                            ,   managed:    !!ourGroupMap[g.id]
+                                            };
+                                        })
+                            ;
                             this.setState({ ourGroups: ourGroups, groups: data, status: "ready" });
                         });
             })
@@ -46,7 +67,23 @@ export default class AdminGroups extends React.Component {
             // system
             // and with an affordance to insert them
             // use a component to show each group. When it's included, it just changes style.
-            content =   <table></table>
+            content =   <table className="groups-list">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Name</th>
+                                    <th>ID</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            {
+                                st.groups.map((g) => {
+                                    return <GroupLine key={g.w3cid} w3cid={g.w3cid} managed={g.managed} 
+                                                    name={g.name} groupType={g.groupType}
+                                                    />;
+                                })
+                            }
+                        </table>
             ;
         }
         return  <div className="primary-app">

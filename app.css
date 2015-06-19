@@ -123,5 +123,8 @@ tbody tr:nth-of-type(even) {
 .users-list .admin {
     color:  #333;
 }
+.groups-list .managed {
+    font-weight:    bold;
+}
 
 

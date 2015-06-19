@@ -17,7 +17,7 @@ export default class UserLine extends React.Component {
         ,   {
                 method:     "put"
             ,   headers:    { "Content-Type": "application/json" }
-            ,   body:   {}
+            ,   body:       "{}"
             }
         )
         .then(utils.jsonHandler)
@@ -25,7 +25,7 @@ export default class UserLine extends React.Component {
             if (data.ok) return this.setState({ admin: true });
             React.findDOMNode(this.refs.admin).disabled = false;
             // XXX need proper flash messages
-            alert("Failure to set admin flag on user.");
+            alert("Failure to set admin flag on user: " + data.error);
         })
         .catch(utils.catchHandler)
         ;
@@ -34,7 +34,7 @@ export default class UserLine extends React.Component {
         let props = this.props
         ,   st = this.state
         ,   makeAdmin = <td></td>
-        ,   tdStyle = {paddingRight: "20px"}
+        ,   tdStyle = { paddingRight: "20px" }
         ,   email
         ,   pic
         ;

@@ -65,6 +65,7 @@ class AshNazg extends React.Component {
                         <NavItem><Link to="/repo/new">New Repository</Link></NavItem>
                         <NavItem><Link to="/repo/import">Import Repository</Link></NavItem>
                     </NavBox>
+                    {admin}
                     <NavBox title="User">
                         <NavItem><LogoutButton/></NavItem>
                     </NavBox>

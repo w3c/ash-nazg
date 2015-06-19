@@ -47,6 +47,7 @@ export default class RepoNew extends React.Component {
             ,   result: data
             });
         })
+        .catch(utils.catchHandler)
         ;
     }
     

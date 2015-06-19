@@ -15,11 +15,9 @@ export default class AdminUsers extends React.Component {
         };
     }
     componentDidMount () {
-        console.log("componentDidMount");
         fetch("/api/users")
             .then(utils.jsonHandler)
             .then((data) => {
-                console.log("got list of users", data);
                 this.setState({ users: data, status: "ready" });
             })
             .catch(utils.catchHandler)
@@ -30,12 +28,10 @@ export default class AdminUsers extends React.Component {
         let st = this.state
         ,   content
         ;
-        console.log("rendering in status", st.status);
         if (st.status === "loading") {
             content = <Spinner/>;
         }
         else if (st.status === "ready") {
-            console.log("ready", st.users);
             content =   <table className="users-list">
                             <thead>
                                 <tr>

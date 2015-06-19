@@ -21,9 +21,11 @@ import Welcome from "./application/welcome.jsx";
 import LoginWelcome from "./application/login.jsx";
 import LogoutButton from "./application/logout-button.jsx";
 import RepoNew from "./application/repo/new.jsx";
+import AdminUsers from "./application/admin/users.jsx";
+import AdminGroups from "./application/admin/groups.jsx";
 
 function getState () {
-    return { loggedIn: LoginStore.isLoggedIn() };
+    return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin() };
 }
 
 class AshNazg extends React.Component {
@@ -45,7 +47,17 @@ class AshNazg extends React.Component {
     render () {
         let st = this.state
         ,   nav
-        ,   body;
+        ,   body
+        ,   admin
+        ;
+        // show admin links as well
+        if (st.admin) {
+            admin = <NavBox title="Admin">
+                        <NavItem><Link to="/admin/users">Users</Link></NavItem>
+                        <NavItem><Link to="/admin/groups">Groups</Link></NavItem>
+                    </NavBox>
+            ;
+        }
         // when logged in show an actual menu and content
         if (st.loggedIn === true) {
             nav = <Col className="nav">
@@ -82,6 +94,8 @@ React.render(
     <Router history={BrowserHistory}>
         <Route path="/" component={AshNazg}>
             <Route path="repo/new" component={RepoNew}/>
+            <Route path="admin/users" component={AdminUsers}/>
+            <Route path="admin/groups" component={AdminGroups}/>
         </Route>
     </Router>
 ,   document.body

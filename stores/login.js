@@ -8,6 +8,7 @@ require("isomorphic-fetch");
 
 let utils = require("../application/utils")
 ,   _loggedIn = null
+,   _admin = false
 ,   LoginStore = module.exports = assign({}, EventEmitter.prototype, {
         emitChange: function () { this.emit("change"); }
     ,   addChangeListener: function (cb) { this.on("change", cb); }
@@ -15,6 +16,9 @@ let utils = require("../application/utils")
 
     ,   isLoggedIn: function () {
             return _loggedIn;
+        }
+    ,   isAdmin: function () {
+            return _admin;
         }
     })
 ;
@@ -26,6 +30,7 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                 .then(utils.jsonHandler)
                 .then((data) => {
                     _loggedIn = data.ok;
+                    _admin = data.admin;
                     LoginStore.emitChange();
                 })
                 .catch(utils.catchHandler);
@@ -36,6 +41,7 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                 .then((data) => {
                     if (!data.ok) throw "Logout failed";
                     _loggedIn = false;
+                    _admin = false;
                     LoginStore.emitChange();
                 })
                 .catch(utils.catchHandler);

@@ -221,6 +221,7 @@ function showIndex (req, res) {
     res.sendFile(jn(__dirname, "public/index.html"));
 }
 app.get("/repo/*", showIndex);
+app.get("/admin/*", showIndex);
 
 
 // run!

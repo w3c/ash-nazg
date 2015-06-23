@@ -25,13 +25,37 @@ function GH (user) {
     this.octo = new Octokat({ token: user.accessToken });
 }
 
-function newFile (repo, name, content) {
-    return repo.contents(name)
-                .add({
-                    message:    "Adding baseline " + name
-                ,   content:    new Buffer(content).toString("base64")
-                })
+function makeNewRepo (gh, target, owner, repoShortName, report) {
+    return target
+            .create({ name: repoShortName })
+            .then(function () {
+                report.push("Repo '" + repoShortName + "' created.");
+            })
     ;
+}
+
+function pickUserRepo (gh, target, owner, repoShortName, report) {
+    var repo = gh.octo.repos(owner, repoShortName);
+    report.push("Looking for repo " + owner + "/" + repoShortName + " to import.");
+    return repo.fetch();
+}
+
+function newFile (gh, name, content, report) {
+    return function () {
+        return gh.currentRepo
+                    .contents(name)
+                    .add({
+                        message:    "Adding baseline " + name
+                    ,   content:    new Buffer(content).toString("base64")
+                    })
+                    .then(function () {
+                        report.push("Added file " + name);
+                    })
+                    .catch(function () {
+                        report.push("Skipped existing file " + name);
+                    })
+        ;
+    };
 }
 
 GH.prototype = {
@@ -42,19 +66,29 @@ GH.prototype = {
         }.bind(this));
     }
 ,   createRepo: function (data, cb) {
+        this.createOrImportRepo(data, makeNewRepo, newFile, cb);
+    }
+,   importRepo: function (data, cb) {
+        this.createOrImportRepo(data, pickUserRepo, newFile, cb);
+    }
+    // data describes the repo to create
+    // setupAction is a function returning a promise that is called to initiate the creation or
+    // obtain a pointer to the repo, it must resolve with the octo repo object
+    // action is a function returning a promise that creates or imports a file, and logs a message
+,   createOrImportRepo: function (data, setupAction, action, cb) {
         // { org: ..., repo: ... }
         // we need to treat the current user and an org differently
-        var actions = []
+        var report = []
         ,   target = (this.user.username === data.org) ?
                             this.octo.me.repos :
                             this.octo.orgs(data.org).repos
-        ,   keepRepo
         ,   license
         ,   contributing
         ,   w3cJSON
         ,   index
         ,   simpleRepo
         ,   readme
+        ,   hookURL = config.hookURL || (config.url + "api/hook")
         ,   tmplData = {
                 name:           data.group.name
             ,   username:       this.user.username
@@ -78,11 +112,9 @@ GH.prototype = {
         w3cJSON = template("w3c.json", tmplData);
         index = template("index.html", tmplData);
         readme = template("README.md", tmplData);
-        target
-            .create({ name: data.repo })
+        setupAction(this, target, data.org, data.repo, report)
             .then(function (repo) {
-                actions.push("Repo '" + repo.fullName + "' created.");
-                keepRepo = repo;
+                this.currentRepo = repo;
                 simpleRepo = {
                     name:       repo.name
                 ,   fullName:   repo.fullName
@@ -90,41 +122,39 @@ GH.prototype = {
                 ,   group:      data.group.w3cid
                 ,   secret:     pg(20)
                 };
-                return newFile(keepRepo, "LICENSE", license);
-            })
+            }.bind(this))
+            .then(action(this, "LICENSE", license, report))
+            .then(action(this, "CONTRIBUTING.md", contributing, report))
+            .then(action(this, "README.md", readme, report))
+            .then(action(this, "index.html", index, report))
+            .then(action(this, "w3c.json", w3cJSON, report))
             .then(function () {
-                actions.push("File 'LICENSE' added.");
-                return newFile(keepRepo, "CONTRIBUTING.md", contributing);
-            })
-            .then(function () {
-                actions.push("File 'CONTRIBUTING.md' added.");
-                return newFile(keepRepo, "README.md", readme);
-            })
-            .then(function () {
-                actions.push("File 'README.md' added.");
-                return newFile(keepRepo, "index.html", index);
-            })
-            .then(function () {
-                actions.push("File 'index.html' added.");
-                return newFile(keepRepo, "w3c.json", w3cJSON);
-            })
-            .then(function () {
-                actions.push("File 'w3c.json' added.");
-                return keepRepo.hooks.create({
-                                            name:   "web"
-                                        ,   config: {
-                                                url:            config.hookURL || (config.url + "api/hook")
-                                            ,   content_type:   "json"
-                                            ,   secret:         simpleRepo.secret
-                                            }
-                                        ,   events: ["pull_request", "issue_comment", "pull_request_review_comment"]
-                                        ,   active: true
-                                        })
+                return this.currentRepo
+                        .hooks
+                        .fetch()
+                        .then(function (hooks) {
+                            if (!hooks || !hooks.length || !hooks.some(function (h) { return h.config.url === hookURL; })) {
+                                return this.currentRepo.hooks.create({
+                                                            name:   "web"
+                                                        ,   config: {
+                                                                url:            config.hookURL || (config.url + "api/hook")
+                                                            ,   content_type:   "json"
+                                                            ,   secret:         simpleRepo.secret
+                                                            }
+                                                        ,   events: ["pull_request", "issue_comment", "pull_request_review_comment"]
+                                                        ,   active: true
+                                                        })
+                                                        .then(function () { report.push("Hook installed."); })
+                                ;
+                            }
+                            else {
+                                report.push("Hook already present.");
+                            }
+                        }.bind(this))
                 ;
-            })
+            }.bind(this))
             .then(function () {
-                actions.push("Hook installed");
-                cb(null, { actions: actions, repo: simpleRepo });
+                cb(null, { actions: report, repo: simpleRepo });
             })
             .catch(cb)
         ;

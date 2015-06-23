@@ -1,9 +1,10 @@
 
 import React from "react";
-import Spinner from "../../components/spinner.jsx";
+import Spinner from "../components/spinner.jsx";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("./utils")
+;
 
 export default class RepoNew extends React.Component {
     constructor (props) {
@@ -16,7 +17,13 @@ export default class RepoNew extends React.Component {
         ,   org:        null
         ,   repo:       null
         ,   group:      null
+        ,   isNew:      true
         };
+    }
+    componentWillMount () {
+        let mode = this.props.params.mode;
+        if (mode !== "new" && mode !== "import") throw new Error("Unknown repository mode: " + mode);
+        this.setState({ isNew: mode === "new" });
     }
     componentDidMount () {
         let orgs;
@@ -48,7 +55,7 @@ export default class RepoNew extends React.Component {
         ,   group:      group
         });
         fetch(
-            "/api/create-repo"
+            this.state.isNew ? "/api/create-repo" : "/api/import-repo"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
@@ -99,7 +106,7 @@ export default class RepoNew extends React.Component {
                                 </select>
                             </div>
                             <div className="formline actions">
-                                <button>Create</button>
+                                <button>{st.isNew ? "Create" : "Import"}</button>
                             </div>
                         </form>
         ;
@@ -121,25 +128,41 @@ export default class RepoNew extends React.Component {
                                 { st.result.actions.map((act) => { return <li key={act}>{act}</li>; }) }
                             </ul>
                             <p>
-                                You can view your newly minted repository over 
+                                You can view your { st.isNew ? "newly minted" : "imported" } repository over 
                                 there: <a href={"https://github.com/" + st.result.repo} target="_blank">{st.result.repo}</a>
                             </p>
                           </div>;
             }
         }
-        return  <div className="primary-app">
-                    <h2>New Repository</h2>
-                    <p>
-                        Use the form below to create a new repository under either your user or one
-                        of the organisations that you have write access to. There is no requirement
-                        to place your proposal under the <code>w3c</code> organisation; in fact if
-                        a proposal is simply your own, using your personal repository is preferred.
-                        No preference is given to a specification proposal based on the user or
-                        organisation it belongs to.
-                    </p>
-                    {content}
-                    {results}
-                </div>
-        ;
+        if (st.isNew) {
+            return  <div className="primary-app">
+                        <h2>New Repository</h2>
+                        <p>
+                            Use the form below to create a new repository under either your user or one
+                            of the organisations that you have write access to. There is no requirement
+                            to place your proposal under the <code>w3c</code> organisation; in fact if
+                            a proposal is simply your own, using your personal repository is preferred.
+                            No preference is given to a specification proposal based on the user or
+                            organisation it belongs to.
+                        </p>
+                        {content}
+                        {results}
+                    </div>
+            ;
+        }
+        else {
+            return  <div className="primary-app">
+                        <h2>Import Repository</h2>
+                        <p>
+                            Use the form below to import an existing repository under either your user
+                            or one of the organisations that you have write access to. Your existing
+                            files will no be overwritten, it is your responsibility to check that you
+                            are set up correctly. New files will, however, be added.
+                        </p>
+                        {content}
+                        {results}
+                    </div>
+            ;
+        }
     }
 }

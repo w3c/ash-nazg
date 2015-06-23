@@ -214,35 +214,40 @@ function loadGH (req, res, next) {
 app.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
     req.gh.userOrgs(makeRes(res));
 });
-app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, function (req, res) {
-    // need to user the req.body.group to fetch the group from the list we manage
-    // so that we can fill it out for createRepo
-    var data = req.body;
-    store.getGroup(data.group, function (err, group) {
-        if (err) return error(res, err);
-        data.group = group;
-        req.gh.createRepo(data, function (err, data) {
+function makeCreateOrImportRepo (mode) {
+    var ghFunc = mode === "create" ? "createRepo" : "importRepo";
+    return function (req, res) {
+        // need to user the req.body.group to fetch the group from the list we manage
+        // so that we can fill it out for createRepo
+        var data = req.body;
+        store.getGroup(data.group, function (err, group) {
             if (err) return error(res, err);
-            var repo = data.repo;
-            async.parallel(
-                [
-                    function (cb) {
-                        store.addSecret({ owner: repo.owner, secret: repo.secret }, cb);
+            data.group = group;
+            req.gh[ghFunc](data, function (err, data) {
+                if (err) return error(res, err);
+                var repo = data.repo;
+                async.parallel(
+                    [
+                        function (cb) {
+                            store.addSecret({ owner: repo.owner, secret: repo.secret }, cb);
+                        }
+                    ,   function (cb) {
+                            var secretLess = assign({}, repo);
+                            delete secretLess.secret;
+                            store.addRepo(secretLess, cb);
+                        }
+                    ]
+                ,   function (err) {
+                        if (err) return error(res, err);
+                        res.json({ actions: data.actions, repo: repo.fullName });
                     }
-                ,   function (cb) {
-                        var secretLess = assign({}, repo);
-                        delete secretLess.secret;
-                        store.addRepo(secretLess, cb);
-                    }
-                ]
-            ,   function (err) {
-                    if (err) return error(res, err);
-                    res.json({ actions: data.actions, repo: repo.fullName });
-                }
-            );
+                );
+            });
         });
-    });
-});
+    };
+}
+app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
+app.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 
 // handler for client-side routing
 function showIndex (req, res) {

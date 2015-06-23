@@ -20,7 +20,7 @@ import LoginStore from "./stores/login";
 import Welcome from "./application/welcome.jsx";
 import LoginWelcome from "./application/login.jsx";
 import LogoutButton from "./application/logout-button.jsx";
-import RepoNew from "./application/repo/new.jsx";
+import RepoManager from "./application/repo-manager.jsx";
 import AdminUsers from "./application/admin/users.jsx";
 import AdminGroups from "./application/admin/groups.jsx";
 
@@ -94,7 +94,7 @@ class AshNazg extends React.Component {
 React.render(
     <Router history={BrowserHistory}>
         <Route path="/" component={AshNazg}>
-            <Route path="repo/new" component={RepoNew}/>
+            <Route path="repo/:mode" component={RepoManager}/>
             <Route path="admin/users" component={AdminUsers}/>
             <Route path="admin/groups" component={AdminGroups}/>
         </Route>

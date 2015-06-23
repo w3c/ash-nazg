@@ -9,9 +9,13 @@ export default class RepoNew extends React.Component {
     constructor (props) {
         super(props);
         this.state = {
-            status: "loading"
-        ,   orgs:   null
-        ,   groups: null
+            status:     "loading"
+        ,   orgs:       null
+        ,   groups:     null
+        ,   disabled:   false
+        ,   org:        null
+        ,   repo:       null
+        ,   group:      null
         };
     }
     componentDidMount () {
@@ -30,28 +34,44 @@ export default class RepoNew extends React.Component {
             .catch(utils.catchHandler);
         
     }
-    onSubmit () {
-        console.log("submit");
-        React.findDOMNode(this.refs.form).disabled = true;
-        this.setState({ status: "submitting" });
+    onSubmit (ev) {
+        ev.preventDefault();
+        let org = utils.val(this.refs.org)
+        ,   repo = utils.val(this.refs.repo)
+        ,   group = utils.val(this.refs.group)
+        ;
+        this.setState({
+            disabled:   true
+        ,   status:     "submitting"
+        ,   org:        org
+        ,   repo:       repo
+        ,   group:      group
+        });
         fetch(
             "/api/create-repo"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
             ,   body:   JSON.stringify({
-                    org:    utils.val(this.refs.org)
-                ,   repo:   utils.val(this.refs.repo)
-                ,   group:  utils.val(this.refs.group)
+                    org:    org
+                ,   repo:   repo
+                ,   group:  group
                 })
             }
         )
         .then(utils.jsonHandler)
         .then((data) => {
-            this.setState({
-                status: "results"
-            ,   result: data
-            });
+            var newState = {
+                status:     "results"
+            ,   result:     data
+            ,   disabled:   false
+            };
+            if (!data.error) {
+                newState.org = "";
+                newState.repo = "";
+                newState.group = "";
+            }
+            this.setState(newState);
         })
         .catch(utils.catchHandler)
         ;
@@ -59,26 +79,22 @@ export default class RepoNew extends React.Component {
     
     render () {
         let st = this.state
-        ,   content
-        ,   results
-        ;
-        if (st.status === "loading") {
-            content = <Spinner/>;
-            results = "";
-        }
-        else if (st.status === "ready") {
-            content =   <form onSubmit={this.onSubmit.bind(this)} ref="form">
+        ,   results = ""
+        ,   content = (st.status === "loading") ?
+                        <Spinner/>
+                    :
+                        <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select ref="org">
+                                <select ref="org" value={st.org}>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input type="text" ref="repo"/>
+                                <input type="text" ref="repo" defaultValue={st.repo}/>
                             </div>
                             <div className="formline">
                                 <label htmlFor="group">relevant group</label>
-                                <select ref="group">
+                                <select ref="group" value={st.group}>
                                     {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
                                 </select>
                             </div>
@@ -86,18 +102,30 @@ export default class RepoNew extends React.Component {
                                 <button>Create</button>
                             </div>
                         </form>
-            ;
-            results = "";
-        }
-        else if (st.status === "submitting") {
+        ;
+        if (st.status === "submitting") {
             results = <Spinner/>;
         }
         else if (st.status === "results") {
-            // XXX
-            //  undisable the form unconditionally
-            //  if st.result is an error, show the errors
-            //  otherwise reset the form and show the list of actions (plus link to go to the repo)
-            results = "";
+            // XXX need a proper flash message
+            if (st.result.error) {
+                results = <div className="error">{st.result.error}</div>;
+            }
+            else {
+                results = <div>
+                            <p>
+                                The following operations were successfully carried out against your
+                                repository:
+                            </p>
+                            <ul>
+                                { st.result.actions.map((act) => { return <li key={act}>{act}</li>; }) }
+                            </ul>
+                            <p>
+                                You can view your newly minted repository over 
+                                there: <a href={"https://github.com/" + st.result.repo} target="_blank">{st.result.repo}</a>
+                            </p>
+                          </div>;
+            }
         }
         return  <div className="primary-app">
                     <h2>New Repository</h2>

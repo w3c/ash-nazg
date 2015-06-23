@@ -63,17 +63,16 @@ GH.prototype = {
             ,   displayName:    this.user.displayName
             }
         ;
-        if (data.group.groupType === "cg") {
+        if (data.group.groupType === "CG") {
             contributing = template("CG-contributing.md", tmplData);
             license = template("CG-license.md", tmplData);
         }
-        else if (data.group.groupType === "wg") {
+        else if (data.group.groupType === "WG") {
             contributing = template("WG-contributing.md", tmplData);
             license = template("WG-license.md", tmplData);
         }
         else {
             var msg = "We currently don't support creating repos for group type: " + data.group.groupType;
-            log.error(msg);
             return cb(msg);
         }
         w3cJSON = template("w3c.json", tmplData);
@@ -88,6 +87,7 @@ GH.prototype = {
                     name:       repo.name
                 ,   fullName:   repo.fullName
                 ,   owner:      repo.owner.login
+                ,   group:      data.group.w3cid
                 ,   secret:     pg(20)
                 };
                 return newFile(keepRepo, "LICENSE", license);

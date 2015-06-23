@@ -8,6 +8,8 @@ var express = require("express")
 ,   serveStatic = require("serve-static")
 ,   cookieParser = require("cookie-parser")
 ,   bp = require("body-parser")
+,   async = require("async")
+,   assign = require("object-assign")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   jn = require("path").join
@@ -221,10 +223,23 @@ app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, function (req, re
         data.group = group;
         req.gh.createRepo(data, function (err, data) {
             if (err) return error(res, err);
-            // XXX if this is successful, we need to add the repo to the store
-            // notify a list by email of the creation
-            // how does a repo get associated with a group?
-            res.json(data);
+            var repo = data.repo;
+            async.parallel(
+                [
+                    function (cb) {
+                        store.addSecret({ owner: repo.owner, secret: repo.secret }, cb);
+                    }
+                ,   function (cb) {
+                        var secretLess = assign({}, repo);
+                        delete secretLess.secret;
+                        store.addRepo(secretLess, cb);
+                    }
+                ]
+            ,   function (err) {
+                    if (err) return error(res, err);
+                    res.json({ actions: data.actions, repo: repo.fullName });
+                }
+            );
         });
     });
 });

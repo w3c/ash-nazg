@@ -67,13 +67,39 @@ Store.prototype = {
                     by_w3cid: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "group") return;
-                                    emit(doc.w3cid, doc);
+                                    emit(doc.w3cid + "", doc);
                                 }.toString()
                     }
                 ,   by_grouptype: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "group") return;
                                     emit(doc.groupType, doc);
+                                }.toString()
+                    }
+                }
+            }
+
+            // secrets
+        ,   {
+                id:         "_design/secrets"
+            ,   views:  {
+                    by_owner: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "secret") return;
+                                    emit(doc.owner, doc);
+                                }.toString()
+                    }
+                }
+            }
+
+            // repos
+        ,   {
+                id:         "_design/repos"
+            ,   views:  {
+                    by_fullname: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "repo") return;
+                                    emit(doc.fullName, doc);
                                 }.toString()
                     }
                 }
@@ -163,6 +189,50 @@ Store.prototype = {
                 return a.name.localeCompare(b.name);
             });
             cb(null, docs);
+        });
+    }
+
+
+    // SECRETS
+,   addSecret:    function (secret, cb) {
+        // the configuration file can list secrets that override those in the DB, in which case the
+        // latter don't get stored
+        if (config.secrets && config.secrets[secret.owner]) return cb();
+        secret.id = "secret-" + secret.owner;
+        secret.type = "secret";
+        delete secret._rev; // don't use this to update secrets
+        log.info("Adding secret " + secret.owner);
+        this.add(secret, cb);
+    }
+    // get a secret by owner
+,   getSecret:   function (owner, cb) {
+        var store = this;
+        log.info("Looking for secret for " + owner);
+        if (config.secrets && config.secrets[owner]) return cb(null, { owner: owner, secret: config.secrets[owner] });
+        store.db.view("secrets/by_owner", { key: owner }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning secret for " + owner + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.length ? docs[0].value : null);
+        });
+    }
+
+
+    // REPOS
+,   addRepo:    function (repo, cb) {
+        repo.id = "repo-" + repo.fullName;
+        repo.type = "repo";
+        delete repo._rev; // don't use this to update repos
+        log.info("Adding repo " + repo.fullName);
+        this.add(repo, cb);
+    }
+    // get a repo by fullName (username/reponame)
+,   getRepo:   function (fullName, cb) {
+        var store = this;
+        log.info("Looking for repo for " + fullName);
+        store.db.view("secrets/by_fullname", { key: fullName }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning repo for " + fullName + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.length ? docs[0].value : null);
         });
     }
 

@@ -1,5 +1,6 @@
 
 import React from "react";
+import Link from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -30,24 +31,36 @@ export default class UserLine extends React.Component {
         .catch(utils.catchHandler)
         ;
     }
+    editAffiliations () {
+        // XXX groups and companies here
+    }
     render () {
         let props = this.props
         ,   st = this.state
-        ,   makeAdmin = <td></td>
+        ,   makeAdmin = ""
         ,   tdStyle = { paddingRight: "20px" }
-        ,   email
+        ,   name
         ,   pic
         ;
-        if (!st.admin) makeAdmin = <td style={tdStyle}><button onClick={this.makeAdmin.bind(this)} ref="admin">Make admin</button></td>;
-        if (props.email) email = <a href={"mailto:" + props.email}>{props.email}</a>;
+        if (!st.admin) makeAdmin = <button onClick={this.makeAdmin.bind(this)} ref="admin">Make admin</button>;
+        if (props.email) name = <a href={"mailto:" + props.email}>{props.displayName}</a>;
+        else name = props.displayName;
         if (props.pic) pic = <img src={props.pic} alt={props.displayName} width="46"/>;
         return  <tr className={st.admin ? "admin" : ""}>
                     <td>{pic}</td>
-                    <td style={tdStyle}>{props.displayName}</td>
+                    <td style={tdStyle}>{name}</td>
                     <td style={tdStyle}><a href={"https://github.com/" + props.username} target="_blank">{"@" + props.username}</a></td>
-                    <td style={tdStyle}>{email}</td>
-                    {makeAdmin}
+                    <td style={tdStyle}>{props.groups ? props.groups.join(", ") : "none"}</td>
+                    <td style={tdStyle}>{props.affiliation || "none"}</td>
+                    <td style={tdStyle}>{props.w3cid || "none"}</td>
+                    <td>
+                        {makeAdmin}
+                        <a href={"/admin/user/" + props.username}>Edit</a>
+                    </td>
                 </tr>
         ;
+        // XXX the <a> above should be:
+        // <Link to={"/admin/user/" + props.username}>Edit</Link>
+        // but this blows up without explanation
     }
 }

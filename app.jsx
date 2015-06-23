@@ -23,6 +23,7 @@ import LogoutButton from "./application/logout-button.jsx";
 import RepoManager from "./application/repo-manager.jsx";
 import AdminUsers from "./application/admin/users.jsx";
 import AdminGroups from "./application/admin/groups.jsx";
+import EditUser from "./application/admin/edit-user.jsx";
 
 function getState () {
     return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin() };
@@ -96,6 +97,7 @@ React.render(
         <Route path="/" component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="admin/users" component={AdminUsers}/>
+            <Route path="admin/user/:username" component={EditUser}/>
             <Route path="admin/groups" component={AdminGroups}/>
         </Route>
     </Router>

@@ -152,6 +152,7 @@ Store.prototype = {
 ,   addUser:    function (profile, cb) {
         profile.id = "user-" + profile.username;
         profile.type = "user";
+        profile.groups = profile.groups || {};
         delete profile._rev; // don't use this to update users
         log.info("Adding user " + profile.username);
         this.add(profile, cb);
@@ -164,6 +165,7 @@ Store.prototype = {
 ,   addGroup:    function (group, cb) {
         group.id = "group-" + group.w3cid;
         group.type = "group";
+        group.w3cid = group.w3cid + "";
         delete group._rev; // don't use this to update groups
         log.info("Adding group " + group.name);
         this.add(group, cb);

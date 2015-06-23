@@ -38,7 +38,9 @@ export default class AdminUsers extends React.Component {
                                     <th>Pic</th>
                                     <th>Name</th>
                                     <th>Login</th>
-                                    <th>Email</th>
+                                    <th>Groups</th>
+                                    <th>Affiliation</th>
+                                    <th>W3C ID</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -49,6 +51,7 @@ export default class AdminUsers extends React.Component {
                                     ;
                                     return <UserLine key={u.username} admin={u.admin} 
                                                     displayName={u.displayName} username={u.username}
+                                                    groups={u.groups} affiliation={u.affiliation}
                                                     email={email} pic={pic}
                                                     />;
                                 })
@@ -59,8 +62,9 @@ export default class AdminUsers extends React.Component {
         return  <div className="primary-app">
                     <h2>Users</h2>
                     <p>
-                        Use this interface to grant administrative privileges to users. Be careful,
-                        admins are considered to be reliable people, they can break things.
+                        Use this interface to grant administrative privileges to users and set their
+                        affiliations (both to groups and to members). Be careful, admins are
+                        considered to be reliable people, they can break things.
                     </p>
                     {content}
                 </div>

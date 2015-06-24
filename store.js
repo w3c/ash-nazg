@@ -158,7 +158,20 @@ Store.prototype = {
         this.add(profile, cb);
     }
 ,   makeUserAdmin:  function (username, cb) {
-        this.db.merge("user-" + username, { admin: true }, cb);
+        this.getUser(username, function (err, doc) {
+            doc.admin = true;
+            this.add(doc, cb);
+        }.bind(this));
+        // this worked here but since it failed for mergeOnUser() I'm playing it safe instead
+        // this.db.merge("user-" + username, { admin: true }, cb);
+    }
+,   mergeOnUser:  function (username, data, cb) {
+        this.getUser(username, function (err, doc) {
+            for (var k in data) doc[k] = data[k];
+            this.add(doc, cb);
+            // not sure why this doesn't work
+            // this.db.merge("user-" + username, doc._rev, data, cb);
+        }.bind(this));
     }
 
     // GROUPS

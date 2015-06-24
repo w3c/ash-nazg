@@ -1,6 +1,6 @@
 
 import React from "react";
-import Link from "react-router";
+// import Link from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -30,9 +30,6 @@ export default class UserLine extends React.Component {
         })
         .catch(utils.catchHandler)
         ;
-    }
-    editAffiliations () {
-        // XXX groups and companies here
     }
     render () {
         let props = this.props

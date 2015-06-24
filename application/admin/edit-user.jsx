@@ -48,19 +48,9 @@ export default class EditUser extends React.Component {
     
     addGroup (w3cid) {
         let user = this.state.user;
-        user.groups[w3cid] = true;
+        if (!user.groups) user.groups = {};
+        user.groups[w3cid + ""] = true;
         this.setState({ user: user, modified: true, w3cidStatus: "showing" });
-    }
-    
-    saveUser () {
-        // XXX
-        //  get groups, w3cid, and affiliation
-        //  send them to some specific endpoint
-        //  use that to db.merge() on the user with that information
-        //  make sure that nothing other than the expected fields is in the merge
-        //  NOTE: save must work even if not all fields are set, so for instance you can manage
-        //  group membership without having to set an affiliation. Or maybe not?
-        this.setState({ modified: false });
     }
     
     pickW3CID () {
@@ -105,11 +95,14 @@ export default class EditUser extends React.Component {
 
     setUser () {
         this.setState(({ w3cidStatus: "setting-user" }));
-        let user = this.state.user;
-        fetch("https://api-test.w3.org/users/" + utils.val(this.refs.w3cUser))
+        let user = this.state.user
+        ,   apiID = utils.val(this.refs.w3cUser)
+        ;
+        fetch("https://api-test.w3.org/users/" + apiID)
             .then(utils.jsonHandler)
             .then((data) => {
                 user.w3cid = data.id + "";
+                user.w3capi = apiID;
                 return fetch(data._links.affiliations.href)
                         .then(utils.jsonHandler)
                         .then((data) => {
@@ -123,15 +116,34 @@ export default class EditUser extends React.Component {
         ;
     }
 
-    // XXX
-    //  offer the users in that intersection as options in a drop down
-    //  try to find the right one by matching the name we know
-    //  Ok button to set this
-    //  we will want to set not just w3cid on the user but also w3capi
-    //  when okayed, fetch the user's affiliation, write it as string
-    //  keep the full member in memory
-    //  on save, include the member object in what we save and put it in the DB
-    //  this will help produce useful reports
+    saveUser () {
+        this.setState({ modified: false, w3cidStatus: "saving" });
+        let user = this.state.user;
+        fetch(
+            "/api/user/" + this.state.user.username + "/affiliate"
+        ,   {
+                method:     "post"
+            ,   headers:    { "Content-Type": "application/json" }
+            ,   body:       JSON.stringify({
+                                affiliation:        user.affiliation
+                            ,   affiliationName:    user.affiliationName
+                            ,   w3cid:              user.w3cid
+                            ,   w3capi:             user.w3capi
+                            ,   groups:             user.groups
+                            })
+            }
+        )
+        .then(() => {
+            this.setState({ w3cidStatus: "showing" });
+        })
+        .catch((e) => {
+            alert("Failure to save info on user: " + e);
+            this.setState({ modified: true,  w3cidStatus: "showing" });
+            utils.catchHandler(e);
+        })
+        ;
+
+    }
     
     render () {
         let st = this.state
@@ -149,8 +161,10 @@ export default class EditUser extends React.Component {
                             return <tr key={g.w3cid}>
                                     <td>{g.name}</td>
                                     <td>
-                                        { u.groups[g.w3cid] ? <button onClick={function () { this.removeGroup(g.w3cid); }.bind(this)}>Remove</button>
-                                                            : <button onClick={function () { this.addGroup(g.w3cid); }.bind(this)}>Add</button> }
+                                        { u.groups && u.groups[g.w3cid] ? 
+                                            <button onClick={function () { this.removeGroup(g.w3cid); }.bind(this)}>Remove</button>
+                                            :
+                                            <button onClick={function () { this.addGroup(g.w3cid); }.bind(this)}>Add</button> }
                                     </td>
                                 </tr>;
                         })
@@ -162,7 +176,7 @@ export default class EditUser extends React.Component {
                 w3cid = u.w3cid ? 
                             u.w3cid
                             :
-                            <button onClick={this.pickW3CID.bind(this)} disabled={Object.keys(st.user.groups).length === 0}>Set</button>
+                            <button onClick={this.pickW3CID.bind(this)} disabled={Object.keys(st.user.groups || []).length === 0}>Set</button>
                 ;
             }
             else if (st.w3cidStatus === "loading" || st.w3cidStatus === "setting-user") {
@@ -203,7 +217,7 @@ export default class EditUser extends React.Component {
                         u.affiliation ? 
                                 <tr>
                                     <th>Affiliation</th>
-                                    <td>{u.affiliationName + "[" + u.affiliation + "]"}</td>
+                                    <td>{u.affiliationName + " [" + u.affiliation + "]"}</td>
                                 </tr>
                                 :
                                 null

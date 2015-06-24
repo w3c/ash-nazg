@@ -197,6 +197,17 @@ app.put("/api/user/:username/admin", ensureAdmin, function (req, res) {
 app.get("/api/user/:username", function (req, res) {
     store.getUser(req.params.username, makeRes(res));
 });
+// set affiliation on user
+app.post("/api/user/:username/affiliate", ensureAdmin, bp.json(), function (req, res) {
+    store.mergeOnUser(req.params.username, {
+            affiliation:        req.body.affiliation
+        ,   affiliationName:    req.body.affiliationName
+        ,   w3cid:              req.body.w3cid
+        ,   w3capi:             req.body.w3capi
+        ,   groups:             req.body.groups
+        }
+    ,   makeOK(res));
+});
 
 
 // GROUPS

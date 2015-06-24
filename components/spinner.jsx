@@ -4,6 +4,8 @@ import React from "react";
 // a very simple spinner
 export default class Spinner extends React.Component {
     render () {
-        return <div className="spinner"><img src="/img/spinner.svg" width="52" height="52" alt="loading..."/></div>;
+        var size = 52;
+        if (this.props.size === "small") size /= 2;
+        return <div className="spinner"><img src="/img/spinner.svg" width={size} height={size} alt="loading..."/></div>;
     }
 }

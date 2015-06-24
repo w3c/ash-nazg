@@ -2,6 +2,7 @@
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
 
+let async = require("async");
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
 
@@ -9,11 +10,14 @@ export default class EditUser extends React.Component {
     constructor (props) {
         super(props);
         this.state = {
-            status:     "loading"
-        ,   user:       null
-        ,   groups:     null
-        ,   username:   null
-        ,   modified:   false
+            status:         "loading"
+        ,   user:           null
+        ,   groups:         null
+        ,   username:       null
+        ,   modified:       false
+        ,   w3cidStatus:    "showing"
+        ,   userList:       null
+        ,   userSuggest:    null
         };
     }
     componentWillMount () {
@@ -37,15 +41,15 @@ export default class EditUser extends React.Component {
     }
     
     removeGroup (w3cid) {
-        var user = this.state.user;
+        let user = this.state.user;
         delete user.groups[w3cid];
-        this.setState({ user: user, modified: true });
+        this.setState({ user: user, modified: true, w3cidStatus: "showing" });
     }
     
     addGroup (w3cid) {
-        var user = this.state.user;
+        let user = this.state.user;
         user.groups[w3cid] = true;
-        this.setState({ user: user, modified: true });
+        this.setState({ user: user, modified: true, w3cidStatus: "showing" });
     }
     
     saveUser () {
@@ -54,25 +58,80 @@ export default class EditUser extends React.Component {
         //  send them to some specific endpoint
         //  use that to db.merge() on the user with that information
         //  make sure that nothing other than the expected fields is in the merge
+        //  NOTE: save must work even if not all fields are set, so for instance you can manage
+        //  group membership without having to set an affiliation. Or maybe not?
         this.setState({ modified: false });
     }
     
-    pickW3CID (ev) {
-        // XXX
-        //  replace button with spinner and cancel button
-        //  cancel button just returns us to the previous state
-        //  this really should be a component?
-        //  get participants ALL groups that were listed
-        //  produce intersection of them all
-        //  offer the users in that intersection as options in a drop down
-        //  try to find the right one by matching the name we know
-        //  Ok button to set this
-        //  we will want to set not just w3cid on the user but also w3capi
-        //  when okayed, fetch the user's affiliation, write it as string
-        //  keep the full member in memory
-        //  on save, include the member object in what we save and put it in the DB
-        //  this will help produce useful reports
+    pickW3CID () {
+        this.setState(({ w3cidStatus: "loading" }));
+        let groups = Object.keys(this.state.user.groups);
+        async.map(
+            groups
+        ,   (group, cb) => {
+                fetch("https://api-test.w3.org/groups/" + group + "/users")
+                    .then(utils.jsonHandler)
+                    .then((data) => {
+                        cb(null, data._links.users);
+                    })
+                    .catch(utils.catchHandler)
+                ;
+            }
+        ,   (err, data) => {
+                let users = {}, hrefs = {};
+                data.forEach((res) => {
+                    res.forEach((u) => {
+                        if (!users[u.href]) users[u.href] = 0;
+                        users[u.href]++;
+                        hrefs[u.href] = u.title;
+                    });
+                });
+                // we're looking for users who are in all listed groups, this is an intersection
+                // if you've picked the wrong groups, this could easily be empty
+                let profiles = Object.keys(users)
+                                     .filter((href) => { return users[href] === data.length; })
+                                     .sort((a, b) => { return hrefs[a].localeCompare(hrefs[b]); })
+                                     .map((h) => { return { displayName: hrefs[h], href: h, id: h.replace(/.*\//, "") }; })
+                ,   curName = this.state.user.displayName
+                ,   suggest
+                ;
+                profiles.forEach((u) => {
+                    if (u.displayName === curName) suggest = u.id;
+                });
+                this.setState({ w3cidStatus: "suggesting", userList: profiles, userSuggest: suggest });
+            }
+        );
     }
+
+    setUser () {
+        this.setState(({ w3cidStatus: "setting-user" }));
+        let user = this.state.user;
+        fetch("https://api-test.w3.org/users/" + utils.val(this.refs.w3cUser))
+            .then(utils.jsonHandler)
+            .then((data) => {
+                user.w3cid = data.id + "";
+                return fetch(data._links.affiliations.href)
+                        .then(utils.jsonHandler)
+                        .then((data) => {
+                            user.affiliation = data._links.affiliations.href.replace(/.*\//, "");
+                            user.affiliationName = data._links.affiliations.title;
+                            this.setState({ user: user, w3cidStatus: "showing" });
+                        })
+                ;
+            })
+            .catch(utils.catchHandler)
+        ;
+    }
+
+    // XXX
+    //  offer the users in that intersection as options in a drop down
+    //  try to find the right one by matching the name we know
+    //  Ok button to set this
+    //  we will want to set not just w3cid on the user but also w3capi
+    //  when okayed, fetch the user's affiliation, write it as string
+    //  keep the full member in memory
+    //  on save, include the member object in what we save and put it in the DB
+    //  this will help produce useful reports
     
     render () {
         let st = this.state
@@ -83,7 +142,7 @@ export default class EditUser extends React.Component {
             content = <Spinner/>;
         }
         else if (st.status === "ready") {
-            var groupTable =
+            let groupTable =
                 <table>
                     {
                         st.groups.map((g) => {
@@ -97,7 +156,29 @@ export default class EditUser extends React.Component {
                         })
                     }
                 </table>
+            ,   w3cid
             ;
+            if (st.w3cidStatus === "showing") {
+                w3cid = u.w3cid ? 
+                            u.w3cid
+                            :
+                            <button onClick={this.pickW3CID.bind(this)} disabled={Object.keys(st.user.groups).length === 0}>Set</button>
+                ;
+            }
+            else if (st.w3cidStatus === "loading" || st.w3cidStatus === "setting-user") {
+                w3cid = <Spinner size="small"/>;
+            }
+            else if (st.w3cidStatus === "suggesting") {
+                w3cid = <div>
+                            <select ref="w3cUser" defaultValue={st.userSuggest}>
+                                {
+                                    st.userList.map((u) => { return <option value={u.id} key={u.id}>{u.displayName}</option> ; })
+                                }
+                            </select>
+                            <button onClick={this.setUser.bind(this)}>Ok</button>
+                        </div>
+                ;
+            }
             content =
                 <table className="users-list">
                     <tr>
@@ -115,27 +196,20 @@ export default class EditUser extends React.Component {
                     <tr>
                         <th>W3C ID</th>
                         <td>
-                            {
-                                u.w3cid ?
-                                    u.w3cid :
-                                    <button onClick={this.pickW3CID.bind(this)}>Set</button>
-                            }
+                            {w3cid}
                         </td>
                     </tr>
                     {
                         u.affiliation ? 
                                 <tr>
                                     <th>Affiliation</th>
-                                    <td>{u.affiliation}</td>
+                                    <td>{u.affiliationName + "[" + u.affiliation + "]"}</td>
                                 </tr>
                                 :
-                                ""
+                                null
                     }
                 </table>
             ;
-            // XXX
-            //  show W3C ID or offer to find it
-            //  if we have an affi
         }
         return  <div className="primary-app">
                     <h2>Edit user</h2>

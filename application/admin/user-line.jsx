@@ -10,7 +10,7 @@ let utils = require("../../application/utils");
 export default class UserLine extends React.Component {
     constructor (props) {
         super(props);
-        this.state = { admin: props.admin };
+        this.state = { admin: props.admin, blanket: props.blanket };
     }
     makeAdmin () {
         React.findDOMNode(this.refs.admin).disabled = true;
@@ -34,15 +34,39 @@ export default class UserLine extends React.Component {
         .catch(utils.catchHandler)
         ;
     }
+    makeBlanket () {
+        React.findDOMNode(this.refs.blanket).disabled = true;
+        fetch(
+            "/api/user/" + this.props.username + "/blanket"
+        ,   {
+                method:     "put"
+            ,   headers:    { "Content-Type": "application/json" }
+            ,   body:       "{}"
+            }
+        )
+        .then(utils.jsonHandler)
+        .then((data) => {
+            if (data.ok) {
+                MessageActions.success("User given blanket contribution rights.");
+                return this.setState({ blanket: true });
+            }
+            React.findDOMNode(this.refs.blanket).disabled = false;
+            MessageActions.error("Failure to set blanket flag on user: " + data.error);
+        })
+        .catch(utils.catchHandler)
+        ;
+    }
     render () {
         let props = this.props
         ,   st = this.state
         ,   makeAdmin = ""
+        ,   makeBlanket = ""
         ,   tdStyle = { paddingRight: "20px" }
         ,   name
         ,   pic
         ;
         if (!st.admin) makeAdmin = <button onClick={this.makeAdmin.bind(this)} ref="admin">Make admin</button>;
+        if (!st.blanket) makeBlanket = <button onClick={this.makeBlanket.bind(this)} ref="blanket">Blanket</button>;
         if (props.email) name = <a href={"mailto:" + props.email}>{props.displayName}</a>;
         else name = props.displayName;
         if (props.pic) pic = <img src={props.pic} alt={props.displayName} width="46"/>;
@@ -55,7 +79,10 @@ export default class UserLine extends React.Component {
                     <td style={tdStyle}>{props.w3cid || "none"}</td>
                     <td>
                         {makeAdmin}
-                        <Link to={"/admin/user/" + props.username}>Edit</Link>
+                        {" "}
+                        {makeBlanket}
+                        {" "}
+                        <Link to={"/admin/user/" + props.username} className="button">Edit</Link>
                     </td>
                 </tr>
         ;

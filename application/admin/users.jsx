@@ -49,7 +49,7 @@ export default class AdminUsers extends React.Component {
                                     let email = u.emails.length ? u.emails[0].value : ""
                                     ,   pic = u.photos.length ? u.photos[0].value : ""
                                     ;
-                                    return <UserLine key={u.username} admin={u.admin} 
+                                    return <UserLine key={u.username} admin={u.admin} blanket={u.blanket}
                                                     displayName={u.displayName} username={u.username}
                                                     groups={u.groups} affiliation={u.affiliation}
                                                     email={email} pic={pic}
@@ -65,6 +65,11 @@ export default class AdminUsers extends React.Component {
                         Use this interface to grant administrative privileges to users and set their
                         affiliations (both to groups and to members). Be careful, admins are
                         considered to be reliable people, they can break things.
+                    </p>
+                    <p>
+                        The “blanket” status is granted to users who are thereby considered to be
+                        authorised for all pull requests, without needing to be part of a given
+                        group. This is typically restricted to W3C Staff.
                     </p>
                     {content}
                 </div>

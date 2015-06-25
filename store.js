@@ -165,6 +165,12 @@ Store.prototype = {
         // this worked here but since it failed for mergeOnUser() I'm playing it safe instead
         // this.db.merge("user-" + username, { admin: true }, cb);
     }
+,   giveUserBlanket:  function (username, cb) {
+        this.getUser(username, function (err, doc) {
+            doc.blanket = true;
+            this.add(doc, cb);
+        }.bind(this));
+    }
 ,   mergeOnUser:  function (username, data, cb) {
         this.getUser(username, function (err, doc) {
             for (var k in data) doc[k] = data[k];

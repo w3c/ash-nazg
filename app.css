@@ -117,11 +117,13 @@ tr {
 tbody tr:nth-of-type(even) {
     background: #eee;
 }
-button {
+button, a.button {
     background: #f1647c;
     border: none;
     border-radius:  5px;
     color:  #fff;
+    text-decoration:    none;
+    padding:    0 5px;
 }
 button:disabled {
     background: silver;

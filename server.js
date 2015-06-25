@@ -193,6 +193,10 @@ app.get("/api/users", function (req, res) {
 app.put("/api/user/:username/admin", ensureAdmin, function (req, res) {
     store.makeUserAdmin(req.params.username, makeOK(res));
 });
+// give user blanket okay for contributions
+app.put("/api/user/:username/blanket", ensureAdmin, function (req, res) {
+    store.giveUserBlanket(req.params.username, makeOK(res));
+});
 // get user data
 app.get("/api/user/:username", function (req, res) {
     store.getUser(req.params.username, makeRes(res));

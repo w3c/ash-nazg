@@ -1,6 +1,6 @@
 
 import React from "react";
-// import Link from "react-router";
+import { Link } from "react-router";
 import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
@@ -55,12 +55,9 @@ export default class UserLine extends React.Component {
                     <td style={tdStyle}>{props.w3cid || "none"}</td>
                     <td>
                         {makeAdmin}
-                        <a href={"/admin/user/" + props.username}>Edit</a>
+                        <Link to={"/admin/user/" + props.username}>Edit</Link>
                     </td>
                 </tr>
         ;
-        // XXX the <a> above should be:
-        // <Link to={"/admin/user/" + props.username}>Edit</Link>
-        // but this blows up without explanation
     }
 }

@@ -117,6 +117,16 @@ tr {
 tbody tr:nth-of-type(even) {
     background: #eee;
 }
+button {
+    background: #f1647c;
+    border: none;
+    border-radius:  5px;
+    color:  #fff;
+}
+button:disabled {
+    background: silver;
+    color:  #333;
+}
 
 
 /* specific areas */

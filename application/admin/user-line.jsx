@@ -50,7 +50,7 @@ export default class UserLine extends React.Component {
                     <td>{pic}</td>
                     <td style={tdStyle}>{name}</td>
                     <td style={tdStyle}><a href={"https://github.com/" + props.username} target="_blank">{"@" + props.username}</a></td>
-                    <td style={tdStyle}>{props.groups ? props.groups.join(", ") : "none"}</td>
+                    <td style={tdStyle}>{props.groups ? Object.keys(props.groups).join(", ") : "none"}</td>
                     <td style={tdStyle}>{props.affiliation || "none"}</td>
                     <td style={tdStyle}>{props.w3cid || "none"}</td>
                     <td>

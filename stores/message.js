@@ -20,9 +20,10 @@ MessageStore.dispatchToken = AshNazgDispatch.register((action) => {
     switch (action.type) {
         case "error":
         case "success":
+            let msg = typeof action.message === "string" ? action.message : action.message.message;
             _messages.push({
                 id:         ++_counter
-            ,   message:    action.message
+            ,   message:    msg
             ,   type:       action.type
             });
             MessageStore.emitChange();

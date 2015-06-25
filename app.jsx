@@ -1,6 +1,6 @@
 
 // this adds some missing ES6 bits, notably Promises
-require("babel/polyfill");
+// require("babel/polyfill");
 
 import React from "react";
 

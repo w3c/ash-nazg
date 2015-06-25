@@ -44,6 +44,10 @@ export default class RepoNew extends React.Component {
             .catch(utils.catchHandler);
         
     }
+    componentWillReceiveProps (nextProps) {
+        let nextIsNew = nextProps.params.mode === "new";
+        if (nextIsNew !== this.state.isNew) this.setState({ isNew: nextIsNew });
+    }
     onSubmit (ev) {
         ev.preventDefault();
         let org = utils.val(this.refs.org)

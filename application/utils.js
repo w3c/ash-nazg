@@ -1,14 +1,25 @@
 
 import React from "react";
+import MessageActions from "../actions/messages";
+
 
 module.exports = {
     jsonHandler:    (res) => { return res.json(); }
 ,   catchHandler:   (e) => {
-        // XXX it would be good to signal an error so as to flash it here
-        console.error(e);
-        throw e;
+        MessageActions.error(e);
     }
 ,   val:    (ref) => {
-        return React.findDOMNode(ref).value.trim();
+        let el = React.findDOMNode(ref)
+        ,   value
+        ;
+        if (!el) return null;
+        if (el.multiple) {
+            value = [];
+            for (var i = 0, n = el.selectedOptions.length; i < n; i++) {
+                value.push(el.selectedOptions.item(i).value.trim());
+            }
+        }
+        else value = el.value.trim();
+        return value;
     }
 };

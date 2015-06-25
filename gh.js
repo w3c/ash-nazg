@@ -28,8 +28,9 @@ function GH (user) {
 function makeNewRepo (gh, target, owner, repoShortName, report) {
     return target
             .create({ name: repoShortName })
-            .then(function () {
+            .then(function (repo) {
                 report.push("Repo '" + repoShortName + "' created.");
+                return repo;
             })
     ;
 }
@@ -56,6 +57,18 @@ function newFile (gh, name, content, report) {
                     })
         ;
     };
+}
+
+function andify (groups, field) {
+    var len = groups.length;
+    if (len === 1) return groups[0][field];
+    else if (len === 2) return groups.map(function (g) { return g[field]; }).join(" and ");
+    else {
+        var copy = [].concat(groups)
+        ,   last = copy.pop()
+        ;
+        return copy.map(function (g) { return g[field] + ", "; }) + "and " + last[field];
+    }
 }
 
 GH.prototype = {
@@ -90,23 +103,25 @@ GH.prototype = {
         ,   readme
         ,   hookURL = config.hookURL || (config.url + "api/hook")
         ,   tmplData = {
-                name:           data.group.name
+                name:           andify(data.groups, "name")
             ,   username:       this.user.username
-            ,   w3cid:          data.group.w3cid
+            ,   w3cid:          JSON.stringify(data.groups.map(function (g) { return g.w3cid; }))
             ,   repo:           data.repo
             ,   displayName:    this.user.displayName
             }
         ;
-        if (data.group.groupType === "CG") {
+        // collaborations between groups of different types aren't really possible, they don't have
+        // the same legal regimen, so we only look at the first one
+        if (data.groups[0].groupType === "CG") {
             contributing = template("CG-contributing.md", tmplData);
             license = template("CG-license.md", tmplData);
         }
-        else if (data.group.groupType === "WG") {
+        else if (data.groups[0].groupType === "WG") {
             contributing = template("WG-contributing.md", tmplData);
             license = template("WG-license.md", tmplData);
         }
         else {
-            var msg = "We currently don't support creating repos for group type: " + data.group.groupType;
+            var msg = "We currently don't support creating repos for group type: " + data.groups[0].groupType;
             return cb(msg);
         }
         w3cJSON = template("w3c.json", tmplData);
@@ -119,7 +134,7 @@ GH.prototype = {
                     name:       repo.name
                 ,   fullName:   repo.fullName
                 ,   owner:      repo.owner.login
-                ,   group:      data.group.w3cid
+                ,   groups:     data.groups.map(function (g) { return g.w3cid; })
                 ,   secret:     pg(20)
                 };
             }.bind(this))

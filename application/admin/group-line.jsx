@@ -1,5 +1,6 @@
 
 import React from "react";
+import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -27,10 +28,12 @@ export default class GroupLine extends React.Component {
         )
         .then(utils.jsonHandler)
         .then((data) => {
-            if (data.ok) return this.setState({ managed: true });
+            if (data.ok) {
+                MessageActions.success("Group now managed under the system.");
+                return this.setState({ managed: true });
+            }
             React.findDOMNode(this.refs.managed).disabled = false;
-            // XXX need proper flash messages
-            alert("Failure to add group to those managed: " + data.error);
+            MessageActions.error("Failure to add group to those managed: " + data.error);
         })
         .catch(utils.catchHandler)
         ;

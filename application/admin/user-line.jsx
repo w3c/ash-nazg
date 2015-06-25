@@ -1,6 +1,7 @@
 
 import React from "react";
 // import Link from "react-router";
+import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -23,10 +24,12 @@ export default class UserLine extends React.Component {
         )
         .then(utils.jsonHandler)
         .then((data) => {
-            if (data.ok) return this.setState({ admin: true });
+            if (data.ok) {
+                MessageActions.success("User turned into admin.");
+                return this.setState({ admin: true });
+            }
             React.findDOMNode(this.refs.admin).disabled = false;
-            // XXX need proper flash messages
-            alert("Failure to set admin flag on user: " + data.error);
+            MessageActions.error("Failure to set admin flag on user: " + data.error);
         })
         .catch(utils.catchHandler)
         ;

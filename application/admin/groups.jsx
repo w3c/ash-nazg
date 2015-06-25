@@ -62,11 +62,6 @@ export default class AdminGroups extends React.Component {
             content = <Spinner/>;
         }
         else if (st.status === "ready") {
-            // XXX
-            // list all users, with different styles depending on whether they are already in the
-            // system
-            // and with an affordance to insert them
-            // use a component to show each group. When it's included, it just changes style.
             content =   <table className="groups-list">
                             <thead>
                                 <tr>

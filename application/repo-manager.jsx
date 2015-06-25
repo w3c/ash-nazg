@@ -1,6 +1,7 @@
 
 import React from "react";
 import Spinner from "../components/spinner.jsx";
+import MessageActions from "../actions/messages";
 
 require("isomorphic-fetch");
 let utils = require("./utils")
@@ -16,16 +17,18 @@ export default class RepoNew extends React.Component {
         ,   disabled:   false
         ,   org:        null
         ,   repo:       null
-        ,   group:      null
+        ,   repoGroups: null
         ,   isNew:      true
         };
     }
     componentWillMount () {
         let mode = this.props.params.mode;
+        console.log("component WILL mount with mode ", mode);
         if (mode !== "new" && mode !== "import") throw new Error("Unknown repository mode: " + mode);
         this.setState({ isNew: mode === "new" });
     }
     componentDidMount () {
+        console.log("component DID mount with mode ", this.props.params.mode);
         let orgs;
         fetch("/api/orgs")
             .then(utils.jsonHandler)
@@ -45,14 +48,14 @@ export default class RepoNew extends React.Component {
         ev.preventDefault();
         let org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
-        ,   group = utils.val(this.refs.group)
+        ,   repoGroups = utils.val(this.refs.groups)
         ;
         this.setState({
             disabled:   true
         ,   status:     "submitting"
         ,   org:        org
         ,   repo:       repo
-        ,   group:      group
+        ,   repoGroups: repoGroups
         });
         fetch(
             this.state.isNew ? "/api/create-repo" : "/api/import-repo"
@@ -62,7 +65,7 @@ export default class RepoNew extends React.Component {
             ,   body:   JSON.stringify({
                     org:    org
                 ,   repo:   repo
-                ,   group:  group
+                ,   groups: repoGroups
                 })
             }
         )
@@ -76,8 +79,10 @@ export default class RepoNew extends React.Component {
             if (!data.error) {
                 newState.org = "";
                 newState.repo = "";
-                newState.group = "";
+                newState.repoGroups = "";
+                MessageActions.success("Successfully " + (this.state.isNew ? "created" : "imported") + " repository.");
             }
+            else MessageActions.error(data.error);
             this.setState(newState);
         })
         .catch(utils.catchHandler)
@@ -97,11 +102,11 @@ export default class RepoNew extends React.Component {
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input type="text" ref="repo" defaultValue={st.repo}/>
+                                <input type="text" ref="repo" id="repo" defaultValue={st.repo}/>
                             </div>
                             <div className="formline">
-                                <label htmlFor="group">relevant group</label>
-                                <select ref="group" value={st.group}>
+                                <label htmlFor="groups">relevant group</label>
+                                <select ref="groups" id="groups" value={st.group} multiple size="10">
                                     {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
                                 </select>
                             </div>

@@ -127,7 +127,36 @@ button:disabled {
     background: silver;
     color:  #333;
 }
-
+.flash-list {
+    margin-left:    230px;
+}
+.flash-list button {
+    position:   absolute;
+    top:    10px;
+    right:  10px;
+    color:  #fff;
+}
+.flash-list p {
+    margin: 0;
+}
+.flash-success, .flash-error {
+    border-radius:  5px;
+    padding:    20px;
+    margin-top:  10px;
+    position:   relative;
+}
+.flash-success {
+    border: 1px solid #84df5d;
+}
+.flash-error {
+    border: 1px solid #df5d5d;
+}
+.flash-success button {
+    background: #84df5d;
+}
+.flash-error button {
+    background: #df5d5d;
+}
 
 /* specific areas */
 .users-list .admin {

@@ -13,9 +13,13 @@ import Col from "./components/col.jsx";
 import NavBox from "./components/nav-box.jsx";
 import NavItem from "./components/nav-item.jsx";
 import Spinner from "./components/spinner.jsx";
+import FlashList from "./components/flash-list.jsx";
 
 import UserActions from "./actions/user";
 import LoginStore from "./stores/login";
+
+import MessageActions from "./actions/messages";
+import MessageStore from "./stores/message";
 
 import Welcome from "./application/welcome.jsx";
 import LoginWelcome from "./application/login.jsx";
@@ -83,6 +87,7 @@ class AshNazg extends React.Component {
             body = <Col><Spinner/></Col>;
         }
         return <Application title="Repository Manager">
+                  <FlashList store={MessageStore} actions={MessageActions}/>
                   <Row>
                     {nav}
                     {body}
@@ -93,7 +98,7 @@ class AshNazg extends React.Component {
 }
 
 React.render(
-    <Router history={BrowserHistory}>
+    <Router history={new BrowserHistory}>
         <Route path="/" component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="admin/users" component={AdminUsers}/>

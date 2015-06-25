@@ -1,6 +1,7 @@
 
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
+import MessageActions from "../../actions/messages";
 
 let async = require("async");
 require("isomorphic-fetch");
@@ -134,10 +135,11 @@ export default class EditUser extends React.Component {
             }
         )
         .then(() => {
+            MessageActions.success("Successfully saved user.");
             this.setState({ w3cidStatus: "showing" });
         })
         .catch((e) => {
-            alert("Failure to save info on user: " + e);
+            MessageActions.error("Failure to save info on user: " + e);
             this.setState({ modified: true,  w3cidStatus: "showing" });
             utils.catchHandler(e);
         })

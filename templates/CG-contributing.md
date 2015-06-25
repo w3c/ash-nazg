@@ -1,6 +1,6 @@
 # {{name}}
 
-This repository is being used for work in the W3C {{name}}, governed by the [W3C Community License 
+This repository is being used for work in the {{name}}, governed by the [W3C Community License 
 Agreement (CLA)](http://www.w3.org/community/about/agreements/cla/). To contribute, you must join 
 the CG. 
 

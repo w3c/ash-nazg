@@ -2,6 +2,7 @@
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
 import MessageActions from "../../actions/messages";
+import { Link } from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -37,11 +38,27 @@ export default class AddUser extends React.Component {
     }
     
     addUser () {
-        // XXX add user here
-        // POST name to the API
-        //  server-side gets data from GH and uses that to populate the user in the DB
-        //  then responds
-        // when response received, switch to user-exists with success message
+        this.setState({ status: "loading" });
+        fetch(
+            "/api/user/" + this.state.username + "/add"
+        ,   {
+                method:     "post"
+            ,   headers:    { "Content-Type": "application/json" }
+            ,   body:       "{}"
+            }
+        )
+        .then(utils.jsonHandler)
+        .then((data) => {
+            MessageActions.success("Successfully added user.");
+            this.setState({ user: data, status: "user-exists" });
+        })
+        .catch((e) => {
+            MessageActions.error("Failure to add user: " + e);
+            this.setState({ status: "ready" });
+            utils.catchHandler(e);
+        })
+        ;
+
     }
     
     render () {
@@ -52,7 +69,10 @@ export default class AddUser extends React.Component {
             content = <Spinner/>;
         }
         else if (st.status === "user-exists") {
-            content = <p>User {st.username} is known to the system.</p>;
+            content = <p>
+                        User {st.username} is known to the system.
+                        You can <Link to={"/admin/user/" + st.username}>edit that account</Link>.
+                    </p>;
         }
         else if (st.status === "ready") {
             content = <p><button onClick={this.addUser.bind(this)} ref="add">Add {st.username} to the system</button></p>;

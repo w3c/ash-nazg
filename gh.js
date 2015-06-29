@@ -183,6 +183,34 @@ GH.prototype = {
             .catch(cb)
         ;
     }
+,   getUser:    function (username, cb) {
+        this.octo
+            .users(username)
+            .fetch()
+            .then(function (user) {
+                var u = {
+                        accessToken:        null
+                    ,   admin:              false
+                    ,   affiliation:        null
+                    ,   affiliationName:    null
+                    ,   blanket:            false
+                    ,   blog:               user.blog || ""
+                    ,   displayName:        user.name
+                    ,   ghID:               user.id
+                    ,   groups:             {}
+                    ,   profileUrl:         user.html_url
+                    ,   provider:           "github"
+                    ,   username:           username
+                    ,   w3capi:             null
+                    ,   w3cid:              null
+                };
+                if (user.email) u.emails = [{ value: user.email }];
+                if (user.avatar_url) u.photos = [{ value: user.avatar_url }];
+                cb(null, u);
+            })
+            .catch(cb)
+        ;
+    }
 };
 
 module.exports = GH;

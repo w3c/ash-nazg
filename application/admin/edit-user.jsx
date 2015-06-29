@@ -60,9 +60,15 @@ export default class EditUser extends React.Component {
         async.map(
             groups
         ,   (group, cb) => {
-                fetch("https://api-test.w3.org/groups/" + group + "/users")
+                fetch("https://api-test.w3.org/groups/" + group + "/users?items=2000")
                     .then(utils.jsonHandler)
                     .then((data) => {
+                        // sometimes you get a 404, just handle it
+                        if (!data._links || !data._links.users) {
+                            console.error("Got a 404 for " + group + ", skipping.");
+                            return;
+                        }
+                        console.log(data._links.users);
                         cb(null, data._links.users);
                     })
                     .catch(utils.catchHandler)
@@ -144,7 +150,6 @@ export default class EditUser extends React.Component {
             utils.catchHandler(e);
         })
         ;
-
     }
     
     render () {

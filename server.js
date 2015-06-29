@@ -26,6 +26,10 @@ var express = require("express")
 ;
 
 // HELPERS
+// OK
+function ok (res) {
+    res.json({ ok: true });
+}
 // all errors
 function error (res, err) {
     log.error(err);
@@ -42,7 +46,7 @@ function makeRes (res) {
 function makeOK (res) {
     return function (err) {
         if (err) return error(res, err);
-        res.json({ ok: true });
+        ok(res);
     };
 }
 
@@ -61,6 +65,12 @@ function ensureAdmin (req, res, next) {
         if (!req.user.admin) res.error(403).json({ error: "Forbidden" });
         next();
     });
+}
+
+// load up the GH object
+function loadGH (req, res, next) {
+    req.gh = new GH(req.user);
+    next();
 }
 
 // passport uses this when a user is create to decide what we want to write into the session
@@ -179,7 +189,7 @@ app.get(
 app.get("/api/logout", function (req, res) {
     log.info("User logging out.");
     req.logout();
-    res.json({ ok: true });
+    ok(res);
 });
 
 // check if the user is logged in
@@ -214,7 +224,18 @@ app.post("/api/user/:username/affiliate", ensureAdmin, bp.json(), function (req,
         }
     ,   makeOK(res));
 });
-
+// add a user to the system without the user logging in
+app.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function (req, res) {
+    var username = req.params.username;
+    store.getUser(username, function (err, user) {
+        if (err && err.error !== "not_found") return error(res, err);
+        if (user) return error(res, "User " + username + " is already in the system");
+        req.gh.getUser(username, function (err, user) {
+            console.log(err, user);
+            store.addUser(user, makeRes(res));
+        });
+    });
+});
 
 // GROUPS
 // list all the groups known to the system
@@ -228,10 +249,6 @@ app.post("/api/groups", ensureAPIAuth, bp.json(), function (req, res) {
 });
 
 // GITHUB APIs
-function loadGH (req, res, next) {
-    req.gh = new GH(req.user);
-    next();
-}
 app.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
     req.gh.userOrgs(makeRes(res));
 });
@@ -432,8 +449,8 @@ app.post("/" + config.hookPath, function (req, res) {
         var eventType = req.headers["x-github-event"];
         log.info("Hook got GH event " + eventType);
         // we only care about these events, and for issue_comment we only care about those on PRs
-        if (eventType !== "pull_request" && eventType !== "issue_comment") return res.json({ ok: true });
-        if (eventType === "issue_comment" && !event.issue.pull_request) return res.json({ ok: true });
+        if (eventType !== "pull_request" && eventType !== "issue_comment") return ok(res);
+        if (eventType === "issue_comment" && !event.issue.pull_request) return ok(res);
 
         var owner = event.repository.owner.login;
         store.getSecret(owner, function (err, data) {
@@ -491,7 +508,7 @@ app.post("/" + config.hookPath, function (req, res) {
             // issue comment events
             else if (eventType === "issue_comment") {
                 var delta = parseMessage(event.comment.body);
-                if (!delta.total) return res.json({ ok: true });
+                if (!delta.total) return ok(res);
                 store.getPR(repo, prNum, function (err, pr) {
                     if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
                     prStatus(pr, delta, req, res, makeOK(res));

@@ -92,6 +92,19 @@ Store.prototype = {
                 }
             }
 
+            // access tokens
+        ,   {
+                id:         "_design/tokens"
+            ,   views:  {
+                    by_owner: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "token") return;
+                                    emit(doc.owner, doc);
+                                }.toString()
+                    }
+                }
+            }
+
             // repos
         ,   {
                 id:         "_design/repos"
@@ -103,6 +116,26 @@ Store.prototype = {
                                 }.toString()
                     }
                 }
+            }
+
+            // PRs
+        ,   {
+                id:         "_design/prs"
+            ,   views:  {
+                    by_fullname_num: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr") return;
+                                    emit([doc.fullName, doc.num + ""], doc);
+                                }.toString()
+                    }
+                }
+
+                // XXX
+                //  index them by date
+                //  perhaps add and update ought to set the list of affiliations
+                //  that way we could index by affiliation then date
+                //  and perhaps also set groups? do the UI first and we'll see what we need
+
             }
         ];
         async.each(
@@ -120,11 +153,10 @@ Store.prototype = {
 ,   findOrCreateUser:   function (profile, cb) {
         var store = this;
         store.getUser(profile.username, function (err, user) {
-            // XXX we should check if the user exists, and if so merge their properties in case they
-            // have changed
+            if ((err && err.error === "not_found") || !user) return store.addUser(profile, cb);
             if (err) return cb(err);
-            if (user) return cb(null, user);
-            store.addUser(profile, cb);
+            for (var k in profile) user[k] = profile[k];
+            this.add(user, cb);
         });
     }
     // get a user by username
@@ -159,6 +191,7 @@ Store.prototype = {
     }
 ,   makeUserAdmin:  function (username, cb) {
         this.getUser(username, function (err, doc) {
+            if (err) return cb(err);
             doc.admin = true;
             this.add(doc, cb);
         }.bind(this));
@@ -167,12 +200,14 @@ Store.prototype = {
     }
 ,   giveUserBlanket:  function (username, cb) {
         this.getUser(username, function (err, doc) {
+            if (err) return cb(err);
             doc.blanket = true;
             this.add(doc, cb);
         }.bind(this));
     }
 ,   mergeOnUser:  function (username, data, cb) {
         this.getUser(username, function (err, doc) {
+            if (err) return cb(err);
             for (var k in data) doc[k] = data[k];
             this.add(doc, cb);
             // not sure why this doesn't work
@@ -238,6 +273,40 @@ Store.prototype = {
     }
 
 
+    // TOKENS
+,   addToken:    function (token, cb) {
+        // the configuration file can list tokens that override those in the DB, in which case the
+        // latter don't get stored
+        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        token.id = "token-" + token.owner;
+        token.type = "token";
+        delete token._rev; // don't use this to update token
+        log.info("Adding token " + token.owner);
+        this.add(token, cb);
+    }
+,   createOrUpdateToken:    function (token, cb) {
+        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        var store = this;
+        store.getToken(token.owner, function (err, doc) {
+            if ((err && err.error === "not_found") || !doc) return store.addToken(token, cb);
+            if (err) return cb(err);
+            for (var k in token) doc[k] = token[k];
+            this.add(doc, cb);
+        });
+    }
+    // get a token by owner
+,   getToken:   function (owner, cb) {
+        var store = this;
+        log.info("Looking for token for " + owner);
+        if (config.tokens && config.tokens[owner]) return cb(null, { owner: owner, token: config.tokens[owner] });
+        store.db.view("tokens/by_owner", { key: owner }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning token for " + owner + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.length ? docs[0].value : null);
+        });
+    }
+
+
     // REPOS
 ,   addRepo:    function (repo, cb) {
         repo.id = "repo-" + repo.fullName;
@@ -250,11 +319,45 @@ Store.prototype = {
 ,   getRepo:   function (fullName, cb) {
         var store = this;
         log.info("Looking for repo for " + fullName);
-        store.db.view("secrets/by_fullname", { key: fullName }, function (err, docs) {
+        store.db.view("repos/by_fullname", { key: fullName }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning repo for " + fullName + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
         });
+    }
+
+    // PRs
+,   addPR:    function (pr, cb) {
+        pr.id = "pr-" + pr.fullName + "-" + pr.num;
+        pr.type = "pr";
+        pr.num = pr.num + "";
+        // XXX
+        //  set couch-friend lastUpdate date
+        delete pr._rev; // don't use this to update PRs
+        log.info("Adding PR " + pr.fullName + "-" + pr.num);
+        this.add(pr, cb);
+    }
+    // get a PR by fullName (username/reponame) and number
+,   getPR:   function (fullName, num, cb) {
+        var store = this;
+        log.info("Looking for PR for " + fullName + "-" + num);
+        store.db.view("prs/by_fullname_num", { key: [fullName, num + ""] }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning PR for " + fullName + "-" + num + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.length ? docs[0].value : null);
+        });
+    }
+,   updatePR:  function (fullName, num, pr, cb) {
+        this.getPR(fullName, num, function (err, doc) {
+            if (err) {
+                if (err.error === "not_found") doc = {};
+                else return cb(err);
+            }
+            for (var k in pr) doc[k] = pr[k];
+            // XXX
+            //  set couch-friend lastUpdate date
+            this.add(doc, cb);
+        }.bind(this));
     }
 
 
@@ -280,27 +383,6 @@ Store.prototype = {
             store.add(data, cb);
         });
     }
-
-
-// ,   addUnlessExists:    function (data, cb) {
-//         this.db.head(data.id, function (err, headers, status) {
-//             if (err) return cb(err);
-//             if (status == 200) return cb();
-//             this.add(data, cb);
-//         }.bind(this));
-//     }
-//     // takes the _rev into account so as to update
-//     // name is the name of the filter
-// ,   listEvents:   function (name, options, cb) {
-//         if (!options) options = {};
-//         // XXX we start with descending=true and limit=20
-//         // when we add paging later, it will be very important to use endkey and not startkey as the
-//         // starting point. Or better, don't anchor with a key but rather use skip = page * page_size
-//         this.db.view("events/" + name, { descending: true, limit: 20 }, function (err, docs) {
-//             if (err) return cb(err);
-//             cb(null, docs.toArray());
-//         });
-//     }
 };
 
 module.exports = Store;

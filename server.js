@@ -12,6 +12,8 @@ var express = require("express")
 ,   assign = require("object-assign")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
+,   bl = require("bl")
+,   crypto = require("crypto")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
 ,   log = require("./log")
@@ -259,6 +261,9 @@ function makeCreateOrImportRepo (mode) {
                                 store.addSecret({ owner: repo.owner, secret: repo.secret }, cb);
                             }
                         ,   function (cb) {
+                                store.createOrUpdateToken({ owner: repo.owner, token: req.user.accessToken }, cb);
+                            }
+                        ,   function (cb) {
                                 var secretLess = assign({}, repo);
                                 delete secretLess.secret;
                                 store.addRepo(secretLess, cb);
@@ -277,12 +282,236 @@ function makeCreateOrImportRepo (mode) {
 app.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 app.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 
+
+// GITHUB HOOKS
+function parseMessage (msg) {
+    var ret = {
+        add:    []
+    ,   remove: []
+    ,   total:  0
+    };
+    msg.split(/[\n\r]+/)
+        .forEach(function (line) {
+            if (/^\+@[\w-_]+$/.test(line)) {
+                ret.add.push(line.replace(/^\+@/, ""));
+                ret.total++;
+            }
+            else if (/^-@[\w-_]+$/.test(line)) {
+                ret.remove.push(line.replace(/^-@/, ""));
+                ret.total++;
+            }
+        })
+    ;
+    return ret;
+}
+function prStatus (pr, delta, req, res, cb) {
+    var statusData = {
+            owner:      pr.owner
+        ,   shortName:  pr.shortName
+        ,   sha:        pr.sha
+        ,   payload:    {
+                state:          "pending"
+            ,   target_url:     config.url + "pr/id/" + pr.owner + "/" + pr.shortName + "/" + pr.num
+            ,   description:    "PR is being assessed, results will come shortly."
+            ,   context:        "ipr"
+            }
+        }
+    ;
+    store.getRepo(pr.fullName, function (err, repo) {
+        if (err) return cb(err);
+        if (!repo) return cb("Unknown repository: " + pr.fullName);
+        var repoGroups = repo.groups;
+        store.getToken(repo.owner, function (err, token) {
+            if (err) return cb(err);
+            if (!token) return cb("Token not found for: " + repo.owner);
+            var gh = new GH({ accessToken: token.token });
+            gh.status(
+                statusData
+            ,   function (err) {
+                    if (err) return cb(err);
+                    var contrib = {};
+                    pr.contributors.forEach(function (c) { contrib[c] = true; });
+                    delta.add.forEach(function (c) { contrib[c] = true; });
+                    delta.remove.forEach(function (c) { delete contrib[c]; });
+                    pr.contributors = Object.keys(contrib);
+                    pr.contribStatus = {};
+                    async.map(
+                        pr.contributors
+                    ,   function (username, cb) {
+                            store.getUser(username, function (err, user) {
+                                if ((err && err.error === "not_found") || !user) {
+                                    pr.contribStatus[username] = "unknown";
+                                    return cb(null, "unknown");
+                                }
+                                if (err) return cb(err);
+                                if (user.blanket) {
+                                    pr.contribStatus[username] = "ok";
+                                    return cb(null, "ok");
+                                }
+                                var ok = false;
+                                repoGroups.forEach(function (g) {
+                                    if (user.groups[g + ""]) ok = true;
+                                });
+                                if (ok) {
+                                    pr.contribStatus[username] = "ok";
+                                    return cb(null, "ok");
+                                }
+                                pr.contribStatus[username] = "not in group";
+                                return cb(null, "not in group");
+                            });
+                        }
+                    ,   function (err, results) {
+                            if (err) return cb(err);
+                            var good = results.every(function (st) { return st === "ok"; });
+                            if (good) {
+                                pr.acceptable = "yes";
+                                pr.unknownUsers = [];
+                                pr.outsideUsers = [];
+                                statusData.payload.state = "success";
+                                statusData.payload.description = "PR deemed acceptable.";
+                                gh.status(
+                                    statusData
+                                ,   function (err) {
+                                        if (err) return cb(err);
+                                        store.updatePR(pr.fullName, pr.num, pr, cb);
+                                    }
+                                );
+                            }
+                            else {
+                                pr.acceptable = "no";
+                                pr.unknownUsers = [];
+                                pr.outsideUsers = [];
+                                for (var u in pr.contribStatus) {
+                                    if (pr.contribStatus[u] === "unknown") pr.unknownUsers.push(u);
+                                    if (pr.contribStatus[u] === "not in group") pr.outsideUsers.push(u);
+                                }
+                                var msg = "PR has contribution issues.";
+                                if (pr.unknownUsers.length)
+                                    msg += " The following users were unknown: " +
+                                            pr.unknownUsers
+                                                .map(function (u) { return "@" + u; })
+                                                .join(", ") +
+                                                ".";
+                                if (pr.outsideUsers.length)
+                                    msg += " The following users were not in the repository's groups: " +
+                                            pr.outsideUsers
+                                                .map(function (u) { return "@" + u; })
+                                                .join(", ") +
+                                                ".";
+                                statusData.payload.state = "failure";
+                                statusData.payload.description =  msg;
+                                gh.status(
+                                    statusData
+                                ,   function (err) {
+                                        if (err) return cb(err);
+                                        store.updatePR(pr.fullName, pr.num, pr, cb);
+                                    }
+                                );
+
+                            }
+                        }
+                    );
+                }
+            );
+        });
+    });
+}
+
+app.post("/" + config.hookPath, function (req, res) {
+    // we can't use bp.json(), that'll wreck secret checking by consuming the buffer
+    // first, req.pipe(bl(function (err, data))) to save the buffer
+    req.pipe(bl(function (err, buffer) {
+        if (err) return error(res, err);
+        // get us some JSON
+        var event;
+        try { event = JSON.parse(buffer.toString()); }
+        catch (e) { return error(res, e); }
+        console.log(event);
+        
+        // run checks before getting the secret to check the crypto
+        var eventType = req.headers["x-github-event"];
+        log.info("Hook got GH event " + eventType);
+        // we only care about these events, and for issue_comment we only care about those on PRs
+        if (eventType !== "pull_request" && eventType !== "issue_comment") return res.json({ ok: true });
+        if (eventType === "issue_comment" && !event.issue.pull_request) return res.json({ ok: true });
+
+        var owner = event.repository.owner.login;
+        store.getSecret(owner, function (err, data) {
+            // if there's an error, we can't set an error on the status because we have no secret, so bail
+            if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
+            
+            // we have the secret, crypto check becomes possible
+            var ourSig = "sha1=" + crypto.createHmac("sha1", data.secret).update(buffer).digest("hex")
+            ,   theirSig = req.headers["x-hub-signature"]
+            ;
+            if (ourSig !== theirSig) return error(res, "GitHub signature does not match known secret.");
+
+            // for status we need: owner, repoShort, and sha
+            var repoShort = event.repository.name
+            ,   repo = event.repository.full_name
+            ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
+            ;
+            
+            // pull request events
+            if (eventType === "pull_request") {
+                //  if event.action === "synchronize" or "closed" we have to store the new head SHA in
+                //  the DB, but other than that we can ignore it
+                if (event.action === "synchronize" || event.action === "closed") {
+                    return store.updatePR(
+                            repo
+                        ,   prNum
+                        ,   {
+                                status:     event.action === "closed" ? "closed" : "open"
+                            ,   sha:        event.pull_request.head.sha
+                            }
+                        ,   makeOK(res)
+                    );
+                }
+                var sha = event.pull_request.head.sha
+                ,   pr = {
+                        fullName:       repo
+                    ,   shortName:      repoShort
+                    ,   owner:          owner
+                    ,   num:            prNum
+                    ,   sha:            sha
+                    ,   status:         "open"
+                    ,   acceptable:     "pending"
+                    ,   unknownUsers:   []
+                    ,   outsideUsers:   []
+                    ,   contributors:   [event.pull_request.user.login]
+                    ,   contribStatus:  {}
+                    }
+                ,   delta = parseMessage(event.pull_request.body)
+                ;
+                store.addPR(pr, function (err) {
+                    if (err) return error(res, err);
+                    prStatus(pr, delta, req, res, makeOK(res));
+                });
+            }
+            // issue comment events
+            else if (eventType === "issue_comment") {
+                var delta = parseMessage(event.comment.body);
+                if (!delta.total) return res.json({ ok: true });
+                store.getPR(repo, prNum, function (err, pr) {
+                    if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+                    prStatus(pr, delta, req, res, makeOK(res));
+                });
+            }
+        });
+    }));
+});
+// get a given PR
+app.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
+    
+});
+
 // handler for client-side routing
 function showIndex (req, res) {
     res.sendFile(jn(__dirname, "public/index.html"));
 }
 app.get("/repo/*", showIndex);
 app.get("/admin/*", showIndex);
+app.get("/pr/*", showIndex);
 
 
 // run!
@@ -290,4 +519,3 @@ app.listen(config.serverPort, function (err) {
     if (err) return log.error(err);
     log.info("Ash-Nazg/" + version + " up and running.");
 });
-

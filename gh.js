@@ -101,7 +101,7 @@ GH.prototype = {
         ,   index
         ,   simpleRepo
         ,   readme
-        ,   hookURL = config.hookURL || (config.url + "api/hook")
+        ,   hookURL = config.hookURL || (config.url + config.hookPath)
         ,   tmplData = {
                 name:           andify(data.groups, "name")
             ,   username:       this.user.username
@@ -156,7 +156,7 @@ GH.prototype = {
                                                             ,   content_type:   "json"
                                                             ,   secret:         simpleRepo.secret
                                                             }
-                                                        ,   events: ["pull_request", "issue_comment", "pull_request_review_comment"]
+                                                        ,   events: ["pull_request", "issue_comment"]
                                                         ,   active: true
                                                         })
                                                         .then(function () { report.push("Hook installed."); })
@@ -171,6 +171,15 @@ GH.prototype = {
             .then(function () {
                 cb(null, { actions: report, repo: simpleRepo });
             })
+            .catch(cb)
+        ;
+    }
+,   status: function (data, cb) {
+        this.octo
+            .repos(data.owner, data.shortName)
+            .statuses(data.sha)
+            .create(data.payload)
+            .then(function () { cb(null); })
             .catch(cb)
         ;
     }

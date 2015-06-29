@@ -502,7 +502,8 @@ app.post("/" + config.hookPath, function (req, res) {
 });
 // get a given PR
 app.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
-    
+    var prms = req.params;
+    store.getPR(prms.owner + "/" + prms.shortName, prms.num, makeRes(res));
 });
 
 // handler for client-side routing

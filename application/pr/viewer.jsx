@@ -1,6 +1,7 @@
 
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
+import { Link } from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -34,18 +35,59 @@ export default class PRViewer extends React.Component {
     render () {
         let st = this.state
         ,   content
+        ,   link
         ;
         if (st.status === "loading") {
             content = <Spinner/>;
+            link = "loading";
         }
         else if (st.status === "ready") {
-            content =   <p>ok...</p>;
-            // XXX
-            //  produce report, links to GH, ability to add user to system (which then enables adding
-            //  user to group, etc)
+            let cs = st.pr.contribStatus
+            ,   thStyle = { paddingRight: "20px" }
+            ;
+            content =   <table className="users-list">
+                            <tr>
+                                <th style={thStyle}>Acceptable</th>
+                                <td className={st.pr.acceptable === "yes" ? "good" : "bad"}>{st.pr.acceptable}</td>
+                            </tr>
+                            <tr>
+                                <th style={thStyle}>Contributors</th>
+                                <td>
+                                    <ul>
+                                        {
+                                            Object.keys(cs)
+                                                .map((username) => {
+                                                    if (cs[username] === "ok") {
+                                                        return <li className="good" key={username}>{username}</li>;
+                                                    }
+                                                    else if (cs[username] === "unknown") {
+                                                        return <li key={username}>
+                                                                <span className="bad">{username}</span> is unknown,{" "}
+                                                                <Link to={"/admin/user/" + username + "/add"}>add them to the system</Link>.
+                                                            </li>
+                                                        ;
+                                                    }
+                                                    else {
+                                                        return <li key={username}>
+                                                                <span className="bad">{username}</span> is not
+                                                                in the right groups, {" "}
+                                                                <Link to={"/admin/user/" + username}>manage their membership</Link>.
+                                                            </li>;
+                                                    }
+                                                })
+                                        }
+                                    </ul>
+                                </td>
+                            </tr>
+                        </table>
+            ;
+            link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">
+                    {st.owner + "/" + st.shortName + "#" + st.num}
+                    </a>
+            ;
         }
         return  <div className="primary-app">
-                    <h2>Pull Request #{st.id}</h2>
+                    <h2>Pull Request {link}</h2>
                     {content}
                 </div>
         ;

@@ -26,7 +26,6 @@ export default class FlashList extends React.Component {
         let st = this.state
         ,   messages = st.messages || []
         ;
-        console.log("messages", messages);
         return  <div className="flash-list">
                     {
                         messages.map(

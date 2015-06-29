@@ -322,18 +322,20 @@ function parseMessage (msg) {
     return ret;
 }
 function prStatus (pr, delta, req, res, cb) {
-    var statusData = {
+    var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
+    ,   statusData = {
             owner:      pr.owner
         ,   shortName:  pr.shortName
         ,   sha:        pr.sha
         ,   payload:    {
                 state:          "pending"
-            ,   target_url:     config.url + "pr/id/" + pr.owner + "/" + pr.shortName + "/" + pr.num
+            ,   target_url:     config.url + "pr/id/" + prString
             ,   description:    "PR is being assessed, results will come shortly."
             ,   context:        "ipr"
             }
         }
     ;
+    log.info("Setting status for PR " + prString);
     store.getRepo(pr.fullName, function (err, repo) {
         if (err) return cb(err);
         if (!repo) return cb("Unknown repository: " + pr.fullName);
@@ -342,16 +344,19 @@ function prStatus (pr, delta, req, res, cb) {
             if (err) return cb(err);
             if (!token) return cb("Token not found for: " + repo.owner);
             var gh = new GH({ accessToken: token.token });
+            log.info("Setting pending status on " + prString);
             gh.status(
                 statusData
             ,   function (err) {
                     if (err) return cb(err);
                     var contrib = {};
+                    log.info("Finding deltas for " + prString);
                     pr.contributors.forEach(function (c) { contrib[c] = true; });
                     delta.add.forEach(function (c) { contrib[c] = true; });
                     delta.remove.forEach(function (c) { delete contrib[c]; });
                     pr.contributors = Object.keys(contrib);
                     pr.contribStatus = {};
+                    log.info("Looking up users for " + prString);
                     async.map(
                         pr.contributors
                     ,   function (username, cb) {
@@ -380,12 +385,14 @@ function prStatus (pr, delta, req, res, cb) {
                     ,   function (err, results) {
                             if (err) return cb(err);
                             var good = results.every(function (st) { return st === "ok"; });
+                            log.info("Got users for " + prString + " results good? " + good);
                             if (good) {
                                 pr.acceptable = "yes";
                                 pr.unknownUsers = [];
                                 pr.outsideUsers = [];
                                 statusData.payload.state = "success";
                                 statusData.payload.description = "PR deemed acceptable.";
+                                log.info("Setting status success for " + prString);
                                 gh.status(
                                     statusData
                                 ,   function (err) {
@@ -417,10 +424,12 @@ function prStatus (pr, delta, req, res, cb) {
                                                 ".";
                                 statusData.payload.state = "failure";
                                 statusData.payload.description =  msg;
+                                log.info("Setting status failure for " + prString + ", " + msg);
                                 gh.status(
                                     statusData
                                 ,   function (err) {
                                         if (err) return cb(err);
+                                        // XXX the issue is that updatePR does not return a complete PR object
                                         store.updatePR(pr.fullName, pr.num, pr, cb);
                                     }
                                 );
@@ -522,6 +531,19 @@ app.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     var prms = req.params;
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, makeRes(res));
 });
+// revalidate a PR
+app.get("/api/pr/:owner/:shortName/:num/revalidate", function (req, res) {
+    var prms = req.params
+    ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
+    ;
+    log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
+    store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
+        if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+        prStatus(pr, delta, req, res, makeRes(res));
+    });
+});
+
+
 
 // handler for client-side routing
 function showIndex (req, res) {

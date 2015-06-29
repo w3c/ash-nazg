@@ -332,7 +332,7 @@ Store.prototype = {
         pr.type = "pr";
         pr.num = pr.num + "";
         // XXX
-        //  set couch-friend lastUpdate date
+        //  set couch-friendly lastUpdate date
         delete pr._rev; // don't use this to update PRs
         log.info("Adding PR " + pr.fullName + "-" + pr.num);
         this.add(pr, cb);
@@ -355,7 +355,7 @@ Store.prototype = {
             }
             for (var k in pr) doc[k] = pr[k];
             // XXX
-            //  set couch-friend lastUpdate date
+            //  set couch-friendly lastUpdate date
             this.add(doc, cb);
         }.bind(this));
     }

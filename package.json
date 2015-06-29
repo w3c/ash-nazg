@@ -4,7 +4,8 @@
   "scripts": {
     "start": "node server.js",
     "watch-server": "nodemon -w server.js -w gh.js -w store.js -w log.js --exec 'npm run start'",
-    "build-js": "browserify app.jsx --debug | exorcist public/js/app.js.map > public/js/app.js",
+    "build-js-debug": "browserify app.jsx --debug | exorcist public/js/app.js.map > public/js/app.js",
+    "build-js": "browserify app.jsx | uglifyjs - -c -m > public/js/app.js",
     "watch-js": "nodemon -e jsx,js --watch app.jsx --watch ./components/ --watch ./application/ --watch ./stores/ --watch ./actions/ --exec 'npm run build-js'",
     "build-css": "cleancss -o ./public/css/app.min.css app.css",
     "watch-css": "nodemon --ignore ./public/ -e css --exec 'npm run build-css'",
@@ -53,8 +54,7 @@
   },
   "browserify": {
     "transform": [
-      "babelify",
-      "uglifyify"
+      "babelify"
     ]
   }
 }

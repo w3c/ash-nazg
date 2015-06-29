@@ -2,6 +2,7 @@
 import React from "react";
 import Spinner from "../../components/spinner.jsx";
 import { Link } from "react-router";
+import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils");
@@ -33,13 +34,17 @@ export default class PRViewer extends React.Component {
     }
     
     revalidate () {
+        let st = this.state;
         this.setState({ status: "loading" });
-        // XXX
-        //  call an API that revisits the status of the PR (try to reuse the same code, possibly
-        //  with a force flag)
-        //  the API needs to return the updated pr that we can set the state with
-        //  set state to loading while processing, it's good enough, and we return to ready when
-        //  it's done
+        fetch("/api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"))
+            .then(utils.jsonHandler)
+            .then((data) => {
+                console.log("got data", data);
+                this.setState({ pr: data, status: "ready" });
+                if (data.error) return MessageActions.error(data.error);
+            })
+            .catch(utils.catchHandler)
+        ;
     }
     
     render () {

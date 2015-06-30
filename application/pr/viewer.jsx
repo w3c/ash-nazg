@@ -5,7 +5,9 @@ import { Link } from "react-router";
 import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 export default class PRViewer extends React.Component {
     constructor (props) {
@@ -24,7 +26,7 @@ export default class PRViewer extends React.Component {
         ,   num = this.props.params.num
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
-        fetch("/api/pr/" + [owner, shortName, num].join("/"))
+        fetch(pp + "api/pr/" + [owner, shortName, num].join("/"))
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ pr: data, status: "ready" });
@@ -36,7 +38,7 @@ export default class PRViewer extends React.Component {
     revalidate () {
         let st = this.state;
         this.setState({ status: "loading" });
-        fetch("/api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"))
+        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"))
             .then(utils.jsonHandler)
             .then((data) => {
                 console.log("got data", data);
@@ -91,7 +93,7 @@ export default class PRViewer extends React.Component {
                                                     else if (cs[username] === "unknown") {
                                                         return <li key={username}>
                                                                 <span className="bad">{username}</span> is unknown,{" "}
-                                                                <Link to={"/admin/user/" + username + "/add"}>add them to the system</Link>.
+                                                                <Link to={`${pp}admin/user/${username}/add`}>add them to the system</Link>.
                                                             </li>
                                                         ;
                                                     }
@@ -99,7 +101,7 @@ export default class PRViewer extends React.Component {
                                                         return <li key={username}>
                                                                 <span className="bad">{username}</span> is not
                                                                 in the right groups, {" "}
-                                                                <Link to={"/admin/user/" + username}>manage their membership</Link>.
+                                                                <Link to={`${pp}admin/user/${username}`}>manage their membership</Link>.
                                                             </li>;
                                                     }
                                                 })

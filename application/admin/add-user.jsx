@@ -5,7 +5,9 @@ import MessageActions from "../../actions/messages";
 import { Link } from "react-router";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 export default class AddUser extends React.Component {
     constructor (props) {
@@ -20,9 +22,7 @@ export default class AddUser extends React.Component {
         this.setState({ username: this.props.params.username });
     }
     componentDidMount () {
-        // XXX here the goal is to check that the user is *not* in the system
-        // it's *good* if we get not found
-        fetch("/api/user/" + this.state.username)
+        fetch(pp + "api/user/" + this.state.username)
             .then(utils.jsonHandler)
             .then((data) => {
                 if (data) {
@@ -40,7 +40,7 @@ export default class AddUser extends React.Component {
     addUser () {
         this.setState({ status: "loading" });
         fetch(
-            "/api/user/" + this.state.username + "/add"
+            pp + "api/user/" + this.state.username + "/add"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
@@ -71,7 +71,7 @@ export default class AddUser extends React.Component {
         else if (st.status === "user-exists") {
             content = <p>
                         User {st.username} is known to the system.
-                        You can <Link to={"/admin/user/" + st.username}>edit that account</Link>.
+                        You can <Link to={`${pp}admin/user/${st.username}`}>edit that account</Link>.
                     </p>;
         }
         else if (st.status === "ready") {

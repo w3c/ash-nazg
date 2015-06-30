@@ -4,7 +4,9 @@ import Spinner from "../../components/spinner.jsx";
 import { Link } from "react-router";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 function byStatus (pr, status) {
     let cs = pr.contribStatus;
@@ -20,7 +22,7 @@ export default class PROpen extends React.Component {
         };
     }
     componentDidMount () {
-        fetch("/api/pr/open")
+        fetch(pp + "api/pr/open")
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ prs: data, status: "ready" });
@@ -74,7 +76,7 @@ export default class PROpen extends React.Component {
                                                             byStatus(pr, "unknown")
                                                                 .map((u) => {
                                                                     return <li key={u} className="bad">
-                                                                            <Link to={`/admin/user/${u}/add`}>{u}</Link>
+                                                                            <Link to={`${pp}admin/user/${u}/add`}>{u}</Link>
                                                                         </li>;
                                                                 })
                                                         }
@@ -86,14 +88,14 @@ export default class PROpen extends React.Component {
                                                             byStatus(pr, "not in group")
                                                                 .map((u) => {
                                                                     return <li key={u} className="bad">
-                                                                            <Link to={`/admin/user/${u}`}>{u}</Link>
+                                                                            <Link to={`${pp}admin/user/${u}`}>{u}</Link>
                                                                         </li>;
                                                                 })
                                                         }
                                                     </ul>
                                                 </td>
                                                 <td>
-                                                    <Link to={`/pr/id/${pr.owner}/${pr.shortName}/${pr.num}`} className="button">Details</Link>
+                                                    <Link to={`${pp}pr/id/${pr.owner}/${pr.shortName}/${pr.num}`} className="button">Details</Link>
                                                 </td>
                                             </tr>
                                         ;

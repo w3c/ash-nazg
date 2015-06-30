@@ -33,6 +33,10 @@ import PRViewer from "./application/pr/viewer.jsx";
 import PROpen from "./application/pr/open.jsx";
 import PRLastWeek from "./application/pr/last-week.jsx";
 
+let utils = require("./application/utils")
+,   pp = utils.pathPrefix()
+;
+
 function getState () {
     return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin() };
 }
@@ -62,8 +66,8 @@ class AshNazg extends React.Component {
         // show admin links as well
         if (st.admin) {
             admin = <NavBox title="Admin">
-                        <NavItem><Link to="/admin/users">Users</Link></NavItem>
-                        <NavItem><Link to="/admin/groups">Groups</Link></NavItem>
+                        <NavItem><Link to={`${pp}admin/users`}>Users</Link></NavItem>
+                        <NavItem><Link to={`${pp}admin/groups`}>Groups</Link></NavItem>
                     </NavBox>
             ;
         }
@@ -71,12 +75,12 @@ class AshNazg extends React.Component {
         if (st.loggedIn === true) {
             nav = <Col className="nav">
                     <NavBox title="Manage">
-                        <NavItem><Link to="/repo/new">New Repository</Link></NavItem>
-                        <NavItem><Link to="/repo/import">Import Repository</Link></NavItem>
+                        <NavItem><Link to={`${pp}repo/new`}>New Repository</Link></NavItem>
+                        <NavItem><Link to={`${pp}repo/import`}>Import Repository</Link></NavItem>
                     </NavBox>
                     <NavBox title="Pull Requests">
-                        <NavItem><Link to="/pr/open">Currently Open</Link></NavItem>
-                        <NavItem><Link to="/pr/last-week">Active Last Week</Link></NavItem>
+                        <NavItem><Link to={`${pp}pr/open`}>Currently Open</Link></NavItem>
+                        <NavItem><Link to={`${pp}pr/last-week`}>Active Last Week</Link></NavItem>
                     </NavBox>
                     {admin}
                     <NavBox title="User">
@@ -107,7 +111,7 @@ class AshNazg extends React.Component {
 
 React.render(
     <Router history={new BrowserHistory}>
-        <Route path="/" component={AshNazg}>
+        <Route path={pp} component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
             <Route path="pr/open" component={PROpen}/>

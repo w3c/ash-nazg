@@ -9,6 +9,7 @@ var express = require("express")
 ,   cookieParser = require("cookie-parser")
 ,   bp = require("body-parser")
 ,   async = require("async")
+,   fs = require("fs")
 ,   assign = require("object-assign")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
@@ -558,9 +559,12 @@ app.get("/api/pr/last-week", function (req, res) {
 
 
 // handler for client-side routing
+var indexHTML = fs.readFileSync(jn(__dirname, "templates/app.html"), "utf8")
+                    .replace(/\{\{pathPrefix\}\}/g, config.urlPathPrefix);
 function showIndex (req, res) {
-    res.sendFile(jn(__dirname, "public/index.html"));
+    res.send(indexHTML);
 }
+app.get("/", showIndex);
 app.get("/repo/*", showIndex);
 app.get("/admin/*", showIndex);
 app.get("/pr/*", showIndex);

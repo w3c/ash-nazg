@@ -4,7 +4,9 @@ import { Link } from "react-router";
 import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 
 export default class UserLine extends React.Component {
@@ -15,7 +17,7 @@ export default class UserLine extends React.Component {
     makeAdmin () {
         React.findDOMNode(this.refs.admin).disabled = true;
         fetch(
-            "/api/user/" + this.props.username + "/admin"
+            pp + "api/user/" + this.props.username + "/admin"
         ,   {
                 method:     "put"
             ,   headers:    { "Content-Type": "application/json" }
@@ -37,7 +39,7 @@ export default class UserLine extends React.Component {
     makeBlanket () {
         React.findDOMNode(this.refs.blanket).disabled = true;
         fetch(
-            "/api/user/" + this.props.username + "/blanket"
+            pp + "api/user/" + this.props.username + "/blanket"
         ,   {
                 method:     "put"
             ,   headers:    { "Content-Type": "application/json" }
@@ -82,7 +84,7 @@ export default class UserLine extends React.Component {
                         {" "}
                         {makeBlanket}
                         {" "}
-                        <Link to={"/admin/user/" + props.username} className="button">Edit</Link>
+                        <Link to={`${pp}admin/user/${props.username}`} className="button">Edit</Link>
                     </td>
                 </tr>
         ;

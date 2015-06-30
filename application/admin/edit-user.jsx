@@ -5,7 +5,9 @@ import MessageActions from "../../actions/messages";
 
 let async = require("async");
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 export default class EditUser extends React.Component {
     constructor (props) {
@@ -26,11 +28,11 @@ export default class EditUser extends React.Component {
     }
     componentDidMount () {
         let user;
-        fetch("/api/user/" + this.state.username)
+        fetch(pp + "api/user/" + this.state.username)
             .then(utils.jsonHandler)
             .then((data) => {
                 user = data;
-                return fetch("/api/groups")
+                return fetch(pp + "api/groups")
                         .then(utils.jsonHandler)
                         .then((data) => {
                             this.setState({ user: user, groups: data, status: "ready" });
@@ -126,7 +128,7 @@ export default class EditUser extends React.Component {
         this.setState({ modified: false, w3cidStatus: "saving" });
         let user = this.state.user;
         fetch(
-            "/api/user/" + this.state.user.username + "/affiliate"
+            pp + "api/user/" + this.state.user.username + "/affiliate"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }

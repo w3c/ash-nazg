@@ -3,7 +3,9 @@ import React from "react";
 import MessageActions from "../../actions/messages";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 
 export default class GroupLine extends React.Component {
@@ -15,7 +17,7 @@ export default class GroupLine extends React.Component {
         React.findDOMNode(this.refs.managed).disabled = true;
         var p = this.props;
         fetch(
-            "/api/groups"
+            pp + "api/groups"
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }

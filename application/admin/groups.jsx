@@ -5,6 +5,7 @@ import GroupLine from "./group-line.jsx";
 
 require("isomorphic-fetch");
 let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
 ,   groupTypes = {
         "community group":      "CG"
     ,   "working group":        "WG"
@@ -26,7 +27,7 @@ export default class AdminGroups extends React.Component {
     }
     componentDidMount () {
         var ourGroups;
-        fetch("/api/groups")
+        fetch(pp + "api/groups")
             .then(utils.jsonHandler)
             .then((data) => {
                 ourGroups = data;

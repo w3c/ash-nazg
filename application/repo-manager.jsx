@@ -5,6 +5,7 @@ import MessageActions from "../actions/messages";
 
 require("isomorphic-fetch");
 let utils = require("./utils")
+,   pp = utils.pathPrefix()
 ;
 
 export default class RepoNew extends React.Component {
@@ -30,11 +31,11 @@ export default class RepoNew extends React.Component {
     componentDidMount () {
         console.log("component DID mount with mode ", this.props.params.mode);
         let orgs;
-        fetch("/api/orgs")
+        fetch(pp + "api/orgs")
             .then(utils.jsonHandler)
             .then((data) => {
                 orgs = data;
-                return fetch("/api/groups")
+                return fetch(pp + "api/groups")
                         .then(utils.jsonHandler)
                         .then((data) => {
                             this.setState({ orgs: orgs, groups: data, status: "ready" });
@@ -62,7 +63,7 @@ export default class RepoNew extends React.Component {
         ,   repoGroups: repoGroups
         });
         fetch(
-            this.state.isNew ? "/api/create-repo" : "/api/import-repo"
+            pp + (this.state.isNew ? "api/create-repo" : "api/import-repo")
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }

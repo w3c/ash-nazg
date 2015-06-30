@@ -2,11 +2,16 @@
 import React from "react";
 import MessageActions from "../actions/messages";
 
+let pathPrefix;
 
 module.exports = {
     jsonHandler:    (res) => { return res.json(); }
 ,   catchHandler:   (e) => {
         MessageActions.error(e);
+    }
+,   pathPrefix: () => {
+        if (!pathPrefix) pathPrefix = document.body.getAttribute("data-path-prefix");
+        return pathPrefix;
     }
 ,   val:    (ref) => {
         let el = React.findDOMNode(ref)

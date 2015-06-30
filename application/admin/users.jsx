@@ -4,7 +4,9 @@ import Spinner from "../../components/spinner.jsx";
 import UserLine from "./user-line.jsx";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils");
+let utils = require("../../application/utils")
+,   pp = utils.pathPrefix()
+;
 
 export default class AdminUsers extends React.Component {
     constructor (props) {
@@ -15,7 +17,7 @@ export default class AdminUsers extends React.Component {
         };
     }
     componentDidMount () {
-        fetch("/api/users")
+        fetch(pp + "api/users")
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ users: data, status: "ready" });

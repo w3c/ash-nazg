@@ -7,6 +7,7 @@ import assign from "object-assign";
 require("isomorphic-fetch");
 
 let utils = require("../application/utils")
+,   pp = utils.pathPrefix()
 ,   _loggedIn = null
 ,   _admin = false
 ,   LoginStore = module.exports = assign({}, EventEmitter.prototype, {
@@ -26,7 +27,7 @@ let utils = require("../application/utils")
 LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
     switch (action.type) {
         case "login":
-            fetch("/api/logged-in")
+            fetch(pp + "api/logged-in")
                 .then(utils.jsonHandler)
                 .then((data) => {
                     _loggedIn = data.ok;
@@ -36,7 +37,7 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                 .catch(utils.catchHandler);
             break;
         case "logout":
-            fetch("/api/logout")
+            fetch(pp + "api/logout")
                 .then(utils.jsonHandler)
                 .then((data) => {
                     if (!data.ok) throw "Logout failed";

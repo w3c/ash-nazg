@@ -96,7 +96,7 @@ class AshNazg extends React.Component {
         }
         // while we don't know if we're logged in or out, spinner
         else {
-            body = <Col><Spinner/></Col>;
+            body = <Col><Spinner prefix={pp}/></Col>;
         }
         return <Application title="Repository Manager">
                   <FlashList store={MessageStore} actions={MessageActions}/>

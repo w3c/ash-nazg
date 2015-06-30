@@ -275,7 +275,7 @@ function makeCreateOrImportRepo (mode) {
                     async.parallel(
                         [
                             function (cb) {
-                                store.addSecret({ owner: repo.owner, secret: repo.secret }, cb);
+                                store.addSecret({ repo: repo.fullName, secret: repo.secret }, cb);
                             }
                         ,   function (cb) {
                                 store.createOrUpdateToken({ owner: repo.owner, token: req.user.accessToken }, cb);
@@ -356,6 +356,8 @@ function prStatus (pr, delta, req, res, cb) {
                     delta.remove.forEach(function (c) { delete contrib[c]; });
                     pr.contributors = Object.keys(contrib);
                     pr.contribStatus = {};
+                    pr.groups = repoGroups;
+                    pr.affiliations = {};
                     log.info("Looking up users for " + prString);
                     async.map(
                         pr.contributors
@@ -366,6 +368,7 @@ function prStatus (pr, delta, req, res, cb) {
                                     return cb(null, "unknown");
                                 }
                                 if (err) return cb(err);
+                                pr.affiliations[user.affiliation] = user.affiliationName;
                                 if (user.blanket) {
                                     pr.contribStatus[username] = "ok";
                                     return cb(null, "ok");
@@ -397,7 +400,9 @@ function prStatus (pr, delta, req, res, cb) {
                                     statusData
                                 ,   function (err) {
                                         if (err) return cb(err);
-                                        store.updatePR(pr.fullName, pr.num, pr, cb);
+                                        store.updatePR(pr.fullName, pr.num, pr, function (err) {
+                                            cb(err, pr);
+                                        });
                                     }
                                 );
                             }
@@ -462,8 +467,10 @@ app.post("/" + config.hookPath, function (req, res) {
         if (eventType !== "pull_request" && eventType !== "issue_comment") return ok(res);
         if (eventType === "issue_comment" && !event.issue.pull_request) return ok(res);
 
-        var owner = event.repository.owner.login;
-        store.getSecret(owner, function (err, data) {
+        var owner = event.repository.owner.login
+        ,   repo = event.repository.full_name
+        ;
+        store.getSecret(repo, function (err, data) {
             // if there's an error, we can't set an error on the status because we have no secret, so bail
             if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
             
@@ -475,7 +482,6 @@ app.post("/" + config.hookPath, function (req, res) {
 
             // for status we need: owner, repoShort, and sha
             var repoShort = event.repository.name
-            ,   repo = event.repository.full_name
             ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
             ;
             
@@ -539,11 +545,18 @@ app.get("/api/pr/:owner/:shortName/:num/revalidate", function (req, res) {
     ;
     log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
-        if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+        if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
         prStatus(pr, delta, req, res, makeRes(res));
     });
 });
-
+// list open PRs
+app.get("/api/pr/open", function (req, res) {
+    store.getOpenPRs(makeRes(res));
+});
+// list PRs from last week
+app.get("/api/pr/last-week", function (req, res) {
+    store.getLastWeekPRs(makeRes(res));
+});
 
 
 // handler for client-side routing

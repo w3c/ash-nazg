@@ -30,6 +30,8 @@ import AdminGroups from "./application/admin/groups.jsx";
 import EditUser from "./application/admin/edit-user.jsx";
 import AddUser from "./application/admin/add-user.jsx";
 import PRViewer from "./application/pr/viewer.jsx";
+import PROpen from "./application/pr/open.jsx";
+import PRLastWeek from "./application/pr/last-week.jsx";
 
 function getState () {
     return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin() };
@@ -72,6 +74,10 @@ class AshNazg extends React.Component {
                         <NavItem><Link to="/repo/new">New Repository</Link></NavItem>
                         <NavItem><Link to="/repo/import">Import Repository</Link></NavItem>
                     </NavBox>
+                    <NavBox title="Pull Requests">
+                        <NavItem><Link to="/pr/open">Currently Open</Link></NavItem>
+                        <NavItem><Link to="/pr/last-week">Active Last Week</Link></NavItem>
+                    </NavBox>
                     {admin}
                     <NavBox title="User">
                         <NavItem><LogoutButton/></NavItem>
@@ -104,6 +110,8 @@ React.render(
         <Route path="/" component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
+            <Route path="pr/open" component={PROpen}/>
+            <Route path="pr/last-week" component={PRLastWeek}/>
             <Route path="admin/users" component={AdminUsers}/>
             <Route path="admin/user/:username" component={EditUser}/>
             <Route path="admin/user/:username/add" component={AddUser}/>

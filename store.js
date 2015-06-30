@@ -1,17 +1,8 @@
-/* global emit*/
+/* global emit, sum*/
 
 // IMPORTANT:
 // when this is ran directly, set up the DB
 // otherwise just be a library that handles all storage
-
-
-// XXX
-// Note that for the status thing, we will need to get the access token for that repo based on a
-// user that owns it
-// this ought to be doable relatively easily when the repo has been created or imported through our
-// interface. Wait... this implies that all the repos we manage need to be created/imported here.
-// Ok, can live with that.
-// We can create a special token for the w3c organisation
 
 // XXX
 // this could use some DRY love
@@ -22,6 +13,13 @@ var cradle = require("cradle")
 ,   log = require("./log")
 ,   config = require("./config.json")
 ;
+
+// helpers
+function couchNow (d) {
+    if (!d) d = new Date();
+    return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(),
+            d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds()];
+}
 
 function Store () {
     var dbName = config.couchDB || "ash-nazg"
@@ -57,6 +55,16 @@ Store.prototype = {
                                     emit(doc.username, doc);
                                 }.toString()
                     }
+                    // query this with group=true to get a list of companies
+                ,   by_affiliation: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "user") return;
+                                    emit(doc.affiliation, doc);
+                                }.toString()
+                    ,   reduce: function (keys, values) {
+                            return sum(values);
+                        }
+                    }
                 }
             }
 
@@ -83,10 +91,10 @@ Store.prototype = {
         ,   {
                 id:         "_design/secrets"
             ,   views:  {
-                    by_owner: {
+                    by_repo: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "secret") return;
-                                    emit(doc.owner, doc);
+                                    emit(doc.repo, doc);
                                 }.toString()
                     }
                 }
@@ -128,14 +136,33 @@ Store.prototype = {
                                     emit([doc.fullName, doc.num + ""], doc);
                                 }.toString()
                     }
+                ,   by_date: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr") return;
+                                    emit(doc.lastUpdated, doc);
+                                }.toString()
+                    }
+                ,   by_status: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr") return;
+                                    emit(doc.status, doc);
+                                }.toString()
+                    }
+                ,   by_group: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr" || !doc.groups) return;
+                                    doc.groups.forEach(function (g) {
+                                        emit(g, doc);
+                                    });
+                                }.toString()
+                    }
+                ,   by_affiliation: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr" || !doc.affiliations) return;
+                                    for (var k in doc.affiliations) emit(k, doc);
+                                }.toString()
+                    }
                 }
-
-                // XXX
-                //  index them by date
-                //  perhaps add and update ought to set the list of affiliations
-                //  that way we could index by affiliation then date
-                //  and perhaps also set groups? do the UI first and we'll see what we need
-
             }
         ];
         async.each(
@@ -185,6 +212,20 @@ Store.prototype = {
         profile.id = "user-" + profile.username;
         profile.type = "user";
         profile.groups = profile.groups || {};
+        if (!profile.accessToken) profile.accessToken = "";
+        if (!profile.admin) profile.admin = false;
+        if (!profile.affiliation) profile.affiliation = "";
+        if (!profile.affiliationName) profile.affiliationName = "";
+        if (!profile.blanket) profile.blanket = false;
+        if (!profile.blog) profile.blog = "";
+        if (!profile.displayName) profile.displayName = profile.username;
+        if (!profile.ghID) profile.ghID = "";
+        if (!profile.emails) profile.emails = [];
+        if (!profile.photos) profile.photos = [];
+        if (!profile.profileUrl) profile.profileUrl = "";
+        if (!profile.provider) profile.provider = "";
+        if (!profile.w3capi) profile.w3capi = null;
+        if (!profile.w3cid) profile.w3cid = null;
         delete profile._rev; // don't use this to update users
         log.info("Adding user " + profile.username);
         this.add(profile, cb);
@@ -251,23 +292,19 @@ Store.prototype = {
 
     // SECRETS
 ,   addSecret:    function (secret, cb) {
-        // the configuration file can list secrets that override those in the DB, in which case the
-        // latter don't get stored
-        if (config.secrets && config.secrets[secret.owner]) return cb();
-        secret.id = "secret-" + secret.owner;
+        secret.id = "secret-" + secret.repo;
         secret.type = "secret";
         delete secret._rev; // don't use this to update secrets
-        log.info("Adding secret " + secret.owner);
+        log.info("Adding secret " + secret.repo);
         this.add(secret, cb);
     }
-    // get a secret by owner
-,   getSecret:   function (owner, cb) {
+    // get a secret by repo
+,   getSecret:   function (repo, cb) {
         var store = this;
-        log.info("Looking for secret for " + owner);
-        if (config.secrets && config.secrets[owner]) return cb(null, { owner: owner, secret: config.secrets[owner] });
-        store.db.view("secrets/by_owner", { key: owner }, function (err, docs) {
+        log.info("Looking for secret for " + repo);
+        store.db.view("secrets/by_repo", { key: repo }, function (err, docs) {
             if (err) return cb(err);
-            log.info("Returning secret for " + owner + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            log.info("Returning secret for " + repo + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
         });
     }
@@ -331,17 +368,15 @@ Store.prototype = {
         pr.id = "pr-" + pr.fullName + "-" + pr.num;
         pr.type = "pr";
         pr.num = pr.num + "";
-        // XXX
-        //  set couch-friendly lastUpdate date
+        pr.lastUpdated = couchNow();
         delete pr._rev; // don't use this to update PRs
         log.info("Adding PR " + pr.fullName + "-" + pr.num);
         this.add(pr, cb);
     }
     // get a PR by fullName (username/reponame) and number
 ,   getPR:   function (fullName, num, cb) {
-        var store = this;
         log.info("Looking for PR for " + fullName + "-" + num);
-        store.db.view("prs/by_fullname_num", { key: [fullName, num + ""] }, function (err, docs) {
+        this.db.view("prs/by_fullname_num", { key: [fullName, num + ""] }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning PR for " + fullName + "-" + num + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
@@ -354,10 +389,26 @@ Store.prototype = {
                 else return cb(err);
             }
             for (var k in pr) doc[k] = pr[k];
-            // XXX
-            //  set couch-friendly lastUpdate date
+            pr.lastUpdated = couchNow();
             this.add(doc, cb);
         }.bind(this));
+    }
+,   getOpenPRs: function (cb) {
+        log.info("Looking for open PRs");
+        this.db.view("prs/by_status", { key: "open" }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning open PRs: " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.toArray());
+        });
+    }
+,   getLastWeekPRs: function (cb) {
+        log.info("Looking for PRs from last week");
+        var lastWeek = couchNow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        this.db.view("prs/by_date", { startkey: couchNow(), endkey: lastWeek }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning PRs from the past week: " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.toArray());
+        });
     }
 
 

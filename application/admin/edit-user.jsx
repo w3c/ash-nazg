@@ -68,7 +68,6 @@ export default class EditUser extends React.Component {
                             console.error("Got a 404 for " + group + ", skipping.");
                             return;
                         }
-                        console.log(data._links.users);
                         cb(null, data._links.users);
                     })
                     .catch(utils.catchHandler)
@@ -101,7 +100,7 @@ export default class EditUser extends React.Component {
     }
 
     setUser () {
-        this.setState(({ w3cidStatus: "setting-user" }));
+        this.setState(({ w3cidStatus: "setting-user", modified: true }));
         let user = this.state.user
         ,   apiID = utils.val(this.refs.w3cUser)
         ;

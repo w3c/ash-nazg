@@ -183,7 +183,7 @@ Store.prototype = {
             if ((err && err.error === "not_found") || !user) return store.addUser(profile, cb);
             if (err) return cb(err);
             for (var k in profile) user[k] = profile[k];
-            this.add(user, cb);
+            store.add(user, cb);
         });
     }
     // get a user by username

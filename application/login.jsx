@@ -3,7 +3,9 @@ import React from "react";
 
 export default class LoginWelcome extends React.Component {
     render () {
-        let redir = document.location.href;
+        let redir = document.location.href
+        ,   pp = require("./utils").pathPrefix()
+        ;
         return  <div className="primary-app">
                     <h2>Please login</h2>
                     <p>
@@ -17,7 +19,7 @@ export default class LoginWelcome extends React.Component {
                         almost never use it for anything evil.
                     </p>
                     <p>
-                        Go ahead and <a href={"/auth/github?back=" + redir}>log in using GitHub</a>.
+                        Go ahead and <a href={`${pp}auth/github?back=${redir}`}>log in using GitHub</a>.
                     </p>
                 </div>
         ;

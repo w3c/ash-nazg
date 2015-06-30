@@ -1,0 +1,9 @@
+{
+    "name":         "ashnazg"
+,   "script":       "./server.js"
+,   "args":         []
+,   "exec_mode":    "fork"
+,   "instances":    1
+,   "out_file":     "/home/ubuntu/lab/ashnazg-pm2.log"
+,   "error_file":   "/home/ubuntu/lab/ashnazg-pm2-errors.log"
+}

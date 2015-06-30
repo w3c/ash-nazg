@@ -72,7 +72,7 @@ export default class PRViewer extends React.Component {
                                     {" "}
                                     {
                                         st.pr.acceptable === "yes" ?
-                                                "— Go merge it at " + link
+                                                <span>— Go merge it at {link}</span>
                                                 :
                                                 <button onClick={this.revalidate.bind(this)}>Revalidate</button>
                                     }

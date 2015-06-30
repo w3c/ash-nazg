@@ -176,7 +176,7 @@ Store.prototype = {
             if (err) return cb(err);
             log.info("Returning " + docs.length + "users");
             docs = docs.toArray().sort(function (a, b) {
-                return a.fullName.localeCompare(b.fullName);
+                return a.displayName.localeCompare(b.displayName);
             });
             cb(null, docs);
         });

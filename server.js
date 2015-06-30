@@ -429,8 +429,9 @@ function prStatus (pr, delta, req, res, cb) {
                                     statusData
                                 ,   function (err) {
                                         if (err) return cb(err);
-                                        // XXX the issue is that updatePR does not return a complete PR object
-                                        store.updatePR(pr.fullName, pr.num, pr, cb);
+                                        store.updatePR(pr.fullName, pr.num, pr, function (err) {
+                                            cb(err, pr);
+                                        });
                                     }
                                 );
 

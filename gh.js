@@ -198,14 +198,16 @@ GH.prototype = {
                     ,   displayName:        user.name
                     ,   ghID:               user.id
                     ,   groups:             {}
+                    ,   emails:             []
+                    ,   photos:             []
                     ,   profileUrl:         user.html_url
                     ,   provider:           "github"
                     ,   username:           username
                     ,   w3capi:             null
                     ,   w3cid:              null
                 };
-                if (user.email) u.emails = [{ value: user.email }];
-                if (user.avatar_url) u.photos = [{ value: user.avatar_url }];
+                if (user.email) u.emails.push({ value: user.email });
+                if (user.avatar_url) u.photos.push({ value: user.avatar_url });
                 cb(null, u);
             })
             .catch(cb)

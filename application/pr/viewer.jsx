@@ -55,7 +55,7 @@ export default class PRViewer extends React.Component {
         ,   link
         ;
         if (st.status === "loading") {
-            content = <Spinner/>;
+            content = <Spinner prefix={pp}/>;
             link = "loading";
         }
         else if (st.status === "ready") {

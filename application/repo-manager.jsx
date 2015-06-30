@@ -24,12 +24,10 @@ export default class RepoNew extends React.Component {
     }
     componentWillMount () {
         let mode = this.props.params.mode;
-        console.log("component WILL mount with mode ", mode);
         if (mode !== "new" && mode !== "import") throw new Error("Unknown repository mode: " + mode);
         this.setState({ isNew: mode === "new" });
     }
     componentDidMount () {
-        console.log("component DID mount with mode ", this.props.params.mode);
         let orgs;
         fetch(pp + "api/orgs")
             .then(utils.jsonHandler)
@@ -98,7 +96,7 @@ export default class RepoNew extends React.Component {
         let st = this.state
         ,   results = ""
         ,   content = (st.status === "loading") ?
-                        <Spinner/>
+                        <Spinner prefix={pp}/>
                     :
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
@@ -121,7 +119,7 @@ export default class RepoNew extends React.Component {
                         </form>
         ;
         if (st.status === "submitting") {
-            results = <Spinner/>;
+            results = <Spinner prefix={pp}/>;
         }
         else if (st.status === "results") {
             // XXX need a proper flash message

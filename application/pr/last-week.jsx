@@ -50,7 +50,7 @@ export default class PRLastWeek extends React.Component {
         ,   filter
         ;
         if (st.status === "loading") {
-            content = <Spinner/>;
+            content = <Spinner prefix={pp}/>;
         }
         else if (st.status === "ready") {
             filter = <div>

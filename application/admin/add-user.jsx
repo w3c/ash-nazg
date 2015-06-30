@@ -66,7 +66,7 @@ export default class AddUser extends React.Component {
         ,   content
         ;
         if (st.status === "loading") {
-            content = <Spinner/>;
+            content = <Spinner prefix={pp}/>;
         }
         else if (st.status === "user-exists") {
             content = <p>

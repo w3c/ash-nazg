@@ -60,7 +60,7 @@ export default class AdminGroups extends React.Component {
         ,   content
         ;
         if (st.status === "loading") {
-            content = <Spinner/>;
+            content = <Spinner prefix={pp}/>;
         }
         else if (st.status === "ready") {
             content =   <table className="groups-list">

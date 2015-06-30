@@ -159,7 +159,7 @@ export default class EditUser extends React.Component {
         ,   content
         ;
         if (st.status === "loading") {
-            content = <Spinner/>;
+            content = <Spinner prefix={pp}/>;
         }
         else if (st.status === "ready") {
             let groupTable =
@@ -188,7 +188,7 @@ export default class EditUser extends React.Component {
                 ;
             }
             else if (st.w3cidStatus === "loading" || st.w3cidStatus === "setting-user") {
-                w3cid = <Spinner size="small"/>;
+                w3cid = <Spinner prefix={pp} size="small"/>;
             }
             else if (st.w3cidStatus === "suggesting") {
                 w3cid = <div>

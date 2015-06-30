@@ -23,7 +23,6 @@ export default class PROpen extends React.Component {
         fetch("/api/pr/open")
             .then(utils.jsonHandler)
             .then((data) => {
-                console.log("prs", data);
                 this.setState({ prs: data, status: "ready" });
             })
             .catch(utils.catchHandler)
@@ -50,8 +49,6 @@ export default class PROpen extends React.Component {
                             {
                                 st.prs.map(
                                     (pr) => {
-                                        console.log("pr", pr);
-                                        
                                         return <tr key={pr.id}>
                                                 <td className={pr.acceptable === "yes" ? "good" : "bad"}>
                                                     {pr.acceptable}

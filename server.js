@@ -198,7 +198,7 @@ app.get("/api/logged-in", function (req, res) {
 });
 
 // list all the users known to the system
-app.get("/api/users", function (req, res) {
+app.get("/api/users", ensureAPIAuth, function (req, res) {
     store.users(makeRes(res));
 });
 // make user an admin
@@ -210,7 +210,7 @@ app.put("/api/user/:username/blanket", ensureAdmin, function (req, res) {
     store.giveUserBlanket(req.params.username, makeOK(res));
 });
 // get user data
-app.get("/api/user/:username", function (req, res) {
+app.get("/api/user/:username", ensureAPIAuth, function (req, res) {
     store.getUser(req.params.username, makeRes(res));
 });
 // set affiliation on user
@@ -231,7 +231,6 @@ app.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function (re
         if (err && err.error !== "not_found") return error(res, err);
         if (user) return error(res, "User " + username + " is already in the system");
         req.gh.getUser(username, function (err, user) {
-            console.log(err, user);
             store.addUser(user, makeRes(res));
         });
     });
@@ -458,7 +457,6 @@ app.post("/" + config.hookPath, function (req, res) {
         var event;
         try { event = JSON.parse(buffer.toString()); }
         catch (e) { return error(res, e); }
-        console.log(event);
         
         // run checks before getting the secret to check the crypto
         var eventType = req.headers["x-github-event"];
@@ -539,7 +537,7 @@ app.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, makeRes(res));
 });
 // revalidate a PR
-app.get("/api/pr/:owner/:shortName/:num/revalidate", function (req, res) {
+app.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;

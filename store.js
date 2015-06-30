@@ -389,7 +389,7 @@ Store.prototype = {
                 else return cb(err);
             }
             for (var k in pr) doc[k] = pr[k];
-            pr.lastUpdated = couchNow();
+            doc.lastUpdated = couchNow();
             this.add(doc, cb);
         }.bind(this));
     }
@@ -404,7 +404,7 @@ Store.prototype = {
 ,   getLastWeekPRs: function (cb) {
         log.info("Looking for PRs from last week");
         var lastWeek = couchNow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
-        this.db.view("prs/by_date", { startkey: couchNow(), endkey: lastWeek }, function (err, docs) {
+        this.db.view("prs/by_date", { endkey: couchNow(), startkey: lastWeek }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning PRs from the past week: " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.toArray());

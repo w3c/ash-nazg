@@ -181,7 +181,7 @@ app.get(
             passport.authenticate("github", { failureRedirect: redir + "?failure" })(req, res, next);
         }
     ,   function (req, res) {
-            log.info("GitHub auth success");
+            log.info("GitHub auth success, redirecting to " + (req.query.back || "/"));
             res.redirect(req.query.back || "/");
         }
 );

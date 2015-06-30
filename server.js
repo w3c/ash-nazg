@@ -56,13 +56,13 @@ function makeOK (res) {
 // it passes if authentication has happened, otherwise it will return a 401
 function ensureAPIAuth (req, res, next) {
     if (req.isAuthenticated()) return next();
-    res.error(401).json({ error: "Authentication required." });
+    res.status(401).json({ error: "Authentication required." });
 }
 
 // same as above, but user has to be admin too
 function ensureAdmin (req, res, next) {
     ensureAPIAuth(req, res, function () {
-        if (!req.user.admin) res.error(403).json({ error: "Forbidden" });
+        if (!req.user.admin) res.status(403).json({ error: "Forbidden" });
         next();
     });
 }

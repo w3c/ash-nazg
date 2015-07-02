@@ -26,7 +26,7 @@ export default class PRViewer extends React.Component {
         ,   num = this.props.params.num
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
-        fetch(pp + "api/pr/" + [owner, shortName, num].join("/"))
+        fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ pr: data, status: "ready" });
@@ -38,7 +38,7 @@ export default class PRViewer extends React.Component {
     revalidate () {
         let st = this.state;
         this.setState({ status: "loading" });
-        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"))
+        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"), { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 console.log("got data", data);

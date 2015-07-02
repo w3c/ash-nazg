@@ -17,7 +17,7 @@ export default class AdminUsers extends React.Component {
         };
     }
     componentDidMount () {
-        fetch(pp + "api/users")
+        fetch(pp + "api/users", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ users: data, status: "ready" });

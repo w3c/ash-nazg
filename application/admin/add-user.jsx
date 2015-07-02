@@ -22,7 +22,7 @@ export default class AddUser extends React.Component {
         this.setState({ username: this.props.params.username });
     }
     componentDidMount () {
-        fetch(pp + "api/user/" + this.state.username)
+        fetch(pp + "api/user/" + this.state.username, { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 if (data) {
@@ -45,6 +45,7 @@ export default class AddUser extends React.Component {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
             ,   body:       "{}"
+            ,   credentials: "include"
             }
         )
         .then(utils.jsonHandler)

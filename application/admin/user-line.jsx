@@ -22,6 +22,7 @@ export default class UserLine extends React.Component {
                 method:     "put"
             ,   headers:    { "Content-Type": "application/json" }
             ,   body:       "{}"
+            ,   credentials: "include"
             }
         )
         .then(utils.jsonHandler)
@@ -44,6 +45,7 @@ export default class UserLine extends React.Component {
                 method:     "put"
             ,   headers:    { "Content-Type": "application/json" }
             ,   body:       "{}"
+            ,   credentials: "include"
             }
         )
         .then(utils.jsonHandler)

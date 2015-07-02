@@ -21,6 +21,7 @@ export default class GroupLine extends React.Component {
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
+            ,   credentials: "include"
             ,   body:   JSON.stringify({
                     w3cid:      p.w3cid
                 ,   name:       p.name

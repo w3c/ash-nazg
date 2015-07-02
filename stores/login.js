@@ -27,9 +27,10 @@ let utils = require("../application/utils")
 LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
     switch (action.type) {
         case "login":
-            fetch(pp + "api/logged-in")
+            fetch(pp + "api/logged-in", { credentials: "include" })
                 .then(utils.jsonHandler)
                 .then((data) => {
+                    console.log("login", data);
                     _loggedIn = data.ok;
                     _admin = data.admin;
                     LoginStore.emitChange();
@@ -37,7 +38,7 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                 .catch(utils.catchHandler);
             break;
         case "logout":
-            fetch(pp + "api/logout")
+            fetch(pp + "api/logout", { credentials: "include" })
                 .then(utils.jsonHandler)
                 .then((data) => {
                     if (!data.ok) throw "Logout failed";

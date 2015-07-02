@@ -27,7 +27,7 @@ export default class AdminGroups extends React.Component {
     }
     componentDidMount () {
         var ourGroups;
-        fetch(pp + "api/groups")
+        fetch(pp + "api/groups", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 ourGroups = data;

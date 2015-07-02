@@ -28,11 +28,11 @@ export default class EditUser extends React.Component {
     }
     componentDidMount () {
         let user;
-        fetch(pp + "api/user/" + this.state.username)
+        fetch(pp + "api/user/" + this.state.username, { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 user = data;
-                return fetch(pp + "api/groups")
+                return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
                             this.setState({ user: user, groups: data, status: "ready" });
@@ -132,6 +132,7 @@ export default class EditUser extends React.Component {
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
+            ,   credentials: "include"
             ,   body:       JSON.stringify({
                                 affiliation:        user.affiliation
                             ,   affiliationName:    user.affiliationName

@@ -29,11 +29,11 @@ export default class RepoNew extends React.Component {
     }
     componentDidMount () {
         let orgs;
-        fetch(pp + "api/orgs")
+        fetch(pp + "api/orgs", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 orgs = data;
-                return fetch(pp + "api/groups")
+                return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
                             this.setState({ orgs: orgs, groups: data, status: "ready" });
@@ -65,6 +65,7 @@ export default class RepoNew extends React.Component {
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
+            ,   credentials: "include"
             ,   body:   JSON.stringify({
                     org:    org
                 ,   repo:   repo

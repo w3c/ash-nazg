@@ -26,7 +26,7 @@ export default class PRLastWeek extends React.Component {
     }
     componentDidMount () {
         var aff = {};
-        fetch(pp + "api/pr/last-week")
+        fetch(pp + "api/pr/last-week", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 data.forEach((pr) => {

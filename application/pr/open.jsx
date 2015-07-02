@@ -22,7 +22,7 @@ export default class PROpen extends React.Component {
         };
     }
     componentDidMount () {
-        fetch(pp + "api/pr/open")
+        fetch(pp + "api/pr/open", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 this.setState({ prs: data, status: "ready" });

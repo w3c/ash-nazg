@@ -62,8 +62,8 @@ Store.prototype = {
                                     emit(doc.affiliation, doc);
                                 }.toString()
                     ,   reduce: function (keys, values) {
-                            return sum(values);
-                        }
+                            return true;
+                        }.toString()
                     }
                 }
             }

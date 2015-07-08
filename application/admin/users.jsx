@@ -54,7 +54,7 @@ export default class AdminUsers extends React.Component {
                                     return <UserLine key={u.username} admin={u.admin} blanket={u.blanket}
                                                     displayName={u.displayName} username={u.username}
                                                     groups={u.groups} affiliation={u.affiliation}
-                                                    email={email} pic={pic}
+                                                    w3cid={u.w3cid} email={email} pic={pic}
                                                     />;
                                 })
                             }

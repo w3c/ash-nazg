@@ -598,6 +598,7 @@ function showIndex (req, res) {
 }
 app.get("/", showIndex);
 app.get("/repo/*", showIndex);
+app.get("/repos", showIndex);
 app.get("/admin/*", showIndex);
 app.get("/pr/*", showIndex);
 

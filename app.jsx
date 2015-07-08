@@ -25,6 +25,7 @@ import Welcome from "./application/welcome.jsx";
 import LoginWelcome from "./application/login.jsx";
 import LogoutButton from "./application/logout-button.jsx";
 import RepoManager from "./application/repo-manager.jsx";
+import RepoList from "./application/repo-list.jsx";
 import AdminUsers from "./application/admin/users.jsx";
 import AdminGroups from "./application/admin/groups.jsx";
 import EditUser from "./application/admin/edit-user.jsx";
@@ -76,7 +77,8 @@ class AshNazg extends React.Component {
         // when logged in show an actual menu and content
         if (st.loggedIn === true) {
             nav = <Col className="nav">
-                    <NavBox title="Manage">
+                    <NavBox title="Repositories">
+                        <NavItem><Link to={`${pp}repos`}>List Repositories</Link></NavItem>
                         <NavItem><Link to={`${pp}repo/new`}>New Repository</Link></NavItem>
                         <NavItem><Link to={`${pp}repo/import`}>Import Repository</Link></NavItem>
                     </NavBox>
@@ -115,6 +117,7 @@ React.render(
     <Router history={new BrowserHistory}>
         <Route path={pp} component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
+            <Route path="repos" component={RepoList}/>
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
             <Route path="pr/open" component={PROpen}/>
             <Route path="pr/last-week" component={PRLastWeek}/>

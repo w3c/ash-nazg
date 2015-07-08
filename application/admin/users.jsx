@@ -4,7 +4,7 @@ import Spinner from "../../components/spinner.jsx";
 import UserLine from "./user-line.jsx";
 
 require("isomorphic-fetch");
-let utils = require("../../application/utils")
+let utils = require("../utils")
 ,   pp = utils.pathPrefix()
 ;
 

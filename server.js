@@ -557,6 +557,37 @@ app.get("/api/pr/open", function (req, res) {
 app.get("/api/pr/last-week", function (req, res) {
     store.getLastWeekPRs(makeRes(res));
 });
+// list repos
+app.get("/api/repos", function (req, res) {
+    var groups = {};
+    store.repos(function (err, docs) {
+        if (err) return error(res, err);
+        docs.forEach(function (doc) {
+            doc.groups.forEach(function (g) {
+                groups[g] = true;
+            });
+        });
+        async.each(
+            Object.keys(groups)
+        ,   function (g, cb) {
+                store.getGroup(g, function (err, doc) {
+                    if (err) return cb(err);
+                    groups[g] = doc;
+                    cb();
+                });
+            }
+        ,   function (err) {
+                if (err) return error(res, err);
+                docs.forEach(function (doc) {
+                    doc.groups.forEach(function (g, idx) {
+                        doc.groups[idx] = groups[g];
+                    });
+                });
+                res.json(docs);
+            }
+        );
+    });
+});
 
 
 // handler for client-side routing

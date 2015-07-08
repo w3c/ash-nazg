@@ -1,4 +1,4 @@
-/* global emit, sum*/
+/* global emit */
 
 // IMPORTANT:
 // when this is ran directly, set up the DB
@@ -61,7 +61,7 @@ Store.prototype = {
                                     if (!doc.type || doc.type !== "user") return;
                                     emit(doc.affiliation, doc);
                                 }.toString()
-                    ,   reduce: function (keys, values) {
+                    ,   reduce: function (/*keys, values*/) {
                             return true;
                         }.toString()
                     }
@@ -362,6 +362,20 @@ Store.prototype = {
             cb(null, docs.length ? docs[0].value : null);
         });
     }
+,   repos:   function (cb) {
+        var store = this;
+        log.info("Getting all repos");
+        store.db.view("repos/by_fullname", function (err, docs) {
+            if (err) return cb(err);
+            log.info("Found " + docs.length + " repos");
+            // sort them by fullName
+            docs = docs.toArray().sort(function (a, b) {
+                return a.fullName.localeCompare(b.fullName);
+            });
+            cb(null, docs);
+        });
+    }
+
 
     // PRs
 ,   addPR:    function (pr, cb) {

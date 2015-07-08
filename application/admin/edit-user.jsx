@@ -114,8 +114,14 @@ export default class EditUser extends React.Component {
                 return fetch(data._links.affiliations.href)
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            user.affiliation = data._links.affiliations.href.replace(/.*\//, "");
-                            user.affiliationName = data._links.affiliations.title;
+                            var aff = data._links.affiliations;
+                            if (Array.isArray(aff)) {
+                                aff = aff.filter((it) => {
+                                    return !/invited expert/i.test(it.title);
+                                })[0];
+                            }
+                            user.affiliation = aff.href.replace(/.*\//, "");
+                            user.affiliationName = aff.title;
                             this.setState({ user: user, w3cidStatus: "showing" });
                         })
                 ;

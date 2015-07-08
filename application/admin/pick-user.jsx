@@ -30,6 +30,7 @@ export default class PickUser extends React.Component {
                     <div className="formline">
                        <label for="username">user name</label>
                        <input type="text" value={st.username} ref="username" id="username" onChange={this.handleChange.bind(this)}/>
+                       {" "}
                        {link}
                    </div>
             </div>

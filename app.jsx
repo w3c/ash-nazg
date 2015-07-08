@@ -28,6 +28,7 @@ import RepoManager from "./application/repo-manager.jsx";
 import AdminUsers from "./application/admin/users.jsx";
 import AdminGroups from "./application/admin/groups.jsx";
 import EditUser from "./application/admin/edit-user.jsx";
+import PickUser from "./application/admin/pick-user.jsx";
 import AddUser from "./application/admin/add-user.jsx";
 import PRViewer from "./application/pr/viewer.jsx";
 import PROpen from "./application/pr/open.jsx";
@@ -67,6 +68,7 @@ class AshNazg extends React.Component {
         if (st.admin) {
             admin = <NavBox title="Admin">
                         <NavItem><Link to={`${pp}admin/users`}>Users</Link></NavItem>
+                        <NavItem><Link to={`${pp}admin/users/add`}>Add User</Link></NavItem>
                         <NavItem><Link to={`${pp}admin/groups`}>Groups</Link></NavItem>
                     </NavBox>
             ;
@@ -116,6 +118,7 @@ React.render(
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
             <Route path="pr/open" component={PROpen}/>
             <Route path="pr/last-week" component={PRLastWeek}/>
+            <Route path="admin/users/add" component={PickUser}/>
             <Route path="admin/users" component={AdminUsers}/>
             <Route path="admin/user/:username" component={EditUser}/>
             <Route path="admin/user/:username/add" component={AddUser}/>

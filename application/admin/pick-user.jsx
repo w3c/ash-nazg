@@ -28,11 +28,11 @@ export default class PickUser extends React.Component {
         return <div className="primary-app">
                     <h2>Pick user name to add</h2>
                     <div className="formline">
-                       <label for="username">user name</label>
-                       <input type="text" value={st.username} ref="username" id="username" onChange={this.handleChange.bind(this)}/>
-                       {" "}
-                       {link}
-                   </div>
+                        <label htmlFor="username">user name</label>
+                        <input type="text" value={st.username} ref="username" id="username" onChange={this.handleChange.bind(this)}/>
+                        {" "}
+                        {link}
+                    </div>
             </div>
         ;
     }

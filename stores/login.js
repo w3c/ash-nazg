@@ -30,7 +30,6 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
             fetch(pp + "api/logged-in", { credentials: "include" })
                 .then(utils.jsonHandler)
                 .then((data) => {
-                    console.log("login", data);
                     _loggedIn = data.ok;
                     _admin = data.admin;
                     LoginStore.emitChange();

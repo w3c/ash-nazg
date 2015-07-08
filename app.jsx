@@ -68,7 +68,7 @@ class AshNazg extends React.Component {
         if (st.admin) {
             admin = <NavBox title="Admin">
                         <NavItem><Link to={`${pp}admin/users`}>Users</Link></NavItem>
-                        <NavItem><Link to={`${pp}admin/users/add`}>Add User</Link></NavItem>
+                        <NavItem><Link to={`${pp}admin/add-user`}>Add User</Link></NavItem>
                         <NavItem><Link to={`${pp}admin/groups`}>Groups</Link></NavItem>
                     </NavBox>
             ;
@@ -118,7 +118,7 @@ React.render(
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
             <Route path="pr/open" component={PROpen}/>
             <Route path="pr/last-week" component={PRLastWeek}/>
-            <Route path="admin/users/add" component={PickUser}/>
+            <Route path="admin/add-user" component={PickUser}/>
             <Route path="admin/users" component={AdminUsers}/>
             <Route path="admin/user/:username" component={EditUser}/>
             <Route path="admin/user/:username/add" component={AddUser}/>

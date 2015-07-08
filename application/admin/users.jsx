@@ -51,11 +51,7 @@ export default class AdminUsers extends React.Component {
                                     let email = u.emails.length ? u.emails[0].value : ""
                                     ,   pic = u.photos.length ? u.photos[0].value : ""
                                     ;
-                                    return <UserLine key={u.username} admin={u.admin} blanket={u.blanket}
-                                                    displayName={u.displayName} username={u.username}
-                                                    groups={u.groups} affiliation={u.affiliation}
-                                                    w3cid={u.w3cid} email={email} pic={pic}
-                                                    />;
+                                    return <UserLine key={u.username} {...u} email={email} pic={pic}/>;
                                 })
                             }
                         </table>

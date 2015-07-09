@@ -246,7 +246,7 @@ export default class EditUser extends React.Component {
                         Use this interface to set a the group and company affiliation for a user.
                         The process is a little baroque due to the nature of the APIs queried for
                         this purpose: a user needs to be associated with (at least) one group in
-                        order for her W3C ID to be discoverable, and through that the matching
+                        order for their W3C ID to be discoverable, and through that the matching
                         affiliation.
                     </p>
                     {content}

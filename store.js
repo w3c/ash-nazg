@@ -203,7 +203,7 @@ Store.prototype = {
             if (err) return cb(err);
             log.info("Returning " + docs.length + "users");
             docs = docs.toArray().sort(function (a, b) {
-                return a.displayName.localeCompare(b.displayName);
+                return (a.displayName || "").localeCompare(b.displayName);
             });
             cb(null, docs);
         });
@@ -283,7 +283,7 @@ Store.prototype = {
             log.info("Found " + docs.length + " groups");
             // sort them by name
             docs = docs.toArray().sort(function (a, b) {
-                return a.name.localeCompare(b.name);
+                return (a.name || "").localeCompare(b.name);
             });
             cb(null, docs);
         });
@@ -370,7 +370,7 @@ Store.prototype = {
             log.info("Found " + docs.length + " repos");
             // sort them by fullName
             docs = docs.toArray().sort(function (a, b) {
-                return a.fullName.localeCompare(b.fullName);
+                return (a.fullName || "").localeCompare(b.fullName);
             });
             cb(null, docs);
         });

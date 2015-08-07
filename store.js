@@ -328,7 +328,7 @@ Store.prototype = {
             if ((err && err.error === "not_found") || !doc) return store.addToken(token, cb);
             if (err) return cb(err);
             for (var k in token) doc[k] = token[k];
-            this.add(doc, cb);
+            store.add(doc, cb);
         });
     }
     // get a token by owner

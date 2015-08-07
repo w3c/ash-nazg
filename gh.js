@@ -138,7 +138,7 @@ GH.prototype = {
                 ,   secret:     pg(20)
                 };
             }.bind(this))
-            .then(action(this, "LICENSE", license, report))
+            .then(action(this, "LICENSE.md", license, report))
             .then(action(this, "CONTRIBUTING.md", contributing, report))
             .then(action(this, "README.md", readme, report))
             .then(action(this, "index.html", index, report))

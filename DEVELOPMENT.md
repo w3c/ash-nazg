@@ -43,4 +43,4 @@ running the store.js to update the design
 
 use Flux more
 expose more functionality without login (just be careful with affordances)
-
+sharing code with Midgard

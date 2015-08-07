@@ -62,15 +62,15 @@ export default class EditUser extends React.Component {
         async.map(
             groups
         ,   (group, cb) => {
-                fetch("https://api-test.w3.org/groups/" + group + "/users?items=2000")
+                fetch(pp + "api/w3c/group/" + group + "/users", { credentials: "include" })
                     .then(utils.jsonHandler)
                     .then((data) => {
                         // sometimes you get a 404, just handle it
-                        if (!data._links || !data._links.users) {
+                        if (!data.length) {
                             console.error("Got a 404 for " + group + ", skipping.");
                             return;
                         }
-                        cb(null, data._links.users);
+                        cb(null, data);
                     })
                     .catch(utils.catchHandler)
                 ;
@@ -106,20 +106,17 @@ export default class EditUser extends React.Component {
         let user = this.state.user
         ,   apiID = utils.val(this.refs.w3cUser)
         ;
-        fetch("https://api-test.w3.org/users/" + apiID)
+        fetch(pp + "api/w3c/user/" + apiID, { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 user.w3cid = data.id + "";
                 user.w3capi = apiID;
-                return fetch(data._links.affiliations.href)
+                return fetch(pp + "api/w3c/user/" + apiID + "/affiliations", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            var aff = data._links.affiliations;
-                            if (Array.isArray(aff)) {
-                                aff = aff.filter((it) => {
-                                    return !/invited expert/i.test(it.title);
-                                })[0];
-                            }
+                            var aff = data.filter((it) => {
+                                return !/invited expert/i.test(it.title);
+                            })[0];
                             user.affiliation = aff.href.replace(/.*\//, "");
                             user.affiliationName = aff.title;
                             this.setState({ user: user, w3cidStatus: "showing" });

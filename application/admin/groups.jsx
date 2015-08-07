@@ -34,12 +34,10 @@ export default class AdminGroups extends React.Component {
                 ourGroups.forEach((g) => { ourGroupMap[g.w3cid] = true; });
             })
             .then(() => {
-                return fetch("https://api-test.w3.org/groups?items=500&embed=true")
+                return fetch(pp + "api/w3c/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            data = data._embedded
-                                        .groups
-                                        .map((g) => {
+                            data = data.map((g) => {
                                             return {
                                                 w3cid:      g.id
                                             ,   name:       g.name

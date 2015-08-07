@@ -15,6 +15,7 @@ var express = require("express")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   bl = require("bl")
 ,   crypto = require("crypto")
+,   w3c = require("w3capi")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
 ,   log = require("./log")
@@ -587,6 +588,24 @@ app.get("/api/repos", function (req, res) {
             }
         );
     });
+});
+
+// W3C APIs
+// given the issues with paging and irregularities in the W3C API, it has been wrapped up in
+// an easy to use library that is meant to be used on the server side
+// therefore, the client never contacts the W3C API directly, but instead hits these endpoints
+app.get("/api/w3c/groups", function (req, res) {
+    // these require the embedded data
+    w3c.groups().fetch({ embed: true }, makeRes(res));
+});
+app.get("/api/w3c/group/:group/users", function (req, res) {
+    w3c.group(req.params.group).users().fetch(makeRes(res));
+});
+app.get("/api/w3c/user/:user", function (req, res) {
+    w3c.user(req.params.user).fetch(makeRes(res));
+});
+app.get("/api/w3c/user/:user/affiliations", function (req, res) {
+    w3c.user(req.params.user).affiliations().fetch(makeRes(res));
 });
 
 

@@ -291,15 +291,116 @@ It also accepts a `size="small"` property which renders it at half size.
 
 This just renders the list of success/error messages that are stored in the message store.
 
-### ``
-### ``
-### ``
-### ``
-### ``
-### `actions/messages.js`
-### `actions/user.js`
-### `stores/login.js`
-### `stores/message.js`
+### `stores/*.js` and `actions/*.js`
+
+One architectural approach that works well with React is known as Flux. At its heart it is a simple
+idea to handle events and data in an application, in such a manner that avoids tangled-up messes.
+
+The application (typically driven by the user) can trigger an **action**, usually with attached 
+data. An example from the code are error messages that can be emitted pretty much anywhere in the
+application (ditto success messages).
+
+Actions are all sent towards the **dispatcher** (which we reuse from the basic Flux implementation).
+The dispatcher makes these available to whoever wants to listen. This is similar to pub/sub, except that an event's full trip is taken into consideration, and it only ever travels in one direction.
+
+Stores listen to actions, and keep any data that the application might need handy (either locally or
+by accessing it when needed). For the error/success messages, the store just keeps them around until
+they are dismissed, which means that navigation across components will still render the messages in
+the store.
+
+Finally, components can listen to changes in stores, and react to them so as to update thei
+rendering.
+
+Overall, this application should make use of actions and stores a lot more. Developing it further
+will likely require refactoring along those lines. One of the great things with React is that the
+components are isolated in such a manner that you can follow bad practices inside of a given 
+component without damaging the rest of the application. Not that this is recommended, but it does
+allow one to experiment with what a given component should do before refactoring it. I would not say
+that the components in this application follow bad practices, but they could be refactored to use
+stores and actions in order to be cleaner and more testable.
+
+#### `actions/messages.js` and `actions/user.js`
+
+These are actions. These modules can just be imported by any component that wishes to carry out such
+actions, without having to know anything about whether or how the result gets stored, or how it 
+might influence the rest of the application (it's completely fire-and-forget).
+
+The `messages.js` action module supports `error()` and `success()` messages, and can `dismiss()` a
+given message. The `user.js` action module supports `login()` and `logout()` actions corresponding 
+to what the user does.
+
+#### `stores/login.js` and `stores/message.js`
+
+The `login` store keeps information about whether the user is logged in (and an administrator), and
+handles the logging out when requested. The `message` store keeps a list of error and success
+messages that haven't been dismissed.
+
+### The `application/*.jsx` components
+
+These are non-reusable components that are specific to this applications.
+
+#### `welcome.jsx`
+
+Just a static component with the welcome text; this is only a component because it's the simplest
+way of encapsulating anything that may be rendered in the application area.
+
+#### `login.jsx`
+
+A very simple component that explains the login process and links to the OAuth processor.
+
+#### `logout-button.jsx`
+
+A button that can be used (and reused) anywhere (in our case, it's part of the navigation). When
+clicked it dispatches a `logout` action.
+
+#### `repo-list.jsx`
+
+A simple component that fetches the list of repositories that are managed and lists them.
+
+#### `repo-manager.jsx`
+
+A more elaborate component that handles both creation and importing of repositories into the system.
+It handles the dialog for create/import, including listing the organisations that the user has
+access to and which groups a repository can be managed by.
+
+All of the useful repository-management logic is on the server side, but this reacts to the results.
+
+#### `pr/last-week.jsx`
+
+The list of pull requests that were processed one way or another during the last week. This
+component can also filter them dynamically by affiliation.
+
+#### `pr/open.jsx`
+
+The list of currently open PRs.
+
+#### `pr/view.jsx`
+
+The detailed view of a single PR, with various affordances to manage it.
+
+#### `admin/users.jsx` and `admin/user-line.jsx`
+
+The list of users known to the system, with some details and links to edit them. The `user-line`
+component just renders one line in the list of users.
+
+#### `admin/add-user.jsx`
+
+A very simple dialog that can be used to add users with.
+
+#### `admin/edit-user.jsx`
+
+One of the more intricate parts of the system. Brings in data from GitHub, the W3C API, and the 
+system in order to bridge together various bits of information about the user, such as the groups
+they belong to, their real name, their affiliation, their W3C and GitHub IDs, etc.
+
+#### `admin/groups.jsx` and `admin/group-line.jsx`
+
+Lists all the groups known to the W3C API, and makes it possible to add those that are not already
+in the system. Each line in the table is rendered by `group-line.jsx`.
+
+#### `admin/pick-user.jsx`
+
+A very simple interface that links to `add-user` in order to add a user.
 
 ## Suggested Improvements
 

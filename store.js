@@ -8,7 +8,6 @@
 // this could use some DRY love
 
 var cradle = require("cradle")
-// ,   isArray = require("util").isArray
 ,   async = require("async")
 ,   log = require("./log")
 ,   config = require("./config.json")

@@ -205,6 +205,33 @@ Nothing fancy.
 Finally, a number of endpoints just map to `showIndex()`. This is there because we use the History
 API, which means we can get requests with those paths but they should all just serve the index page.
 
+
+### `store.js`
+
+This is a very straightforward access point to CouchDB, built atop the cradle library. When ran
+directly it creates the DB and sets up the design documents; otherwise it's a library that can be
+used to access the content of the DB.
+
+Overall it could use some DRY love; a lot of its methods look very much like one another.
+
+There is no specific handling of conflicts, they should just fail.
+
+Object types are labelled with a `type` field, and the `id` field is used to know where to store
+each object. The `type` field is what the design documents map on.
+
+
+### `gh.js`
+
+This library handles most of the interactions with GitHub, on top of the octokat library. Most of
+these interactions are simple and linear.
+
+
+### `log.js`
+
+This is a simple wrapper that exposes an already-built instance of Winston, configured to log to the
+console, file, or both. It's easy to add other logging targets if need be.
+
+
 ## Client Code Layout
 
 CSS

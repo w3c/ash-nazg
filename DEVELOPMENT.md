@@ -52,7 +52,7 @@ Installation is straightforward:
 You now need to configure the system so that it can find various bits and pieces. For this create a
 `config.json` at the root, with the following content:
 
-```json
+```
 {
     // the root URL, this is what I use on my development machine
     "url":              "http://ash.bast/"
@@ -234,7 +234,72 @@ console, file, or both. It's easy to add other logging targets if need be.
 
 ## Client Code Layout
 
-CSS
+### `app.css` and `css/fonts.css`
+
+These are very simple CSS files. They are merged together (along with imported dependencies) and
+stored under `public/css`. Therefore that's what their paths are relative to.
+
+There is no magic and no framework. The complete built CSS is ~5K.
+
+### `app.jsx`
+
+This is the entry point for the JS application. Most of what it does is to import things and get
+them set up.
+
+The whole client JS is written in ES6, JSX, React. This can be surprising at first, but it is a
+powerful combo.
+
+The root `AshNazg` component listens for changes to the login state of the user (through the Login
+store) in order to change the navigation bar that it controls. All it renders is basically: the
+application title, a simple layout grid (that uses the ungrid CSS approach), the navigation bar, and
+an empty space for the routed component. It also renders the "flash" area that shows messages for
+successful operations or errors.
+
+Finally, the router is set up with a number of paths mapping to imported components.
+
+### `components/*.jsx`
+
+The JSX files under `components/` are simple, reusable components. At some point they should probably be extracted into a shared library that can be reused across W3C applications.
+
+Most of them are extremely simple and largely there to keep the JSX readable, without having to rely
+excessively on `div`s and classes.
+
+#### `application.jsx`
+
+A simple layout wrapper, with a title, that just renders its children. Used to render routed 
+components into.
+
+#### `col.jsx` and `row.jsx`
+
+Very simple row and column items that use ungrid. Nothing fancy.
+
+#### `nav-box.jsx` and `nav-item.jsx`
+
+Made to be used as a navigation column or as drop down menus, the boxes have titles that label a
+navigation section, the items are basically just navigation entries.
+
+#### `spinner.jsx`
+
+This is a simple loading/progress spinner (that uses `img/spinner.svg`). If Chrome drops SMIL 
+support this will need to be replaced by something else. It understands the `prefix` option in order
+to still work when the application is not running at the site's root (an improvement would be to
+just inline the SVG).
+
+It also accepts a `size="small"` property which renders it at half size.
+
+#### `flash-list.jsx`
+
+This just renders the list of success/error messages that are stored in the message store.
+
+### ``
+### ``
+### ``
+### ``
+### ``
+### `actions/messages.js`
+### `actions/user.js`
+### `stores/login.js`
+### `stores/message.js`
 
 ## Suggested Improvements
 

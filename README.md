@@ -19,6 +19,9 @@ permissions. The tool isn't doing anything unholy.
 Once you log in your user will be created; if you need to be an admin just ask someone to give you
 that flag from the "Edit User" page.
 
+If you need to deploy or to hack on this tool, you will want to read the
+[Development Guide](https://github.com/w3c/ash-nazg/blob/master/DEVELOPMENT.md)
+
 ## Common Tool
 
 ### New Repository

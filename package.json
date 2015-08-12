@@ -6,7 +6,8 @@
     "watch-server": "nodemon -w server.js -w gh.js -w store.js -w log.js --exec 'npm run start'",
     "build-js-debug": "browserify app.jsx --debug | exorcist public/js/app.js.map > public/js/app.js",
     "build-js": "browserify app.jsx | uglifyjs - -c warnings=false -m > public/js/app.js",
-    "watch-js": "nodemon -e jsx,js --watch app.jsx --watch ./components/ --watch ./application/ --watch ./stores/ --watch ./actions/ --exec 'npm run build-js'",
+    "XXXX old version watch-js": "nodemon -e jsx,js --watch app.jsx --watch ./components/ --watch ./application/ --watch ./stores/ --watch ./actions/ --exec 'npm run build-js'",
+    "watch-js": "watchify app.jsx --verbose --ignore-watch=\"**/node_modules/**\" --ignore-watch=\"**/public/**\" -o 'uglifyjs - -c warnings=false -m > public/js/app.js'",
     "build-css": "cleancss -o ./public/css/app.min.css app.css",
     "watch-css": "nodemon --ignore ./public/ -e css --exec 'npm run build-css'",
     "build": "npm run build-css && npm run build-js",
@@ -25,13 +26,14 @@
     "clean-css": "^3.3.8",
     "exorcist": "^0.4.0",
     "flux": "^2.0.3",
+    "isomorphic-fetch": "^2.1.1",
     "nodemon": "1.4.0",
     "normalize.css": "^3.0.3",
     "react": "^0.13.3",
     "react-router": "1.0.0-beta2",
     "uglifyify": "^3.0.1",
-    "isomorphic-fetch": "^2.1.1",
-    "ungrid": "^1.0.1"
+    "ungrid": "^1.0.1",
+    "watchify": "^3.3.1"
   },
   "dependencies": {
     "async": "^1.4.0",

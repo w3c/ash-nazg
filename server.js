@@ -589,6 +589,11 @@ app.get("/api/repos", function (req, res) {
         );
     });
 });
+// app.del("/api/repo/:owner/:name", ensureAdmin, function (req, res) {
+//     // delete repo
+//     // remove hook
+// });
+
 
 // W3C APIs
 // given the issues with paging and irregularities in the W3C API, it has been wrapped up in

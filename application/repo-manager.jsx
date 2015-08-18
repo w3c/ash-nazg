@@ -102,15 +102,15 @@ export default class RepoNew extends React.Component {
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select ref="org" defaultValue={st.org}>
+                                <select ref="org" defaultValue={st.org} required>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input type="text" ref="repo" id="repo" defaultValue={st.repo}/>
+                                <input type="text" ref="repo" id="repo" defaultValue={st.repo} required/>
                             </div>
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>
-                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10">
+                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10" required>
                                     {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
                                 </select>
                             </div>

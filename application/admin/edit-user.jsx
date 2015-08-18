@@ -196,7 +196,7 @@ export default class EditUser extends React.Component {
             }
             else if (st.w3cidStatus === "suggesting") {
                 w3cid = <div>
-                            <select ref="w3cUser" defaultValue={st.userSuggest}>
+                            <select ref="w3cUser" defaultValue={st.userSuggest} required>
                                 {
                                     st.userList.map((u) => { return <option value={u.id} key={u.id}>{u.displayName}</option> ; })
                                 }

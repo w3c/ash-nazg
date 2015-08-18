@@ -382,6 +382,7 @@ Store.prototype = {
         pr.type = "pr";
         pr.num = pr.num + "";
         pr.lastUpdated = couchNow();
+        if (!pr.affiliations) pr.affiliations = {};
         delete pr._rev; // don't use this to update PRs
         log.info("Adding PR " + pr.fullName + "-" + pr.num);
         this.add(pr, cb);

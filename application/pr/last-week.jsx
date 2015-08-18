@@ -30,7 +30,7 @@ export default class PRLastWeek extends React.Component {
             .then(utils.jsonHandler)
             .then((data) => {
                 data.forEach((pr) => {
-                    for (var k in pr.affiliations) {
+                    for (var k in (pr.affiliations || {})) {
                         if (k) aff[k] = pr.affiliations[k];
                     }
                 });
@@ -84,7 +84,7 @@ export default class PRLastWeek extends React.Component {
                                 st.prs.map(
                                     (pr) => {
                                         // filtering
-                                        if (st.affiliationFilter && !pr.affiliations[st.affiliationFilter]) return;
+                                        if (st.affiliationFilter && (!pr.affiliations || !pr.affiliations[st.affiliationFilter])) return;
                                         
                                         return <tr key={pr.id}>
                                                 <td>{pr.status}</td>
@@ -99,7 +99,7 @@ export default class PRLastWeek extends React.Component {
                                                 <td>
                                                     <ul>
                                                         {
-                                                            Object.keys(pr.affiliations)
+                                                            Object.keys((pr.affiliations || {}))
                                                                 .map((aff) => {
                                                                     if (!aff) return;
                                                                     return <li key={aff}>{pr.affiliations[aff]}</li>;

@@ -27,6 +27,10 @@ var express = require("express")
 ,   version = require("./package.json").version
 ;
 
+// set up the W3C API so that it works
+w3c.apiKey = config.w3cAPIKey;
+w3c.apiOrigin = config.w3cAPIOrigin;
+
 // HELPERS
 // OK
 function ok (res) {

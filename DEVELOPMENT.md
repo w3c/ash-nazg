@@ -2,15 +2,14 @@
 # How to develop Ash-Nazg
 
 This document describes what one needs to know in order to hack on Ash-Nazg. If you are familiar
-with Node, CouchDB, and React you are already on sane territory but I recommend you at least skim
-this document as the local specificities are laid out as well.
-
+with Node, [CouchDB][CouchDB], and [React][React] you are already on sane territory but I recommend
+you at least skim this document as the local specificities are laid out as well.
 ## IMPORTANT WARNING
 
-If you are rebuilding the client-side code on a Mac, you are likely to get an incomprehensible
-error from Browserify of the type `Error: EMFILE, open '/some/path'`. That is because the number of
-simultaneously open files is bizarrely low on OSX, and Browserify opens a bizarrely high number
-of resources concurrently.
+If you are rebuilding the client-side code on a Mac, you are likely to get an incomprehensible error
+from [Browserify][Browserify] of the type `Error: EMFILE, open '/some/path'`. That is because the
+number of simultaneously open files is bizarrely low on OSX, and Browserify opens a bizarrely high
+number of resources concurrently.
 
 In order to do that, in the environment that runs the build, you will need to run:
 
@@ -26,20 +25,21 @@ but it can prove useful if at some point it becomes required to use an
 [isomorphic approach](http://nerds.airbnb.com/isomorphic-javascript-future-web-apps/) (which can
 rather readily be supported).
 
-The server side is written in Node, and uses Express. It is a pretty typical stack, serving static
-content out of `public`, using the Express middleware for sessions, Winston for logging, etc.
+The server side is written in Node, and uses [Express][Express]. It is a pretty typical stack,
+serving static content out of `public`, using the Express middleware for sessions,
+[Winston][Winston] for logging, etc.
 
 The database system is CouchDB. It is also used in a straightforward manner, with no reliance on
 CouchDB specificities. If needed, it could be ported to another system.
 
-The client side is written using React, making lightweight use of the Flux architecture, and is
-built using Browserify. React is its own way of thinking about Web applications that has its own
-learning curve (and can require a little bit of retooling of one's editor for the JSX part) but once
-you start using it it is hard to go back. It's the first framework I find to be worth the hype since
-jQuery (and for completely different reasons).
+The client side is written using React, making lightweight use of the [Flux][Flux] architecture, and
+is built using Browserify. React is its own way of thinking about Web applications that has its own
+learning curve (and can require a little bit of retooling of one's editor for the [JSX][JSX] part)
+but once you start using it it is hard to go back. It's the first framework I find to be worth the
+hype since jQuery (and for completely different reasons).
 
-No CSS framework is used; but the CSS does get built too using cleancss (for modularity and
-minification).
+No CSS framework is used; but the CSS does get built too using [cleancss][cleancss] (for modularity
+and minification).
 
 ## Setting Up
 
@@ -107,8 +107,8 @@ When developing the server code, you want to run:
 
     npm run watch-server
 
-This will start a nodemon instance that will monitor the changes you make to the *server* code, and
-restart it for you.
+This will start a [nodemon][nodemon] instance that will monitor the changes you make to the *server*
+code, and restart it for you.
 
 When developing client code, you want to run:
 
@@ -121,8 +121,8 @@ You can `watch-js` and `watch-css` separately if you want to.
 One of the issues with developing on one's box is that it is not typically accessible over the Web
 for outside services to interact with. If you are trying to get events from repositories on GitHub,
 you will need to expose yourself to the Web. You may already have your preferred way of doing that,
-but in case you don't you can use ngrok (which is what I do). In order to expose your service 
-through ngrok, just run
+but in case you don't you can use [ngrok][ngrok] (which is what I do). In order to expose your
+service through ngrok, just run
 
     npm run expose
 
@@ -133,8 +133,8 @@ receive GitHub events.
 
 You will want a slightly different `config.json`; the one in hatchery is serviceable.
 
-You don't want to use `npm run` in production; instead use pm2. A configuration is provided for it
-in `pm2-production.json` (it's what's used on hatchery).
+You don't want to use `npm run` in production; instead use [pm2][pm2]. A configuration is provided
+for it in `pm2-production.json` (it's what's used on hatchery).
 
 Make sure you create an admin user as described above.
 
@@ -212,9 +212,9 @@ API, which means we can get requests with those paths but they should all just s
 
 ### `store.js`
 
-This is a very straightforward access point to CouchDB, built atop the cradle library. When ran
-directly it creates the DB and sets up the design documents; otherwise it's a library that can be
-used to access the content of the DB.
+This is a very straightforward access point to CouchDB, built atop the [cradle][cradle] library.
+When ran directly it creates the DB and sets up the design documents; otherwise it's a library that
+can be used to access the content of the DB.
 
 Overall it could use some DRY love; a lot of its methods look very much like one another.
 
@@ -226,8 +226,8 @@ each object. The `type` field is what the design documents map on.
 
 ### `gh.js`
 
-This library handles most of the interactions with GitHub, on top of the octokat library. Most of
-these interactions are simple and linear.
+This library handles most of the interactions with GitHub, on top of the [octokat][octokat] library.
+Most of these interactions are simple and linear.
 
 
 ### `log.js`
@@ -255,9 +255,9 @@ powerful combo.
 
 The root `AshNazg` component listens for changes to the login state of the user (through the Login
 store) in order to change the navigation bar that it controls. All it renders is basically: the
-application title, a simple layout grid (that uses the ungrid CSS approach), the navigation bar, and
-an empty space for the routed component. It also renders the "flash" area that shows messages for
-successful operations or errors.
+application title, a simple layout grid (that uses the [ungrid][ungrid] CSS approach), the
+navigation bar, and an empty space for the routed component. It also renders the "flash" area that
+shows messages for successful operations or errors.
 
 Finally, the router is set up with a number of paths mapping to imported components.
 
@@ -420,7 +420,24 @@ probably does not need to be. What's needed there is to stop hiding those parts 
 that they don't display affordances that aren't available to unlogged users.
 
 The components and much of the style can probably be extracted so that that can be reused in other
-W3C applications, notably in Midgard (and possibly the GitHub guide).
+W3C applications, notably in [Midgard][Midgard] (and possibly the GitHub guide).
 
 The backend store could use a bit of abstraction to dull the repetition; this is a simple 
 refactoring that is probably a good way to get into the codebase.
+
+
+[CouchDB]: http://couchdb.apache.org/
+[Express]: http://expressjs.com/
+[Midgard]: https://github.com/w3c/midgard
+[React]: https://facebook.github.io/react/docs/getting-started.html
+[Flux]: http://facebook.github.io/flux/
+[Browserify]: http://browserify.org/
+[JSX]: https://facebook.github.io/react/docs/displaying-data.html
+[cleancss]: https://github.com/jakubpawlowicz/clean-css
+[nodemon]: https://github.com/remy/nodemon
+[ngrok]: https://ngrok.com/
+[pm2]: https://github.com/Unitech/pm2
+[cradle]: https://github.com/flatiron/cradle
+[Winston]: http://github.com/flatiron/winston
+[ungrid]: http://chrisnager.github.io/ungrid/
+[octokat]: https://github.com/philschatz/octokat.js/

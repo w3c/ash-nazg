@@ -52,7 +52,7 @@
     "password-generator": "^1.0.0",
     "serve-static": "^1.10.0",
     "session-file-store": "0.0.17",
-    "node-w3capi": "^1.1.0",
+    "node-w3capi": "^1.1.1",
     "winston": "^1.0.1"
   },
   "browserify": {

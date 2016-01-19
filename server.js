@@ -245,6 +245,7 @@ app.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function (re
 // GROUPS
 // list all the groups known to the system
 app.get("/api/groups", function (req, res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
     store.groups(makeRes(res));
 });
 // add a group to the list of those that the system knows about
@@ -563,6 +564,7 @@ app.get("/api/pr/last-week", function (req, res) {
 });
 // list repos
 app.get("/api/repos", function (req, res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
     var groups = {};
     store.repos(function (err, docs) {
         if (err) return error(res, err);

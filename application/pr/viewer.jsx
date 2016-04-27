@@ -48,7 +48,22 @@ export default class PRViewer extends React.Component {
             .catch(utils.catchHandler)
         ;
     }
-    
+
+markNonSubstantive () {
+        let st = this.state;
+        this.setState({ status: "loading" });
+        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "markAsNonSubstantive"].join("/"), { method: "POST", credentials: "include" })
+            .then(utils.jsonHandler)
+            .then((data) => {
+                console.log("got data", data);
+                this.setState({ pr: data, status: "ready" });
+                if (data.error) return MessageActions.error(data.error);
+            })
+            .catch(utils.catchHandler)
+        ;
+
+    }
+
     render () {
         let st = this.state
         ,   content
@@ -76,13 +91,13 @@ export default class PRViewer extends React.Component {
                                         st.pr.acceptable === "yes" ?
                                                 <span>— Go merge it at {link}</span>
                                                 :
-                                                <button onClick={this.revalidate.bind(this)}>Revalidate</button>
+                                                <span><button onClick={this.revalidate.bind(this)}>Revalidate</button> <button onClick={this.markNonSubstantive.bind(this)}>Mark as non-substantive</button></span>
                                     }
                                 </td>
                             </tr>
                             <tr>
                                 <th style={thStyle}>Contributors</th>
-                                <td>
+                                <td>(
                                     <ul>
                                         {
                                             Object.keys(cs)

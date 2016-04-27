@@ -364,6 +364,22 @@ function prStatus (pr, delta, req, res, cb) {
                     pr.contribStatus = {};
                     pr.groups = repoGroups;
                     pr.affiliations = {};
+                    if (pr.nonSubstantive) {
+                        pr.acceptable = "yes";
+                        statusData.payload.state = "success";
+                        statusData.payload.description = "PR deemed acceptable as non-substantive.";
+                        log.info("Setting status success for " + prString);
+                        gh.status(
+                            statusData
+                            ,   function (err) {
+                                if (err) return cb(err);
+                                store.updatePR(pr.fullName, pr.num, pr, function (err) {
+                                    cb(err, pr);
+                                });
+                            }
+                        );
+                        return;
+                    }
                     log.info("Looking up users for " + prString);
                     async.map(
                         pr.contributors
@@ -552,6 +568,24 @@ app.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req,
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
         prStatus(pr, delta, req, res, makeRes(res));
+    });
+});
+// Mark a PR as non substantive
+app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, function (req, res) {
+    var prms = req.params
+    ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
+    ;
+    log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as non substantive");
+    store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
+        if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
+        pr.nonSubstantive = true;
+        store.updatePR(pr.fullName, pr.num, {nonSubstantive: true}, function (err) {
+            if (err) return error(res, err);
+            store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
+                if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
+                prStatus(updatedPR, delta, req, res, makeRes(res));
+            });
+        });
     });
 });
 // list open PRs

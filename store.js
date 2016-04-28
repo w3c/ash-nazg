@@ -9,8 +9,7 @@
 
 var cradle = require("cradle")
 ,   async = require("async")
-,   log = require("./log")
-,   config = require("./config.json")
+,   log
 ;
 
 // helpers
@@ -20,13 +19,15 @@ function couchNow (d) {
             d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds()];
 }
 
-function Store () {
+function Store (config) {
     var dbName = config.couchDB || "ash-nazg"
     ,   couchConf = {}
     ;
+    log = require("./log")(config);
     if (config.couchAuth) couchConf.auth = config.couchAuth;
     this.client = new cradle.Connection(couchConf);
     this.db = this.client.database(dbName);
+    this._config = config;
     log.info("Connected to CouchDB, db=" + dbName);
 }
 Store.prototype = {
@@ -313,7 +314,7 @@ Store.prototype = {
 ,   addToken:    function (token, cb) {
         // the configuration file can list tokens that override those in the DB, in which case the
         // latter don't get stored
-        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        if (this._config.tokens && this._config.tokens[token.owner]) return cb(null, this._config.tokens[token.owner]);
         token.id = "token-" + token.owner;
         token.type = "token";
         delete token._rev; // don't use this to update token
@@ -321,7 +322,7 @@ Store.prototype = {
         this.add(token, cb);
     }
 ,   createOrUpdateToken:    function (token, cb) {
-        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        if (this._config.tokens && this._config.tokens[token.owner]) return cb(null, this._config.tokens[token.owner]);
         var store = this;
         store.getToken(token.owner, function (err, doc) {
             if ((err && err.error === "not_found") || !doc) return store.addToken(token, cb);
@@ -334,7 +335,7 @@ Store.prototype = {
 ,   getToken:   function (owner, cb) {
         var store = this;
         log.info("Looking for token for " + owner);
-        if (config.tokens && config.tokens[owner]) return cb(null, { owner: owner, token: config.tokens[owner] });
+        if (this._config.tokens && this._config.tokens[owner]) return cb(null, { owner: owner, token: this._config.tokens[owner] });
         store.db.view("tokens/by_owner", { key: owner }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning token for " + owner + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
@@ -453,7 +454,9 @@ Store.prototype = {
 module.exports = Store;
 
 if (require.main === module) {
-    var store = new Store();
+    var configPath = process.argv[2] || './config.json';
+    var store = new Store(require(configPath));
+
     store.setup(function (err) {
         if (err) return console.error(err);
         console.log("Ok!");

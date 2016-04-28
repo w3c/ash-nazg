@@ -78,6 +78,12 @@ GH.prototype = {
             cb(null, [this.user.username].concat(data.map(function (org) { return org.login; })));
         }.bind(this));
     }
+,   commentOnPR: function(data, cb) {
+        this.octo.repos(data.owner, data.shortName).issues(data.num).comments.create({body: data.comment}, function(err, comment) {
+            if (err) return cb(err);
+            cb(null, comment);
+        });
+    }
 ,   createRepo: function (data, cb) {
         this.createOrImportRepo(data, makeNewRepo, newFile, cb);
     }

@@ -364,17 +364,20 @@ function prStatus (pr, delta, req, res, cb) {
                     pr.contribStatus = {};
                     pr.groups = repoGroups;
                     pr.affiliations = {};
-                    if (pr.nonSubstantive) {
+                    if (pr.markedAsNonSubstantiveBy) {
                         pr.acceptable = "yes";
                         statusData.payload.state = "success";
-                        statusData.payload.description = "PR deemed acceptable as non-substantive.";
+                        statusData.payload.description = "PR deemed acceptable as non-substantive by @" + pr.markedAsNonSubstantiveBy + ".";
                         log.info("Setting status success for " + prString);
                         gh.status(
                             statusData
                             ,   function (err) {
                                 if (err) return cb(err);
                                 store.updatePR(pr.fullName, pr.num, pr, function (err) {
-                                    cb(err, pr);
+                                    pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
+                                    gh.commentOnPR(pr, function(err, comment) {
+                                            cb(err, pr);
+                                        });
                                 });
                             }
                         );
@@ -578,8 +581,7 @@ app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, fun
     log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as non substantive");
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        pr.nonSubstantive = true;
-        store.updatePR(pr.fullName, pr.num, {nonSubstantive: true}, function (err) {
+        store.updatePR(pr.fullName, pr.num, {markedAsNonSubstantiveBy: req.user.username}, function (err) {
             if (err) return error(res, err);
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));

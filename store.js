@@ -255,7 +255,12 @@ Store.prototype = {
             // this.db.merge("user-" + username, doc._rev, data, cb);
         }.bind(this));
     }
-
+,   deleteUser:    function (username, cb) {
+        this.getUser(username, function (err, doc) {
+            if (err) return cb(err);
+            this.db.remove(doc.id, doc._rev, cb);
+        }.bind(this));
+    }
     // GROUPS
 ,   addGroup:    function (group, cb) {
         group.id = "group-" + group.w3cid;

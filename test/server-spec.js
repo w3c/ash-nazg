@@ -3,9 +3,12 @@ var nock = require('nock');
 var config = require('./config-test.json');
 var w3cGroup = {};
 var server = require('../server');
+var Store = require('../store');
 
 var githubCode = 'abcd';
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
+
+var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
 
 var githubAuth = nock('https://github.com')
     .defaultReplyHeaders({'Content-Type': 'application/json'})
@@ -27,11 +30,11 @@ var githubToken = nock('https://github.com')
 
 var githubUser = nock('https://api.github.com')
     .get('/user')
-    .reply(200, {login:'--ghtest'});
+    .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
 
 var githubUserEmail = nock('https://api.github.com')
     .get('/user/emails')
-    .reply(200, {email:'test@example.com'});
+    .reply(200, [{email:testUser.emails[0], primary: true}]);
 
 var w3cGroup = {id: 1, type: "working group", name: "Test Working Group"};
 
@@ -42,7 +45,7 @@ var w3c = nock('https://api.w3.org')
 
 
 describe('Server starts and responds', function () {
-    var app, req, http, authAgent;
+    var app, req, http, authAgent, store;
 /*    var recorder = record('ash-nazg');
     before(recorder.before);
     after(recorder.after);
@@ -52,10 +55,13 @@ describe('Server starts and responds', function () {
         app = server.app;
         req = request(app);
         authAgent = request.agent(app);
+        store = new Store(config);
     });
 
     after(function (done) {
-        http.close(done);
+        http.close(function() {
+            store.deleteUser(testUser.username, done);
+        });
     });
 
     it('responds to /', function testSlash(done) {
@@ -87,12 +93,9 @@ describe('Server starts and responds', function () {
             .get('/auth/github')
             .expect(302)
             .end(function(err, res) {
-                var redirect = res.headers.location;
-                var redirectServer = redirect.split('/').slice(0,3).join('/');
-                var redirectPath = '/' + redirect.split('/').slice(3).join('/');
-                if (err) done(err);
+                if (err) return done(err);
 
-                request(redirectServer).get(redirectPath)
+                request(res.header.location).get(res.header.location)
                     .expect(302, { location: config.url + 'auth/github/callback?code=' + githubCode})
                     .end(function(err, res) {
                         authAgent.get('/auth/github/callback?code=' + githubCode)
@@ -104,13 +107,23 @@ describe('Server starts and responds', function () {
             });
     });
 
+    it('responds to login query correctly when logged in', function testLoggedIn(done) {
+        authAgent
+            .get('/api/logged-in')
+            .expect(200, {ok: true, admin: false}, done);
+    });
 
-/*
+
     it('responds to user query', function testUserData(done) {
-        req
-            .get('/api/user/--ghtest')
-            .expect(200, {}, done);
-    });*/
+        authAgent
+            .get('/api/user/' + testUser.username)
+            .expect(function(res) {
+                res.body = { ghID: res.body.ghID,
+                             emails: res.body.emails.map(function(x) { return x.value;}),
+                             username: res.body.username};
+            })
+            .expect(200, testUser, done);
+    });
 
 
 });

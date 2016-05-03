@@ -1,0 +1,13 @@
+{
+    "url":              "http://localhost:8888/"
+,   "hookURL":          "http://localhost:8888/api/hook"
+,   "hookPath":         "api/hook"
+,   "urlPathPrefix":    "/"
+,   "serverPort":       8888
+,   "sessionSecret":    "I'm a secret"
+,   "ghClientID":       "1234"
+,   "ghClientSecret":   "5678"
+,   "logToConsole":     true
+,   "couchDB":  "ashnazg-test"
+,   "w3cAPIKey": "foobar"
+}

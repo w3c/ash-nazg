@@ -1,0 +1,7 @@
+language: node_js
+services:
+  - couchdb
+before_script:
+  node store.js "./test/config-test.json"
+script:
+  mocha test/server-spec.js

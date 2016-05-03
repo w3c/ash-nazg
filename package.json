@@ -27,10 +27,13 @@
     "exorcist": "^0.4.0",
     "flux": "^2.0.3",
     "isomorphic-fetch": "^2.1.1",
+    "mocha": "^2.4.5",
+    "nock": "^8.0.0",
     "nodemon": "1.4.0",
     "normalize.css": "^3.0.3",
     "react": "^0.13.3",
     "react-router": "1.0.0-beta2",
+    "supertest": "^1.2.0",
     "uglifyify": "^3.0.1",
     "ungrid": "^1.0.1",
     "watchify": "^3.3.1"
@@ -45,6 +48,7 @@
     "express": "^4.13.3",
     "express-session": "^1.11.3",
     "express-winston": "^0.3.1",
+    "node-w3capi": "^1.1.1",
     "object-assign": "^3.0.0",
     "octokat": "^0.4.11",
     "passport": "^0.2.2",
@@ -52,7 +56,6 @@
     "password-generator": "^1.0.0",
     "serve-static": "^1.10.0",
     "session-file-store": "0.0.17",
-    "node-w3capi": "^1.1.1",
     "winston": "^1.0.1"
   },
   "browserify": {

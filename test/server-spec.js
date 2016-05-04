@@ -1,7 +1,7 @@
 var request = require('supertest');
 var nock = require('nock');
 var config = require('./config-test.json');
-var w3cGroup = {};
+var w3cGroup = {name:"Test Group"};
 var server = require('../server');
 var Store = require('../store');
 
@@ -48,7 +48,7 @@ function erroringroutes(httpmethod, routes, errorcode, cb) {
     for (var i in routes) {
         httpmethod('/' + routes[i])
             .expect(401, function(err, res) {
-                if (err) return cb(err);
+                if (err) return cb("Unexpected response from route " + res.req.path + ": " + err);
                 counter++
                 if (counter === routes.length) {
                     cb();
@@ -172,6 +172,17 @@ describe('Server manages requests from regular logged-in users', function () {
             })
             .expect(200, [testUser], done);
     });
+
+    it('responds with 403 to admin POST routes', function testAdminRoutes(done) {
+        var protectedPOSTs = ["api/user/--ghtest/affiliate", "api/user/--ghtest/add"];
+        erroringroutes(req.post, protectedPOSTs, 403, done);
+    });
+
+    it('responds with 403 to admin PUT routes', function testAdminPUTRoutes(done) {
+        var protectedPUTs = ["api/user/--ghtest/admin", "api/user/--ghtest/blanket"];
+        erroringroutes(req.put, protectedPUTs, 403, done);
+    });
+
 
     it('responds to login query correctly when logged out', function testLoggedOut(done) {
      authAgent

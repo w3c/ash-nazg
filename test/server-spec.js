@@ -1,7 +1,6 @@
 var request = require('supertest');
 var nock = require('nock');
 var config = require('./config-test.json');
-var w3cGroup = {name:"Test Group"};
 var server = require('../server');
 var Store = require('../store');
 
@@ -36,7 +35,7 @@ var githubUserEmail = nock('https://api.github.com')
     .get('/user/emails')
     .reply(200, [{email:testUser.emails[0], primary: true}]);
 
-var w3cGroup = {id: 1, type: "working group", name: "Test Working Group"};
+var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 
 var w3c = nock('https://api.w3.org')
     .get('/groups')
@@ -118,7 +117,9 @@ describe('Server manages requests from regular logged-in users', function () {
 
     after(function (done) {
         http.close(function() {
-            store.deleteUser(testUser.username, done);
+            store.deleteUser(testUser.username, function() {
+                store.deleteGroup("" + w3cGroup.id, done);
+            });
         });
     });
 
@@ -171,6 +172,22 @@ describe('Server manages requests from regular logged-in users', function () {
                 });
             })
             .expect(200, [testUser], done);
+    });
+
+    it('allows to add a new group', function testAddGroup(done) {
+        var wg = {name: "Test Working Group", w3cid: 42, groupType: "wg"};
+        authAgent
+            .post('/api/groups')
+            .send(wg)
+            .expect(200)
+            .end(function(err, res) {
+                req
+                    .get('/api/groups')
+                    .expect(function(res) {
+                        res.body = res.body.map(function(g) { return {name:g.name, w3cid: g.w3cid, groupType: g.groupType};});
+                    })
+                    .expect(200, [wg], done);
+            });
     });
 
     it('responds with 403 to admin POST routes', function testAdminRoutes(done) {

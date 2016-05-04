@@ -43,25 +43,17 @@ var w3c = nock('https://api.w3.org')
     .query({embed:"true",apikey:'foobar'})
     .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup]}});
 
+describe('Server starts and responds with no login', function () {
+    var app, req, http;
 
-describe('Server starts and responds', function () {
-    var app, req, http, authAgent, store;
-/*    var recorder = record('ash-nazg');
-    before(recorder.before);
-    after(recorder.after);
-*/
     before(function () {
         http = server.run('./test/config-test.json');
         app = server.app;
         req = request(app);
-        authAgent = request.agent(app);
-        store = new Store(config);
     });
 
     after(function (done) {
-        http.close(function() {
-            store.deleteUser(testUser.username, done);
-        });
+        http.close(done);
     });
 
     it('responds to /', function testSlash(done) {
@@ -87,6 +79,24 @@ describe('Server starts and responds', function () {
             .get('/api/logged-in')
             .expect(200, {ok: false, admin: false}, done);
     });
+
+describe('Server manages requests from regular logged-in users', function () {
+    var app, req, http, authAgent, store;
+
+    before(function () {
+        http = server.run('./test/config-test.json');
+        app = server.app;
+        req = request(app);
+        authAgent = request.agent(app);
+        store = new Store(config);
+    });
+
+    after(function (done) {
+        http.close(function() {
+            store.deleteUser(testUser.username, done);
+        });
+    });
+
 
     it('manages Github auth', function testAuthCB(done) {
         authAgent

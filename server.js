@@ -192,7 +192,7 @@ router.get("/api/groups", function (req, res) {
 });
 // add a group to the list of those that the system knows about
 router.post("/api/groups", ensureAPIAuth, bp.json(), function (req, res) {
-    // group must specifiy: name, w3cid, groupType{cg, wg, ig}
+    // group must specifiy: name, w3cid, groupType{CG, WG, IG}
     store.addGroup(req.body, makeOK(res));
 });
 

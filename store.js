@@ -293,6 +293,13 @@ Store.prototype = {
             cb(null, docs);
         });
     }
+,   deleteGroup:    function (w3cid, cb) {
+        this.getGroup(w3cid, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find group " + w3cid + " for deletion"));
+            this.db.remove(doc.id, doc._rev, cb);
+        }.bind(this));
+    }
 
 
     // SECRETS

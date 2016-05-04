@@ -13,42 +13,76 @@ var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"}
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var testOrg = {login: "acme", id:12};
 
+function RepoMock(_name, _owner, _files, _hooks) {
+    var name = _name;
+    var owner = _owner;
+    var files = _files;
+    var hooks = _hooks;
+    function addHook(h) { hooks.push(h);}
+    function addFile(f) { if (files.indexOf(f) === -1) { files.push(f); return true} else { return false;}}
+    function toGH() {
+        return {
+            name:name,
+            fullName: owner + "/" + name,
+            owner: { login: owner},
+            url: "https://api.github.com/repos/" + owner + "/" + name,
+            contents_url: "https://api.github.com/repos/" + owner + "/" + name + "/contents/{+path}"
+        };
+    }
+    function mockGH() {
+        var contentRE = new RegExp('/repos/' + owner + '/' + name + '/contents/.*');
+        if (files.length === 0) {
+            nock('https://api.github.com')
+                .post('/orgs/' + owner + '/repos', {name: name})
+                .reply(200, toGH());
+        } else {
+            nock('https://api.github.com')
+                .get('/repos/' + owner + '/' + name)
+                .reply(200, toGH());
+        }
+        nock('https://api.github.com')
+            .get(contentRE)
+            .times(expectedFiles.length)
+            .reply(function(uri) {
+                var filename = uri.split("/").slice(5).join("/");
+                if (files.indexOf(filename) === -1) {
+                    return [404, {message: "Not Found"}];
+                } else {
+                    return [200, {name: filename, sha: "abcd"}];
+                }
+            });
+        nock('https://api.github.com')
+            .put(contentRE)
+            .times(expectedFiles.length)
+            .reply(function(uri) {
+                var filename = uri.split("/").slice(5).join("/");
+                if (addFile(filename)) {
+                    return [201, {message:"OK"}];
+                } else {
+                    return [422, {message:"File already exists"}];
+                }
+            });
+        nock('https://api.github.com')
+            .get('/repos/' + owner + '/' + name + '/hooks')
+            .reply(200, hooks);
+        nock('https://api.github.com')
+            .post('/repos/' + owner + '/' + name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+            .reply(201, function(uri, body) {
+                addHook(body);
+            });
+    }
+
+    return {name: name, files: files, hooks: hooks, mockGH: mockGH};
+}
+
+var testNewRepo = new RepoMock("newrepo", "acme", [], []);
+var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md", "index.html"], []);
+
 var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
 
 var githubOrg = nock('https://api.github.com')
     .get('/user/orgs')
     .reply(200, [testOrg]);
-
-var githubMakeRepo = nock('https://api.github.com')
-    .post('/orgs/acme/repos', {name: "newrepo"})
-    .reply(200, {
-        name:"newrepo",
-        fullName: testOrg.login + "/newrepo",
-        owner: { login: testOrg.login},
-        url: "https://api.github.com/repos/acme/newrepo",
-        contents_url: "https://api.github.com/repos/acme/newrepo/contents/{+path}"});
-
-var githubRepoEmptyContent = nock('https://api.github.com')
-    .get(/repos\/acme\/newrepo\/contents\/.*/)
-    .reply(404, {message: "Not Found"});
-
-var githubRepoNewFile = nock('https://api.github.com')
-    .put(/repos\/acme\/newrepo\/contents\/.*/, {message: /.*/, content:/.*/})
-    .times(expectedFiles.length)
-    .reply(201, function(uri) {
-        var filename = uri.split("/").slice(5).join("/");
-        expectedFiles = expectedFiles.filter(function(x) { return x !== filename;});
-        return {message: "OK"};
-    });
-
-var githubRepoHooks = nock('https://api.github.com')
-    .get('/repos/acme/newrepo/hooks')
-    .reply(200, []);
-
-var githubRepoNewHook = nock('https://api.github.com')
-    .post('/repos/acme/newrepo/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
-    .reply(201, {});
-
 
 var w3c = nock('https://api.w3.org')
     .get('/groups')
@@ -287,7 +321,9 @@ describe('Server manages requests in a set up repo', function () {
             store.deleteUser(testUser.username, function() {
                 store.deleteGroup("" + w3cGroup.id, function() {
                     store.deleteRepo("acme/newrepo", function() {
-                        store.deleteToken("acme", done);
+                        store.deleteRepo("acme/existingrepo", function() {
+                            store.deleteToken("acme", done);
+                        });
                     });
                 });
             });
@@ -295,15 +331,29 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('allows to create a new GH repo', function testCreateRepo(done) {
+        testNewRepo.mockGH();
         authAgent
             .post('/api/create-repo')
-            .send({org:testOrg.login, repo: "newrepo", groups:["" + w3cGroup.id]})
+            .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id]})
             .expect(200, function(err, res) {
                 if (err) return done(err);
-                expect(expectedFiles).to.be.empty();
+                expect(testNewRepo.files).to.have.length(expectedFiles.length);
+                expect(testNewRepo.hooks).to.have.length(1);
                 done();
             });
     });
 
+    it('allows to import an existing GH repo', function testImportRepo(done) {
+        testExistingRepo.mockGH();
+        authAgent
+            .post('/api/import-repo')
+            .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id]})
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                expect(testExistingRepo.files).to.have.length(expectedFiles.length);
+                expect(testExistingRepo.hooks).to.have.length(1);
+                done();
+            });
+    });
 
 });

@@ -7,10 +7,12 @@ var Store = require('../store');
 var githubCode = 'abcd';
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 
+// Test Data
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
+var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
+var testOrg = {login: "acme", id:12};
 
 var githubAuth = nock('https://github.com')
-    .defaultReplyHeaders({'Content-Type': 'application/json'})
     .get('/login/oauth/authorize?response_type=code'
          + '&redirect_uri=' + encodeURIComponent(config.url + 'auth/github/callback')
          + '&scope=' + encodeURIComponent(ghScope)
@@ -35,7 +37,9 @@ var githubUserEmail = nock('https://api.github.com')
     .get('/user/emails')
     .reply(200, [{email:testUser.emails[0], primary: true}]);
 
-var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
+var githubOrg = nock('https://api.github.com')
+    .get('/user/orgs')
+    .reply(200, [testOrg]);
 
 var w3c = nock('https://api.w3.org')
     .get('/groups')
@@ -172,6 +176,13 @@ describe('Server manages requests from regular logged-in users', function () {
                 });
             })
             .expect(200, [testUser], done);
+    });
+
+    it('responds to org list', function testOrgList(done) {
+        authAgent
+            .get('/api/orgs')
+            .expect(200, [testUser.username, testOrg.login], done);
+
     });
 
     it('allows to add a new group', function testAddGroup(done) {

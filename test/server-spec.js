@@ -135,6 +135,29 @@ describe('Server manages requests from regular logged-in users', function () {
             .expect(200, testUser, done);
     });
 
+    it('responds to user list', function testUserList(done) {
+        authAgent
+            .get('/api/users')
+            .expect(function(res) {
+                res.body = res.body.map(function(u) {
+                    return { ghID: u.ghID,
+                             emails: u.emails.map(function(x) { return x.value;}),
+                             username: u.username};
+                });
+            })
+            .expect(200, [testUser], done);
+    });
 
+    it('responds to login query correctly when logged out', function testLoggedOut(done) {
+     authAgent
+            .get('/api/logout')
+            .expect(200)
+            .end(function(err, res) {
+                if (err) return done(err);
+                authAgent
+                    .get('/api/logged-in')
+                    .expect(200, {ok: false, admin: false}, done);
+            });
+    });
 });
 

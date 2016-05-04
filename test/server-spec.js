@@ -43,6 +43,20 @@ var w3c = nock('https://api.w3.org')
     .query({embed:"true",apikey:'foobar'})
     .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup]}});
 
+function erroringroutes(httpmethod, routes, errorcode, cb) {
+    var counter = 0;
+    for (var i in routes) {
+        httpmethod('/' + routes[i])
+            .expect(401, function(err, res) {
+                if (err) return cb(err);
+                counter++
+                if (counter === routes.length) {
+                    cb();
+                }
+            });
+    }
+}
+
 describe('Server starts and responds with no login', function () {
     var app, req, http;
 
@@ -79,6 +93,17 @@ describe('Server starts and responds with no login', function () {
             .get('/api/logged-in')
             .expect(200, {ok: false, admin: false}, done);
     });
+
+    it('responds with 401 to protected GET routes', function testProtectedRoutes(done) {
+        var protectedGETs = ["api/users", "api/user/foo", "api/orgs"];
+        erroringroutes(req.get, protectedGETs, 401, done);
+    });
+
+    it('responds with 401 to protected POST routes', function testProtectedPOSTRoutes(done) {
+        var protectedPOSTs = ["api/groups", "api/create-repo", "api/import-repo"];
+        erroringroutes(req.post, protectedPOSTs, 401, done);
+    });
+});
 
 describe('Server manages requests from regular logged-in users', function () {
     var app, req, http, authAgent, store;

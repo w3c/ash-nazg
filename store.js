@@ -258,7 +258,7 @@ Store.prototype = {
 ,   deleteUser:    function (username, cb) {
         this.getUser(username, function (err, doc) {
             if (err) return cb(err);
-            this.db.remove(doc.id, doc._rev, cb);
+            this.remove(doc, cb);
         }.bind(this));
     }
     // GROUPS
@@ -297,7 +297,7 @@ Store.prototype = {
         this.getGroup(w3cid, function (err, doc) {
             if (err) return cb(err);
             if (!doc) return cb(new Error("Store: Can not find group " + w3cid + " for deletion"));
-            this.db.remove(doc.id, doc._rev, cb);
+            this.remove(doc, cb);
         }.bind(this));
     }
 
@@ -319,6 +319,13 @@ Store.prototype = {
             log.info("Returning secret for " + repo + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
         });
+    }
+,   deleteSecret:    function (repo, cb) {
+        this.getSecret(repo, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find secret of " + repo + " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
     }
 
 
@@ -354,6 +361,13 @@ Store.prototype = {
             cb(null, docs.length ? docs[0].value : null);
         });
     }
+,   deleteToken:    function (owner, cb) {
+        this.getToken(owner, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find token of " + owner + " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
+    }
 
 
     // REPOS
@@ -386,6 +400,15 @@ Store.prototype = {
             });
             cb(null, docs);
         });
+    }
+,   deleteRepo:    function (fullName, cb) {
+        this.getRepo(fullName, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find repo " + fullName + " for deletion"));
+            this.remove(doc, function(err) {
+                this.deleteSecret(fullName, cb);
+            }.bind(this));
+        }.bind(this));
     }
 
 
@@ -460,6 +483,9 @@ Store.prototype = {
             data._rev = res._rev;
             store.add(data, cb);
         });
+    }
+,   remove:    function (data, cb) {
+        this.db.remove(data.id, data._rev, cb)
     }
 };
 

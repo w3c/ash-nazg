@@ -1,3 +1,4 @@
+var expect = require('expect.js');
 var request = require('supertest');
 var nock = require('nock');
 var config = require('./config-test.json');
@@ -12,34 +13,42 @@ var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"}
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var testOrg = {login: "acme", id:12};
 
-var githubAuth = nock('https://github.com')
-    .get('/login/oauth/authorize?response_type=code'
-         + '&redirect_uri=' + encodeURIComponent(config.url + 'auth/github/callback')
-         + '&scope=' + encodeURIComponent(ghScope)
-         + '&client_id=' + config.ghClientID)
-    .reply(302, {location: config.url + 'auth/github/callback' + '?code=' + githubCode});
-
-
-var githubToken = nock('https://github.com')
-    .post('/login/oauth/access_token', {
-        grant_type:'authorization_code',
-        redirect_uri: config.url + 'auth/github/callback',
-        client_id: config.ghClientID,
-        client_secret: config.ghClientSecret,
-        code: 'abcd'
-    }).reply(302, {location: config.url + '?access_token=bcdef&scope='+ encodeURIComponent(ghScope) + '&token_type=bearer'});
-
-var githubUser = nock('https://api.github.com')
-    .get('/user')
-    .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
-
-var githubUserEmail = nock('https://api.github.com')
-    .get('/user/emails')
-    .reply(200, [{email:testUser.emails[0], primary: true}]);
+var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
 
 var githubOrg = nock('https://api.github.com')
     .get('/user/orgs')
     .reply(200, [testOrg]);
+
+var githubMakeRepo = nock('https://api.github.com')
+    .post('/orgs/acme/repos', {name: "newrepo"})
+    .reply(200, {
+        name:"newrepo",
+        fullName: testOrg.login + "/newrepo",
+        owner: { login: testOrg.login},
+        url: "https://api.github.com/repos/acme/newrepo",
+        contents_url: "https://api.github.com/repos/acme/newrepo/contents/{+path}"});
+
+var githubRepoEmptyContent = nock('https://api.github.com')
+    .get(/repos\/acme\/newrepo\/contents\/.*/)
+    .reply(404, {message: "Not Found"});
+
+var githubRepoNewFile = nock('https://api.github.com')
+    .put(/repos\/acme\/newrepo\/contents\/.*/, {message: /.*/, content:/.*/})
+    .times(expectedFiles.length)
+    .reply(201, function(uri) {
+        var filename = uri.split("/").slice(5).join("/");
+        expectedFiles = expectedFiles.filter(function(x) { return x !== filename;});
+        return {message: "OK"};
+    });
+
+var githubRepoHooks = nock('https://api.github.com')
+    .get('/repos/acme/newrepo/hooks')
+    .reply(200, []);
+
+var githubRepoNewHook = nock('https://api.github.com')
+    .post('/repos/acme/newrepo/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+    .reply(201, {});
+
 
 var w3c = nock('https://api.w3.org')
     .get('/groups')
@@ -58,6 +67,59 @@ function erroringroutes(httpmethod, routes, errorcode, cb) {
                 }
             });
     }
+}
+
+function login(agent, cb) {
+    nock('https://github.com')
+    .get('/login/oauth/authorize?response_type=code'
+         + '&redirect_uri=' + encodeURIComponent(config.url + 'auth/github/callback')
+         + '&scope=' + encodeURIComponent(ghScope)
+         + '&client_id=' + config.ghClientID)
+    .reply(302, {location: config.url + 'auth/github/callback' + '?code=' + githubCode});
+
+    nock('https://github.com')
+    .post('/login/oauth/access_token', {
+        grant_type:'authorization_code',
+        redirect_uri: config.url + 'auth/github/callback',
+        client_id: config.ghClientID,
+        client_secret: config.ghClientSecret,
+        code: 'abcd'
+    })
+    .reply(302, {location: config.url + '?access_token=bcdef&scope='+ encodeURIComponent(ghScope) + '&token_type=bearer'});
+
+    nock('https://api.github.com')
+    .get('/user')
+    .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
+
+    nock('https://api.github.com')
+    .get('/user/emails')
+    .reply(200, [{email:testUser.emails[0], primary: true}]);
+
+    agent
+        .get('/auth/github')
+        .expect(302)
+        .end(function(err, res) {
+            if (err) return cb(err);
+            request(res.header.location).get(res.header.location)
+                .expect(302, { location: config.url + 'auth/github/callback?code=' + githubCode})
+                .end(function(err, res) {
+                    agent.get('/auth/github/callback?code=' + githubCode)
+                        .expect(302)
+                        .expect('location', '/')
+                        .expect('set-cookie', /ash-nazg=.*; Path=\//, cb)
+;
+                });
+        });
+}
+
+function addgroup(agent, cb) {
+    var wg = {name: "Test Working Group", w3cid: 42, groupType: "WG"};
+    agent
+        .post('/api/groups')
+        .send(wg)
+        .expect(200)
+        .end(cb);
+
 }
 
 describe('Server starts and responds with no login', function () {
@@ -129,22 +191,7 @@ describe('Server manages requests from regular logged-in users', function () {
 
 
     it('manages Github auth', function testAuthCB(done) {
-        authAgent
-            .get('/auth/github')
-            .expect(302)
-            .end(function(err, res) {
-                if (err) return done(err);
-
-                request(res.header.location).get(res.header.location)
-                    .expect(302, { location: config.url + 'auth/github/callback?code=' + githubCode})
-                    .end(function(err, res) {
-                        authAgent.get('/auth/github/callback?code=' + githubCode)
-                            .expect(302)
-                            .expect('location', '/')
-                            .expect('set-cookie', /ash-nazg=.*; Path=\//, done)
-;
-                    });
-            });
+        login(authAgent, done);
     });
 
     it('responds to login query correctly when logged in', function testLoggedIn(done) {
@@ -186,19 +233,14 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     it('allows to add a new group', function testAddGroup(done) {
-        var wg = {name: "Test Working Group", w3cid: 42, groupType: "wg"};
-        authAgent
-            .post('/api/groups')
-            .send(wg)
-            .expect(200)
-            .end(function(err, res) {
-                req
-                    .get('/api/groups')
-                    .expect(function(res) {
-                        res.body = res.body.map(function(g) { return {name:g.name, w3cid: g.w3cid, groupType: g.groupType};});
-                    })
-                    .expect(200, [wg], done);
-            });
+        addgroup(authAgent, function(err, res) {
+            req
+                .get('/api/groups')
+                .expect(function(res) {
+                    res.body = res.body.map(function(g) { return {name:g.name, id: "" + g.w3cid, type: g.groupType === "WG" ? "working group": "error"};});
+                })
+                .expect(200, [w3cGroup], done);
+        });
     });
 
     it('responds with 403 to admin POST routes', function testAdminRoutes(done) {
@@ -225,3 +267,43 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 });
 
+describe('Server manages requests in a set up repo', function () {
+    var app, req, http, authAgent, store;
+
+    before(function (done) {
+        http = server.run(config);
+        app = server.app;
+        req = request(app);
+        authAgent = request.agent(app);
+        store = new Store(config);
+        login(authAgent, function(err) {
+            if (err) return done(err);
+            addgroup(authAgent, done);
+        });
+    });
+
+    after(function (done) {
+        http.close(function() {
+            store.deleteUser(testUser.username, function() {
+                store.deleteGroup("" + w3cGroup.id, function() {
+                    store.deleteRepo("acme/newrepo", function() {
+                        store.deleteToken("acme", done);
+                    });
+                });
+            });
+        });
+    });
+
+    it('allows to create a new GH repo', function testCreateRepo(done) {
+        authAgent
+            .post('/api/create-repo')
+            .send({org:testOrg.login, repo: "newrepo", groups:["" + w3cGroup.id]})
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                expect(expectedFiles).to.be.empty();
+                done();
+            });
+    });
+
+
+});

@@ -10,6 +10,7 @@ var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 
 // Test Data
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
+var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var testOrg = {login: "acme", id:12};
 
@@ -324,7 +325,9 @@ describe('Server manages requests in a set up repo', function () {
                     store.deleteRepo(testNewRepo.full_name, function() {
                         store.deleteRepo(testExistingRepo.full_name, function() {
                             store.deleteToken(testOrg.login, function() {
-                                store.deletePR(testExistingRepo.full_name, 5, done);
+                                store.deletePR(testExistingRepo.full_name, 5, function() {
+                                    store.deleteUser(testUser2.username, done);
+                                });
                             });
                         });
                     });
@@ -369,7 +372,7 @@ describe('Server manages requests in a set up repo', function () {
                         sha: "fedcba"
                     },
                     user: {
-                        login: "--ghtest"
+                        login: testUser2.username
                     },
                     body: ""
                 }
@@ -387,7 +390,7 @@ describe('Server manages requests in a set up repo', function () {
             .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
                   {state: "failure", // user not associated with group at this point
                    target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: /.*@--ghtest.*/,
+                   description: new RegExp(testPR.pull_request.user.login),
                    context: "ipr"
                   })
             .reply(200);
@@ -404,4 +407,22 @@ describe('Server manages requests in a set up repo', function () {
         });
     });
 
+    it('recognizes an admin user', function testAdmin(done) {
+        store.makeUserAdmin(testUser.username, function() {
+            authAgent
+                .get('/api/logged-in')
+                .expect(200, {ok: true, admin: true}, done);
+        });
+    });
+
+    it('allows admins to add a new user', function testAddUser(done) {
+        nock('https://api.github.com')
+            .get('/users/' + testUser2.username)
+            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: testUser2.emails[0]});
+
+        authAgent
+            .post('/api/user/' + testUser2.username + '/add', {username:testUser2.username, groups:[w3cGroup.id], w3cid: testUser2.w3cid })
+            .expect(200, done);
+    });
 });
+

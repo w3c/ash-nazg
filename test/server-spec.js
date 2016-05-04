@@ -4,7 +4,7 @@ var nock = require('nock');
 var config = require('./config-test.json');
 var server = require('../server');
 var Store = require('../store');
-
+var crypto = require("crypto")
 var githubCode = 'abcd';
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 
@@ -16,6 +16,7 @@ var testOrg = {login: "acme", id:12};
 function RepoMock(_name, _owner, _files, _hooks) {
     var name = _name;
     var owner = _owner;
+    var full_name = owner + "/" + name;
     var files = _files;
     var hooks = _hooks;
     function addHook(h) { hooks.push(h);}
@@ -23,21 +24,21 @@ function RepoMock(_name, _owner, _files, _hooks) {
     function toGH() {
         return {
             name:name,
-            fullName: owner + "/" + name,
+            full_name: full_name,
             owner: { login: owner},
-            url: "https://api.github.com/repos/" + owner + "/" + name,
-            contents_url: "https://api.github.com/repos/" + owner + "/" + name + "/contents/{+path}"
+            url: "https://api.github.com/repos/" + full_name,
+            contents_url: "https://api.github.com/repos/" + full_name + "/contents/{+path}"
         };
     }
     function mockGH() {
-        var contentRE = new RegExp('/repos/' + owner + '/' + name + '/contents/.*');
+        var contentRE = new RegExp('/repos/' + full_name + '/contents/.*');
         if (files.length === 0) {
             nock('https://api.github.com')
                 .post('/orgs/' + owner + '/repos', {name: name})
                 .reply(200, toGH());
         } else {
             nock('https://api.github.com')
-                .get('/repos/' + owner + '/' + name)
+                .get('/repos/' + full_name)
                 .reply(200, toGH());
         }
         nock('https://api.github.com')
@@ -63,26 +64,22 @@ function RepoMock(_name, _owner, _files, _hooks) {
                 }
             });
         nock('https://api.github.com')
-            .get('/repos/' + owner + '/' + name + '/hooks')
+            .get('/repos/' + full_name + '/hooks')
             .reply(200, hooks);
         nock('https://api.github.com')
-            .post('/repos/' + owner + '/' + name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+            .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
             .reply(201, function(uri, body) {
                 addHook(body);
             });
     }
 
-    return {name: name, files: files, hooks: hooks, mockGH: mockGH};
+    return {name: name, files: files, hooks: hooks, mockGH: mockGH, toGH: toGH, owner: owner, full_name: full_name};
 }
 
 var testNewRepo = new RepoMock("newrepo", "acme", [], []);
 var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md", "index.html"], []);
 
 var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
-
-var githubOrg = nock('https://api.github.com')
-    .get('/user/orgs')
-    .reply(200, [testOrg]);
 
 var w3c = nock('https://api.w3.org')
     .get('/groups')
@@ -260,6 +257,10 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     it('responds to org list', function testOrgList(done) {
+        nock('https://api.github.com')
+            .get('/user/orgs')
+            .reply(200, [testOrg]);
+
         authAgent
             .get('/api/orgs')
             .expect(200, [testUser.username, testOrg.login], done);
@@ -320,9 +321,11 @@ describe('Server manages requests in a set up repo', function () {
         http.close(function() {
             store.deleteUser(testUser.username, function() {
                 store.deleteGroup("" + w3cGroup.id, function() {
-                    store.deleteRepo("acme/newrepo", function() {
-                        store.deleteRepo("acme/existingrepo", function() {
-                            store.deleteToken("acme", done);
+                    store.deleteRepo(testNewRepo.full_name, function() {
+                        store.deleteRepo(testExistingRepo.full_name, function() {
+                            store.deleteToken(testOrg.login, function() {
+                                store.deletePR(testExistingRepo.full_name, 5, done);
+                            });
                         });
                     });
                 });
@@ -354,6 +357,51 @@ describe('Server manages requests in a set up repo', function () {
                 expect(testExistingRepo.hooks).to.have.length(1);
                 done();
             });
+    });
+
+    it('reacts to pull requests notifications', function testPullRequestNotif(done) {
+        var testPR = {
+                repository: testExistingRepo.toGH(),
+                number: 5,
+                action: "opened",
+                pull_request: {
+                    head: {
+                        sha: "fedcba"
+                    },
+                    user: {
+                        login: "--ghtest"
+                    },
+                    body: ""
+                }
+        };
+
+        nock('https://api.github.com')
+            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
+                  {state: "pending",
+                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
+                   description: /.*/,
+                   context: "ipr"
+                  })
+            .reply(200);
+        nock('https://api.github.com')
+            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
+                  {state: "failure", // user not associated with group at this point
+                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
+                   description: /.*@--ghtest.*/,
+                   context: "ipr"
+                  })
+            .reply(200);
+
+
+        // FIXME This feels too tightly coupled with code under test
+        store.getSecret(testExistingRepo.full_name, function(err, data) {
+            if (err) return done(err);
+            req.post('/' + config.hookPath)
+                .send(testPR)
+                .set('X-Github-Event', 'pull_request')
+                .set('X-Hub-Signature', "sha1=" + crypto.createHmac("sha1", data.secret).update(new Buffer(JSON.stringify(testPR))).digest("hex"))
+                .expect(200, done);
+        });
     });
 
 });

@@ -460,6 +460,13 @@ Store.prototype = {
             cb(null, docs.toArray());
         });
     }
+,   deletePR:    function (fullName, num, cb) {
+        this.getPR(fullName, num, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find PR " + fullName + "/" + num+ " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
+    }
 
 
     // CORE

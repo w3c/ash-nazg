@@ -64,7 +64,7 @@ describe('Server starts and responds with no login', function () {
     var app, req, http;
 
     before(function () {
-        http = server.run('./test/config-test.json');
+        http = server.run(config);
         app = server.app;
         req = request(app);
     });
@@ -112,7 +112,7 @@ describe('Server manages requests from regular logged-in users', function () {
     var app, req, http, authAgent, store;
 
     before(function () {
-        http = server.run('./test/config-test.json');
+        http = server.run(config);
         app = server.app;
         req = request(app);
         authAgent = request.agent(app);

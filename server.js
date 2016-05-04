@@ -620,9 +620,8 @@ function addClientSideRoutes(app, prefix) {
 }
 
 // run!
-function run(configpath) {
-    config = require(configpath);
-
+function run(configuration) {
+    config = configuration;
     log = require("./log")(config);
 
     Store = require("./store");
@@ -701,5 +700,5 @@ module.exports.run = run;
 module.exports.app = app;
 
 if (require.main === module) {
-    run("./config.json");
+    run(require("./config.json"));
 }

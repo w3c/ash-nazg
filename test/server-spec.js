@@ -7,6 +7,8 @@ var Store = require('../store');
 var crypto = require("crypto")
 var githubCode = 'abcd';
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
+var async = require('async');
+var curry = require('curry');
 
 // Test Data
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
@@ -229,11 +231,14 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     after(function (done) {
-        http.close(function() {
-            store.deleteUser(testUser.username, function() {
-                store.deleteGroup("" + w3cGroup.id, done);
-            });
-        });
+        async.parallel([
+            http.close.bind(http),
+            function(cb) {
+                store.deleteUser(testUser.username, cb);
+            },
+            function(cb) {
+                store.deleteGroup("" + w3cGroup.id, cb);
+            }], done);
     });
 
 
@@ -334,21 +339,20 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     after(function (done) {
-        http.close(function() {
-            store.deleteUser(testUser.username, function() {
-                store.deleteGroup("" + w3cGroup.id, function() {
-                    store.deleteRepo(testNewRepo.full_name, function() {
-                        store.deleteRepo(testExistingRepo.full_name, function() {
-                            store.deleteToken(testOrg.login, function() {
-                                store.deletePR(testExistingRepo.full_name, 5, function() {
-                                    store.deleteUser(testUser2.username, done);
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
+        function cleanStore(task) {
+            return curry(store[task].bind(store));
+        }
+
+        async.parallel([
+            http.close.bind(http),
+            cleanStore("deleteUser")(testUser.username),
+            cleanStore("deleteGroup")("" + w3cGroup.id),
+            cleanStore("deleteRepo")(testNewRepo.full_name),
+            cleanStore("deleteRepo")(testExistingRepo.full_name),
+            cleanStore("deleteToken")(testOrg.login),
+            cleanStore("deletePR")(testExistingRepo.full_name, 5),
+            cleanStore("deleteUser")(testUser2.username),
+        ], done);
     });
 
     it('allows to create a new GH repo', function testCreateRepo(done) {

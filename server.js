@@ -323,7 +323,7 @@ function prStatus (pr, delta, req, res, cb) {
                                 }
                                 var ok = false;
                                 repoGroups.forEach(function (g) {
-                                    if (user.groups[g + ""]) ok = true;
+                                    if (user.groups && user.groups[g + ""]) ok = true;
                                 });
                                 if (ok) {
                                     pr.contribStatus[username] = "ok";

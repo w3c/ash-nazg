@@ -10,7 +10,7 @@ var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 
 // Test Data
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
-var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123};
+var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var testOrg = {login: "acme", id:12};
 
@@ -79,6 +79,21 @@ function RepoMock(_name, _owner, _files, _hooks) {
 
 var testNewRepo = new RepoMock("newrepo", "acme", [], []);
 var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md", "index.html"], []);
+
+var testPR = {
+    repository: testExistingRepo.toGH(),
+    number: 5,
+    action: "opened",
+    pull_request: {
+        head: {
+            sha: "fedcba"
+        },
+        user: {
+            login: testUser2.username
+        },
+        body: ""
+    }
+};
 
 var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
 
@@ -363,21 +378,6 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('reacts to pull requests notifications', function testPullRequestNotif(done) {
-        var testPR = {
-                repository: testExistingRepo.toGH(),
-                number: 5,
-                action: "opened",
-                pull_request: {
-                    head: {
-                        sha: "fedcba"
-                    },
-                    user: {
-                        login: testUser2.username
-                    },
-                    body: ""
-                }
-        };
-
         nock('https://api.github.com')
             .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
                   {state: "pending",
@@ -421,7 +421,61 @@ describe('Server manages requests in a set up repo', function () {
             .reply(200, {login:testUser2.username, id: testUser2.ghID, email: testUser2.emails[0]});
 
         authAgent
-            .post('/api/user/' + testUser2.username + '/add', {username:testUser2.username, groups:[w3cGroup.id], w3cid: testUser2.w3cid })
+            .post('/api/user/' + testUser2.username + '/add')
+            .expect(200, done);
+    });
+
+    it('allows admins to affiliate a user', function testAffiliateUser(done) {
+        var groups = {};
+        groups[w3cGroup.id] = true;
+        testUser2.groups = groups;
+        authAgent
+            .post('/api/user/' + testUser2.username + '/affiliate')
+            .send({
+                      affiliationName: testUser2.affiliationName,
+                      affiliation: testUser2.affiliation,
+                      w3cid: testUser2.w3cid,
+                      groups:groups
+                  })
+            .expect(200)
+            .end(function(err, res) {
+                if (err) return done(err);
+                authAgent
+                    .get('/api/user/' + testUser2.username)
+                    .expect(function(res) {
+                        res.body = { ghID: res.body.ghID,
+                                   emails: res.body.emails.map(function(x) { return x.value;}),
+                                   username:res.body.username,
+                                   w3cid: res.body.w3cid,
+                                     affiliation: res.body.affiliation,
+                                     affiliationName: res.body.affiliationName,
+                                     groups: res.body.groups
+                                   };
+                    })
+                    .expect(200, testUser2, done);
+
+            });
+    });
+
+    it('allows admins to revalidate a PR', function testRevalidate(done) {
+        nock('https://api.github.com')
+            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
+                  {state: "pending",
+                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
+                   description: /.*/,
+                   context: "ipr"
+                  })
+            .reply(200);
+        nock('https://api.github.com')
+            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
+                  {state: "success", // user now associated with group
+                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
+                   description: new RegExp(".*"),
+                   context: "ipr"
+                  })
+            .reply(200);
+        authAgent
+            .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
             .expect(200, done);
     });
 });

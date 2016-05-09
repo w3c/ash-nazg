@@ -269,7 +269,7 @@ function parseMessage (msg) {
     ;
     return ret;
 }
-function prStatus (pr, delta, req, res, cb) {
+function prStatus (pr, delta, cb) {
     var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
     ,   statusData = {
             owner:      pr.owner
@@ -501,7 +501,7 @@ function addGHHook(app, path) {
                     ;
                     store.addPR(pr, function (err) {
                         if (err) return error(res, err);
-                        prStatus(pr, delta, req, res, makeOK(res));
+                        prStatus(pr, delta, makeOK(res));
                     });
                 }
                 // issue comment events
@@ -510,7 +510,7 @@ function addGHHook(app, path) {
                     if (!delta.total) return ok(res);
                     store.getPR(repo, prNum, function (err, pr) {
                         if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
-                        prStatus(pr, delta, req, res, makeOK(res));
+                        prStatus(pr, delta, makeOK(res));
                     });
                 }
             });
@@ -531,7 +531,7 @@ router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (r
     log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        prStatus(pr, delta, req, res, makeRes(res));
+        prStatus(pr, delta, makeRes(res));
     });
 });
 // Mark a PR as non substantive

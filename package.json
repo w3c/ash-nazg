@@ -63,6 +63,7 @@
     "passport-github2": "0.1.10",
     "passport": "0.3.2",
     "password-generator": "2.0.2",
+    "proxyquire": "^1.7.7",
     "serve-static": "1.11.1",
     "session-file-store": "0.2.0",
     "winston": "2.2.0"

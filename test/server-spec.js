@@ -1,12 +1,17 @@
+var proxyquire =  require('proxyquire');
+
+// Remove randomness from the picture
+function passwordGenerator(n) {
+    return Array(n).join("_");
+}
+var GH = proxyquire('../gh', {'password-generator': passwordGenerator, '@global': true});
+
 var expect = require('expect.js');
 var request = require('supertest');
 var nock = require('nock');
 var config = require('./config-test.json');
 var server = require('../server');
 var Store = require('../store');
-var crypto = require("crypto")
-var githubCode = 'abcd';
-var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 var async = require('async');
 var curry = require('curry');
 var nodemailer = require('nodemailer');
@@ -14,7 +19,11 @@ var mockTransport = require('nodemailer-mock-transport');
 var transport = mockTransport();
 var transporter = nodemailer.createTransport(transport);
 
+
+var ghScope = "user:email,public_repo,write:repo_hook,read:org";
+
 // Test Data
+var githubCode = 'abcd';
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
 var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
@@ -398,21 +407,16 @@ describe('Server manages requests in a set up repo', function () {
                   })
             .reply(200);
 
-        // FIXME This feels too tightly coupled with code under test
-        store.getSecret(testExistingRepo.full_name, function(err, data) {
-            if (err) return done(err);
-            req.post('/' + config.hookPath)
-                .send(testPR)
-                .set('X-Github-Event', 'pull_request')
-                .set('X-Hub-Signature', "sha1=" + crypto.createHmac("sha1", data.secret).update(new Buffer(JSON.stringify(testPR))).digest("hex"))
-                .expect(200, function() {
+        req.post('/' + config.hookPath)
+            .send(testPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
+            .expect(200, function() {
                     expect(transport.sentMail.length).to.be.equal(1);
                     expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
                     expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
                     done();
                 });
-
-        });
     });
 
     it('recognizes an admin user', function testAdmin(done) {

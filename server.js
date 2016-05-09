@@ -14,7 +14,6 @@ var express = require("express")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   bl = require("bl")
-,   crypto = require("crypto")
 ,   w3c = require("node-w3capi")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
@@ -459,7 +458,7 @@ function addGHHook(app, path) {
                 if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
             
                 // we have the secret, crypto check becomes possible
-                var ourSig = "sha1=" + crypto.createHmac("sha1", data.secret).update(buffer).digest("hex")
+                var ourSig = GH.signPayload("sha1", data.secret, buffer)
                 ,   theirSig = req.headers["x-hub-signature"]
                 ;
                 if (ourSig !== theirSig) return error(res, "GitHub signature does not match known secret.");

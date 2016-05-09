@@ -45,17 +45,6 @@ function RepoMock(_name, _owner, _files, _hooks) {
                 .reply(200, toGH());
         }
         nock('https://api.github.com')
-            .get(contentRE)
-            .times(expectedFiles.length)
-            .reply(function(uri) {
-                var filename = uri.split("/").slice(5).join("/");
-                if (files.indexOf(filename) === -1) {
-                    return [404, {message: "Not Found"}];
-                } else {
-                    return [200, {name: filename, sha: "abcd"}];
-                }
-            });
-        nock('https://api.github.com')
             .put(contentRE)
             .times(expectedFiles.length)
             .reply(function(uri) {
@@ -104,6 +93,13 @@ var w3c = nock('https://api.w3.org')
     .query({embed:"true",apikey:'foobar'})
     .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup]}});
 
+function emptyNock(cb) {
+    return function(err) {
+        expect(nock.pendingMocks()).to.be.empty();
+        cb(err);
+    }
+}
+
 function erroringroutes(httpmethod, routes, errorcode, cb) {
     var counter = 0;
     for (var i in routes) {
@@ -119,12 +115,6 @@ function erroringroutes(httpmethod, routes, errorcode, cb) {
 }
 
 function login(agent, cb) {
-    nock('https://github.com')
-    .get('/login/oauth/authorize?response_type=code'
-         + '&redirect_uri=' + encodeURIComponent(config.url + 'auth/github/callback')
-         + '&scope=' + encodeURIComponent(ghScope)
-         + '&client_id=' + config.ghClientID)
-    .reply(302, {location: config.url + 'auth/github/callback' + '?code=' + githubCode});
 
     nock('https://github.com')
     .post('/login/oauth/access_token', {
@@ -181,7 +171,7 @@ describe('Server starts and responds with no login', function () {
     });
 
     after(function (done) {
-        http.close(done);
+        http.close(emptyNock(done));
     });
 
     it('responds to /', function testSlash(done) {
@@ -238,7 +228,7 @@ describe('Server manages requests from regular logged-in users', function () {
             },
             function(cb) {
                 store.deleteGroup("" + w3cGroup.id, cb);
-            }], done);
+            }], emptyNock(done));
     });
 
 
@@ -352,7 +342,7 @@ describe('Server manages requests in a set up repo', function () {
             cleanStore("deleteToken")(testOrg.login),
             cleanStore("deletePR")(testExistingRepo.full_name, 5),
             cleanStore("deleteUser")(testUser2.username),
-        ], done);
+        ], emptyNock(done));
     });
 
     it('allows to create a new GH repo', function testCreateRepo(done) {
@@ -482,5 +472,6 @@ describe('Server manages requests in a set up repo', function () {
             .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
             .expect(200, done);
     });
+
 });
 

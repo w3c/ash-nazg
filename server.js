@@ -470,21 +470,30 @@ function addGHHook(app, path) {
             
                 // pull request events
                 if (eventType === "pull_request") {
-                    //  if event.action === "synchronize" or "closed" we have to store the new head SHA in
+                    var sha = event.pull_request.head.sha;
+
+                    //  if event.action === "closed" we have to store the new head SHA in
                     //  the DB, but other than that we can ignore it
-                    if (event.action === "synchronize" || event.action === "closed") {
+                    if (event.action === "closed") {
                         return store.updatePR(
                                 repo
                             ,   prNum
                             ,   {
-                                    status:     event.action === "closed" ? "closed" : "open"
-                                ,   sha:        event.pull_request.head.sha
+                                    status:     "closed"
+                                ,   sha:        sha
                                 }
                             ,   makeOK(res)
                         );
+                    //  if event.action === "synchronize" we have to store the new head SHA in
+                    //  the DB, and re-send the pr status to github based on stored data
+                    } else if (event.action === "synchronize") {
+                        return store.getPR(repo, prNum, function (err, storedpr) {
+                            if (err || !storedpr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+                            storedpr.sha = sha;
+                            prStatus(storedpr, parseMessage(""), makeOK(res));
+                        });
                     }
-                    var sha = event.pull_request.head.sha
-                    ,   pr = {
+                    var pr = {
                             fullName:       repo
                         ,   shortName:      repoShort
                         ,   owner:          owner

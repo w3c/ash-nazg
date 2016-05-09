@@ -468,24 +468,24 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('allows admins to revalidate a PR', function testRevalidate(done) {
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "pending",
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: /.*/,
-                   context: "ipr"
-                  })
-            .reply(200);
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "success", // user now associated with group
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: new RegExp(".*"),
-                   context: "ipr"
-                  })
-            .reply(200);
+        mockPRStatus(testPR, 'pending', /.*/);
+        mockPRStatus(testPR, 'success', /.*/);
         authAgent
             .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .expect(200, done);
+    });
+
+    it('reacts to forced push in pull requests', function testPullRequestNotif(done) {
+        var forcedPR = Object.assign({}, testPR);
+        forcedPR.action = "synchronize";
+        forcedPR.pull_request.head.sha = "abcdef";
+        mockPRStatus(forcedPR, 'pending', /.*/);
+        mockPRStatus(forcedPR, 'success', /.*/);
+
+        req.post('/' + config.hookPath)
+            .send(forcedPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(forcedPR))))
             .expect(200, done);
     });
 

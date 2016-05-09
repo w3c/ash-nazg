@@ -425,6 +425,19 @@ W3C applications, notably in [Midgard][Midgard] (and possibly the GitHub guide).
 The backend store could use a bit of abstraction to dull the repetition; this is a simple 
 refactoring that is probably a good way to get into the codebase.
 
+# Test suite
+
+The [test suite](./test/) only deals with the server-side of the app.
+
+It uses mocha as its test runner, [supertest][supertest] to test the responses from the various routes, and [nock][nock] to mock the third-party APIs the app relies on (Github API, W3C API).
+
+To run the test suite, you need to have a running instance of couchdb, and initialize it with `node store.js "./test/config-test.json"`; if your couchdb requires a login/password for admin, you should add it to the `config-test.json` file as an entry of the form of:
+```json
+"couchAuth": {
+    "username": "foo"
+,   "password": "bar"
+}
+```
 
 [CouchDB]: http://couchdb.apache.org/
 [Express]: http://expressjs.com/
@@ -441,3 +454,5 @@ refactoring that is probably a good way to get into the codebase.
 [Winston]: http://github.com/flatiron/winston
 [ungrid]: http://chrisnager.github.io/ungrid/
 [octokat]: https://github.com/philschatz/octokat.js/
+[supertest]: https://github.com/visionmedia/supertest
+[nock]: https://github.com/node-nock/nock

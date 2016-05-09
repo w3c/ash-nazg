@@ -49,6 +49,7 @@
     "cookie-parser": "1.4.3",
     "cradle": "0.7.1",
     "curry": "1.2.0",
+    "es6-object-assign": "^1.0.1",
     "es6-promise": "3.2.1",
     "expect.js": "0.3.1",
     "express-session": "1.13.0",

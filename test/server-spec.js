@@ -1,5 +1,5 @@
 var proxyquire =  require('proxyquire');
-
+require('es6-object-assign').polyfill();
 // Remove randomness from the picture
 function passwordGenerator(n) {
     return Array(n).join("_");

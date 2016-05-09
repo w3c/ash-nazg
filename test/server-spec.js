@@ -170,6 +170,17 @@ function addgroup(agent, cb) {
 
 }
 
+function mockPRStatus(pr, status, description) {
+    nock('https://api.github.com')
+        .post('/repos/' + pr.repository.full_name + '/statuses/' + pr.pull_request.head.sha,
+              {state: status,
+               target_url: config.url + "pr/id/" + pr.repository.full_name + '/' + pr.number,
+               description: description,
+               context: "ipr"
+              })
+        .reply(200);
+}
+
 describe('Server starts and responds with no login', function () {
     var app, req, http;
 
@@ -381,14 +392,7 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('reacts to pull requests notifications', function testPullRequestNotif(done) {
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "pending",
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: /.*/,
-                   context: "ipr"
-                  })
-            .reply(200);
+        mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
             .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
@@ -398,14 +402,8 @@ describe('Server manages requests in a set up repo', function () {
         nock('https://api.github.com')
             .get('/users/' + testUser2.username)
             .reply(200, {login:testUser2.username, id: testUser2.ghID, email: null});
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "failure", // user not associated with group at this point
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: new RegExp(testPR.pull_request.user.login),
-                   context: "ipr"
-                  })
-            .reply(200);
+
+        mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
 
         req.post('/' + config.hookPath)
             .send(testPR)

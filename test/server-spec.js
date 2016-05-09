@@ -130,10 +130,6 @@ function login(agent, cb) {
     .get('/user')
     .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
 
-    nock('https://api.github.com')
-    .get('/user/emails')
-    .reply(200, [{email:testUser.emails[0], primary: true}]);
-
     agent
         .get('/auth/github')
         .expect(302)

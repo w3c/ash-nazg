@@ -14,7 +14,7 @@ header {
     border-bottom:  1px solid silver;
     padding: 0 0 0 10px;
 }
-h1, div.app-body {
+h1, div.app-body, footer {
     max-width:  960px;
     margin: auto;
 }

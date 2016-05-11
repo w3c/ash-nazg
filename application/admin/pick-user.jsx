@@ -26,9 +26,9 @@ export default class PickUser extends React.Component {
                     null
         ;
         return <div className="primary-app">
-                    <h2>Pick user name to add</h2>
+                    <h2>Provide a GitHub user name to add the user</h2>
                     <div className="formline">
-                        <label htmlFor="username">user name</label>
+                        <label htmlFor="username">GitHub user name</label>
                         <input type="text" value={st.username} ref="username" id="username" onChange={this.handleChange.bind(this)} required/>
                         {" "}
                         {link}

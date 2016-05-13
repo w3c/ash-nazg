@@ -9,8 +9,7 @@
 
 var cradle = require("cradle")
 ,   async = require("async")
-,   log = require("./log")
-,   config = require("./config.json")
+,   log
 ;
 
 // helpers
@@ -20,13 +19,15 @@ function couchNow (d) {
             d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds()];
 }
 
-function Store () {
+function Store (config) {
     var dbName = config.couchDB || "ash-nazg"
     ,   couchConf = {}
     ;
+    log = require("./log")(config);
     if (config.couchAuth) couchConf.auth = config.couchAuth;
     this.client = new cradle.Connection(couchConf);
     this.db = this.client.database(dbName);
+    this._config = config;
     log.info("Connected to CouchDB, db=" + dbName);
 }
 Store.prototype = {
@@ -254,7 +255,12 @@ Store.prototype = {
             // this.db.merge("user-" + username, doc._rev, data, cb);
         }.bind(this));
     }
-
+,   deleteUser:    function (username, cb) {
+        this.getUser(username, function (err, doc) {
+            if (err) return cb(err);
+            this.remove(doc, cb);
+        }.bind(this));
+    }
     // GROUPS
 ,   addGroup:    function (group, cb) {
         group.id = "group-" + group.w3cid;
@@ -287,6 +293,13 @@ Store.prototype = {
             cb(null, docs);
         });
     }
+,   deleteGroup:    function (w3cid, cb) {
+        this.getGroup(w3cid, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find group " + w3cid + " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
+    }
 
 
     // SECRETS
@@ -307,13 +320,20 @@ Store.prototype = {
             cb(null, docs.length ? docs[0].value : null);
         });
     }
+,   deleteSecret:    function (repo, cb) {
+        this.getSecret(repo, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find secret of " + repo + " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
+    }
 
 
     // TOKENS
 ,   addToken:    function (token, cb) {
         // the configuration file can list tokens that override those in the DB, in which case the
         // latter don't get stored
-        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        if (this._config.tokens && this._config.tokens[token.owner]) return cb(null, this._config.tokens[token.owner]);
         token.id = "token-" + token.owner;
         token.type = "token";
         delete token._rev; // don't use this to update token
@@ -321,7 +341,7 @@ Store.prototype = {
         this.add(token, cb);
     }
 ,   createOrUpdateToken:    function (token, cb) {
-        if (config.tokens && config.tokens[token.owner]) return cb(null, config.tokens[token.owner]);
+        if (this._config.tokens && this._config.tokens[token.owner]) return cb(null, this._config.tokens[token.owner]);
         var store = this;
         store.getToken(token.owner, function (err, doc) {
             if ((err && err.error === "not_found") || !doc) return store.addToken(token, cb);
@@ -334,12 +354,19 @@ Store.prototype = {
 ,   getToken:   function (owner, cb) {
         var store = this;
         log.info("Looking for token for " + owner);
-        if (config.tokens && config.tokens[owner]) return cb(null, { owner: owner, token: config.tokens[owner] });
+        if (this._config.tokens && this._config.tokens[owner]) return cb(null, { owner: owner, token: this._config.tokens[owner] });
         store.db.view("tokens/by_owner", { key: owner }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning token for " + owner + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
         });
+    }
+,   deleteToken:    function (owner, cb) {
+        this.getToken(owner, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find token of " + owner + " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
     }
 
 
@@ -373,6 +400,15 @@ Store.prototype = {
             });
             cb(null, docs);
         });
+    }
+,   deleteRepo:    function (fullName, cb) {
+        this.getRepo(fullName, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find repo " + fullName + " for deletion"));
+            this.remove(doc, function(err) {
+                this.deleteSecret(fullName, cb);
+            }.bind(this));
+        }.bind(this));
     }
 
 
@@ -424,6 +460,13 @@ Store.prototype = {
             cb(null, docs.toArray());
         });
     }
+,   deletePR:    function (fullName, num, cb) {
+        this.getPR(fullName, num, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find PR " + fullName + "/" + num+ " for deletion"));
+            this.remove(doc, cb);
+        }.bind(this));
+    }
 
 
     // CORE
@@ -448,12 +491,17 @@ Store.prototype = {
             store.add(data, cb);
         });
     }
+,   remove:    function (data, cb) {
+        this.db.remove(data.id, data._rev, cb)
+    }
 };
 
 module.exports = Store;
 
 if (require.main === module) {
-    var store = new Store();
+    var configPath = process.argv[2] || './config.json';
+    var store = new Store(require(configPath));
+
     store.setup(function (err) {
         if (err) return console.error(err);
         console.log("Ok!");

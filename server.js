@@ -608,6 +608,9 @@ app.get("/api/w3c/groups", function (req, res) {
     // these require the embedded data
     w3c.groups().fetch({ embed: true }, makeRes(res));
 });
+app.get("/api/w3c/group/:group", function (req, res) {
+    w3c.group(req.params.group).fetch(makeRes(res));
+});
 app.get("/api/w3c/group/:group/users", function (req, res) {
     w3c.group(req.params.group).users().fetch(makeRes(res));
 });

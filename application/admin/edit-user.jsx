@@ -105,6 +105,8 @@ export default class EditUser extends React.Component {
         this.setState(({ w3cidStatus: "setting-user", modified: true }));
         let user = this.state.user
         ,   apiID = utils.val(this.refs.w3cUser)
+        ,   groups = Object.keys(user.groups)
+        ,   self = this
         ;
         fetch(pp + "api/w3c/user/" + apiID, { credentials: "include" })
             .then(utils.jsonHandler)
@@ -114,12 +116,35 @@ export default class EditUser extends React.Component {
                 return fetch(pp + "api/w3c/user/" + apiID + "/affiliations", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            var aff = data.filter((it) => {
-                                return !/invited expert/i.test(it.title);
-                            })[0];
-                            user.affiliation = aff.href.replace(/.*\//, "");
-                            user.affiliationName = aff.title;
-                            this.setState({ user: user, w3cidStatus: "showing" });
+                            // KLUDGE Alert
+                            // There should be one affiliation / group
+                            // See https://github.com/w3c/ash-nazg/issues/29
+                            async.filter(groups,
+                                         function(group, cb) {
+                                             fetch(pp + "api/w3c/group/" + group, { credentials: "include" })
+                                                 .then(utils.jsonHandler)
+                                                 .then((data) => {
+                                                     // Warning: async 2 has a different API
+                                                     cb(data.type === "community group");
+                                                 })
+                                                 .catch(utils.catchHandler)
+                                                     ;
+                                         }, function (results) {
+                                             // Warning: async 2 has a different API
+                                             var aff;
+                                             if (results.length > 0) {
+                                                 // If we're dealing with (at least one) CG
+                                                 // we can't accept Invited Expert as an affiliation
+                                                 aff = data.filter((it) => {
+                                                     return !/invited expert/i.test(it.title);
+                                                 })[0];
+                                             } else {
+                                                 aff = data[0];
+                                             }
+                                             user.affiliation = aff.href.replace(/.*\//, "");
+                                             user.affiliationName = aff.title;
+                                             self.setState({ user: user, w3cidStatus: "showing" });
+                                         });
                         })
                 ;
             })

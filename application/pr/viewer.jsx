@@ -34,7 +34,7 @@ export default class PRViewer extends React.Component {
             .catch(utils.catchHandler)
         ;
     }
-    
+
     revalidate () {
         let st = this.state;
         this.setState({ status: "loading" });
@@ -97,7 +97,7 @@ markNonSubstantive () {
                             </tr>
                             <tr>
                                 <th style={thStyle}>Contributors</th>
-                                <td>(
+                                <td>
                                     <ul>
                                         {
                                             Object.keys(cs)

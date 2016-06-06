@@ -574,7 +574,7 @@ app.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req,
     });
 });
 // Mark a PR as non substantive
-app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, function (req, res) {
+app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, loadGH, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;

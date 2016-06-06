@@ -584,7 +584,9 @@ app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, loa
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prStatus(updatedPR, delta, req, res, function(err, pr) {
                     pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
-                    req.gh.commentOnPR(pr, makeRes(res));
+                    req.gh.commentOnPR(pr, function(err, comment) {
+                        makeRes(res)(err, pr);
+                    });
                 });
             });
         });

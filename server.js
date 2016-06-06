@@ -374,10 +374,7 @@ function prStatus (pr, delta, req, res, cb) {
                             ,   function (err) {
                                 if (err) return cb(err);
                                 store.updatePR(pr.fullName, pr.num, pr, function (err) {
-                                    pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
-                                    gh.commentOnPR(pr, function(err, comment) {
-                                            cb(err, pr);
-                                        });
+                                    cb(err, pr);
                                 });
                             }
                         );
@@ -585,7 +582,10 @@ app.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAdmin, loa
             if (err) return error(res, err);
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
-                prStatus(updatedPR, delta, req, res, makeRes(res));
+                prStatus(updatedPR, delta, req, res, function(err, pr) {
+                    pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
+                    req.gh.commentOnPR(pr, makeRes(res));
+                });
             });
         });
     });

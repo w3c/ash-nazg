@@ -12,7 +12,8 @@
     "watch-css": "nodemon --ignore ./public/ -e css --exec 'npm run build-css'",
     "build": "npm run build-css && npm run build-js",
     "watch": "npm run watch-css & npm run watch-js",
-    "expose": "ngrok http -subdomain=ashnazg 3043"
+    "expose": "ngrok http -subdomain=ashnazg 3043",
+    "test": "mocha test/server-spec.js"
   },
   "repository": {
     "type": "git",

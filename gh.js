@@ -4,7 +4,6 @@ var Octokat = require("octokat")
 ,   jn = require("path").join
 ,   log = require("./log")
 ,   pg = require("password-generator")
-,   config = require("./config.json")
 ;
 
 // helpers
@@ -84,17 +83,18 @@ GH.prototype = {
             cb(null, comment);
         });
     }
-,   createRepo: function (data, cb) {
-        this.createOrImportRepo(data, makeNewRepo, newFile, cb);
+,   createRepo: function (data, config, cb) {
+        this.createOrImportRepo(data, makeNewRepo, newFile, config, cb);
     }
-,   importRepo: function (data, cb) {
-        this.createOrImportRepo(data, pickUserRepo, newFile, cb);
+,   importRepo: function (data, config, cb) {
+        this.createOrImportRepo(data, pickUserRepo, newFile, config, cb);
     }
     // data describes the repo to create
     // setupAction is a function returning a promise that is called to initiate the creation or
     // obtain a pointer to the repo, it must resolve with the octo repo object
     // action is a function returning a promise that creates or imports a file, and logs a message
-,   createOrImportRepo: function (data, setupAction, action, cb) {
+   // config is a configuration object with data about the server setup
+,   createOrImportRepo: function (data, setupAction, action, config, cb) {
         // { org: ..., repo: ... }
         // we need to treat the current user and an org differently
         var report = []

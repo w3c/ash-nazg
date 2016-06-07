@@ -21,9 +21,10 @@ var express = require("express")
 ,   GH = require("./gh")
 ,   app = express()
 ,   version = require("./package.json").version
+,   nodemailer = require('nodemailer')
 ;
 
-var config, log, Store, store;
+var config, log, Store, store, mailer;
 
 // HELPERS
 // OK
@@ -397,11 +398,14 @@ function prStatus (pr, delta, req, res, cb) {
                                 gh.status(
                                     statusData
                                 ,   function (err) {
+                                    if (err) return cb(err);
+                                    notifyContacts(gh, pr, statusData, function(err) {
                                         if (err) return cb(err);
                                         store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                             cb(err, pr);
                                         });
-                                    }
+                                    });
+                                }
                                 );
 
                             }
@@ -410,6 +414,18 @@ function prStatus (pr, delta, req, res, cb) {
                 }
             );
         });
+    });
+}
+
+function notifyContacts(gh, pr, status, cb) {
+    var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
+        if (err) return cb(err);
+        mailer.sendMail({
+            from: config.notifyFrom,
+            to: emails.join(","),
+            subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
+            text: status.payload.description + "\n\n See " + status.payload.target_url
+        }, cb);
     });
 }
 
@@ -620,13 +636,15 @@ function addClientSideRoutes(app, prefix) {
 }
 
 // run!
-function run(configuration) {
+function run(configuration, configuredmailer) {
     config = configuration;
     log = require("./log")(config);
 
     Store = require("./store");
 
     store = new Store(config);
+
+    mailer = configuredmailer;
 
     // set up the W3C API so that it works
     w3c.apiKey = config.w3cAPIKey;
@@ -700,5 +718,7 @@ module.exports.run = run;
 module.exports.app = app;
 
 if (require.main === module) {
-    run(require("./config.json"));
+    var sendmailTransport = require('nodemailer-sendmail-transport');
+    var transporter = nodemailer.createTransport(sendmailTransport(options))
+    run(require("./config.json"), transporter);
 }

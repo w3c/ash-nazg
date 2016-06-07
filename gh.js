@@ -180,6 +180,23 @@ GH.prototype = {
             .catch(cb)
         ;
     }
+,   getRepoContacts: function (repofullname, cb) {
+    var self = this;
+    self.octo
+        .repos(repofullname.split('/')[0], repofullname.split('/')[1])
+        .contents('w3c.json').fetch()
+        .then(function(w3cinfo) {
+            return Promise.all(w3cinfo.contacts.map(function(username) {
+                return self.octo.users(username).fetch()
+                    .then(function(u) {
+                        return u.email;
+                    });
+            }));
+        }).then(function(emails) {
+            cb(null, emails);
+        })
+        .catch(cb);
+    }
 ,   status: function (data, cb) {
         this.octo
             .repos(data.owner, data.shortName)

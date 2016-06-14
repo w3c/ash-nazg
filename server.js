@@ -719,6 +719,6 @@ module.exports.app = app;
 
 if (require.main === module) {
     var sendmailTransport = require('nodemailer-sendmail-transport');
-    var transporter = nodemailer.createTransport(sendmailTransport(options))
+    var transporter = nodemailer.createTransport(sendmailTransport())
     run(require("./config.json"), transporter);
 }

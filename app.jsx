@@ -5,7 +5,8 @@
 import React from "react";
 
 import { Router, Route, Link } from "react-router";
-import BrowserHistory from "react-router/lib/BrowserHistory";
+import {browserHistory } from "react-router";
+import ReactDOM from "react-dom";
 
 import Application from "./components/application.jsx";
 import Row from "./components/row.jsx";
@@ -113,8 +114,8 @@ class AshNazg extends React.Component {
     }
 }
 
-React.render(
-    <Router history={new BrowserHistory}>
+ReactDOM.render(
+    <Router history={browserHistory}>
         <Route path={pp} component={AshNazg}>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="repos" component={RepoList}/>

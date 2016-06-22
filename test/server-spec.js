@@ -382,7 +382,7 @@ describe('Server manages requests in a set up repo', function () {
             .reply(200);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
-            .reply(200, {contacts:[testUser.username]});
+            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username]})).toString('base64'), encoding: "base64"});
         nock('https://api.github.com')
             .get('/users/' + testUser.username)
             .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});

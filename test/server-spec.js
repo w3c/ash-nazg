@@ -382,10 +382,13 @@ describe('Server manages requests in a set up repo', function () {
             .reply(200);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
-            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username]})).toString('base64'), encoding: "base64"});
+            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
         nock('https://api.github.com')
             .get('/users/' + testUser.username)
             .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
+        nock('https://api.github.com')
+            .get('/users/' + testUser2.username)
+            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: null});
         nock('https://api.github.com')
             .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
                   {state: "failure", // user not associated with group at this point

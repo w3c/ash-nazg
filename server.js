@@ -420,9 +420,13 @@ function prStatus (pr, delta, req, res, cb) {
 function notifyContacts(gh, pr, status, cb) {
     var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
         if (err) return cb(err);
+        var actualEmails = emails.filter(function(e) { return e !== null;});
+        if (!actualEmails.length) {
+            return cb(new Error("Could not retrieve email addresses from repos contacts"));
+        }
         mailer.sendMail({
             from: config.notifyFrom,
-            to: emails.join(","),
+            to: actualEmails.join(","),
             subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
             text: status.payload.description + "\n\n See " + status.payload.target_url
         }, cb);

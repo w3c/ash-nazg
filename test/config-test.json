@@ -10,4 +10,5 @@
 ,   "logToConsole":     true
 ,   "couchDB":  "ashnazg-test"
 ,   "w3cAPIKey": "foobar"
+,   "notifyFrom": "test@localhost.test"
 }

@@ -9,6 +9,10 @@ var githubCode = 'abcd';
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 var async = require('async');
 var curry = require('curry');
+var nodemailer = require('nodemailer');
+var mockTransport = require('nodemailer-mock-transport');
+var transport = mockTransport();
+var transporter = nodemailer.createTransport(transport);
 
 // Test Data
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
@@ -161,7 +165,7 @@ describe('Server starts and responds with no login', function () {
     var app, req, http;
 
     before(function () {
-        http = server.run(config);
+        http = server.run(config, transporter);
         app = server.app;
         req = request(app);
     });
@@ -209,7 +213,7 @@ describe('Server manages requests from regular logged-in users', function () {
     var app, req, http, authAgent, store;
 
     before(function () {
-        http = server.run(config);
+        http = server.run(config, transporter);
         app = server.app;
         req = request(app);
         authAgent = request.agent(app);
@@ -313,7 +317,7 @@ describe('Server manages requests in a set up repo', function () {
     var app, req, http, authAgent, store;
 
     before(function (done) {
-        http = server.run(config);
+        http = server.run(config, transporter);
         app = server.app;
         req = request(app);
         authAgent = request.agent(app);
@@ -377,6 +381,15 @@ describe('Server manages requests in a set up repo', function () {
                   })
             .reply(200);
         nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
+            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
+        nock('https://api.github.com')
+            .get('/users/' + testUser.username)
+            .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
+        nock('https://api.github.com')
+            .get('/users/' + testUser2.username)
+            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: null});
+        nock('https://api.github.com')
             .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
                   {state: "failure", // user not associated with group at this point
                    target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
@@ -385,7 +398,6 @@ describe('Server manages requests in a set up repo', function () {
                   })
             .reply(200);
 
-
         // FIXME This feels too tightly coupled with code under test
         store.getSecret(testExistingRepo.full_name, function(err, data) {
             if (err) return done(err);
@@ -393,7 +405,13 @@ describe('Server manages requests in a set up repo', function () {
                 .send(testPR)
                 .set('X-Github-Event', 'pull_request')
                 .set('X-Hub-Signature', "sha1=" + crypto.createHmac("sha1", data.secret).update(new Buffer(JSON.stringify(testPR))).digest("hex"))
-                .expect(200, done);
+                .expect(200, function() {
+                    expect(transport.sentMail.length).to.be.equal(1);
+                    expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
+                    expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
+                    done();
+                });
+
         });
     });
 

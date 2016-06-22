@@ -84,6 +84,8 @@ You now need to configure the system so that it can find various bits and pieces
     // hopefully at some point the origin won't be needed anymore
 ,   "w3cAPIKey":    "deadbeef"
 ,   "w3cAPIOrigin": "http://foo.bar/"
+ // address from which notifications are setn
+,   "notifyFrom": "foo@example.com"
 }
 ```
 
@@ -95,6 +97,8 @@ Now, with CouchDB is already up and running, you want to run:
 This installs all the design documents that Couch needs. Whenever you change the design documents,
 just run `store.js` again. You only need to create an admin user on a fresh database; after that
 other admins can be minted through the UI.
+
+To send notifications of failures, ash-nazg assumes sendmail is installed and properly configured on the server.
 
 Running the server is as simple as:
 

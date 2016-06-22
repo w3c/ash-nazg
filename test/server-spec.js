@@ -1,12 +1,17 @@
+var proxyquire =  require('proxyquire');
+require('es6-object-assign').polyfill();
+// Remove randomness from the picture
+function passwordGenerator(n) {
+    return Array(n).join("_");
+}
+var GH = proxyquire('../gh', {'password-generator': passwordGenerator, '@global': true});
+
 var expect = require('expect.js');
 var request = require('supertest');
 var nock = require('nock');
 var config = require('./config-test.json');
 var server = require('../server');
 var Store = require('../store');
-var crypto = require("crypto")
-var githubCode = 'abcd';
-var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 var async = require('async');
 var curry = require('curry');
 var nodemailer = require('nodemailer');
@@ -14,7 +19,11 @@ var mockTransport = require('nodemailer-mock-transport');
 var transport = mockTransport();
 var transporter = nodemailer.createTransport(transport);
 
+
+var ghScope = "user:email,public_repo,write:repo_hook,read:org";
+
 // Test Data
+var githubCode = 'abcd';
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
 var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
@@ -159,6 +168,17 @@ function addgroup(agent, cb) {
         .expect(200)
         .end(cb);
 
+}
+
+function mockPRStatus(pr, status, description) {
+    nock('https://api.github.com')
+        .post('/repos/' + pr.repository.full_name + '/statuses/' + pr.pull_request.head.sha,
+              {state: status,
+               target_url: config.url + "pr/id/" + pr.repository.full_name + '/' + pr.number,
+               description: description,
+               context: "ipr"
+              })
+        .reply(200);
 }
 
 describe('Server starts and responds with no login', function () {
@@ -372,14 +392,7 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('reacts to pull requests notifications', function testPullRequestNotif(done) {
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "pending",
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: /.*/,
-                   context: "ipr"
-                  })
-            .reply(200);
+        mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
             .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
@@ -389,30 +402,19 @@ describe('Server manages requests in a set up repo', function () {
         nock('https://api.github.com')
             .get('/users/' + testUser2.username)
             .reply(200, {login:testUser2.username, id: testUser2.ghID, email: null});
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "failure", // user not associated with group at this point
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: new RegExp(testPR.pull_request.user.login),
-                   context: "ipr"
-                  })
-            .reply(200);
 
-        // FIXME This feels too tightly coupled with code under test
-        store.getSecret(testExistingRepo.full_name, function(err, data) {
-            if (err) return done(err);
-            req.post('/' + config.hookPath)
-                .send(testPR)
-                .set('X-Github-Event', 'pull_request')
-                .set('X-Hub-Signature', "sha1=" + crypto.createHmac("sha1", data.secret).update(new Buffer(JSON.stringify(testPR))).digest("hex"))
-                .expect(200, function() {
+        mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
+
+        req.post('/' + config.hookPath)
+            .send(testPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
+            .expect(200, function() {
                     expect(transport.sentMail.length).to.be.equal(1);
                     expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
                     expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
                     done();
                 });
-
-        });
     });
 
     it('recognizes an admin user', function testAdmin(done) {
@@ -466,24 +468,24 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('allows admins to revalidate a PR', function testRevalidate(done) {
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "pending",
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: /.*/,
-                   context: "ipr"
-                  })
-            .reply(200);
-        nock('https://api.github.com')
-            .post('/repos/' + testExistingRepo.full_name + '/statuses/fedcba',
-                  {state: "success", // user now associated with group
-                   target_url: config.url + "pr/id/" + testExistingRepo.full_name + '/' + testPR.number,
-                   description: new RegExp(".*"),
-                   context: "ipr"
-                  })
-            .reply(200);
+        mockPRStatus(testPR, 'pending', /.*/);
+        mockPRStatus(testPR, 'success', /.*/);
         authAgent
             .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .expect(200, done);
+    });
+
+    it('reacts to forced push in pull requests', function testPullRequestNotif(done) {
+        var forcedPR = Object.assign({}, testPR);
+        forcedPR.action = "synchronize";
+        forcedPR.pull_request.head.sha = "abcdef";
+        mockPRStatus(forcedPR, 'pending', /.*/);
+        mockPRStatus(forcedPR, 'success', /.*/);
+
+        req.post('/' + config.hookPath)
+            .send(forcedPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(forcedPR))))
             .expect(200, done);
     });
 

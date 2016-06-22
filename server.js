@@ -14,7 +14,6 @@ var express = require("express")
 ,   passport = require("passport")
 ,   GitHubStrategy = require("passport-github2").Strategy
 ,   bl = require("bl")
-,   crypto = require("crypto")
 ,   w3c = require("node-w3capi")
 ,   jn = require("path").join
 ,   dataDir = jn(__dirname, "data")
@@ -270,7 +269,7 @@ function parseMessage (msg) {
     ;
     return ret;
 }
-function prStatus (pr, delta, req, res, cb) {
+function prStatus (pr, delta, cb) {
     var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
     ,   statusData = {
             owner:      pr.owner
@@ -459,7 +458,7 @@ function addGHHook(app, path) {
                 if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
             
                 // we have the secret, crypto check becomes possible
-                var ourSig = "sha1=" + crypto.createHmac("sha1", data.secret).update(buffer).digest("hex")
+                var ourSig = GH.signPayload("sha1", data.secret, buffer)
                 ,   theirSig = req.headers["x-hub-signature"]
                 ;
                 if (ourSig !== theirSig) return error(res, "GitHub signature does not match known secret.");
@@ -471,21 +470,30 @@ function addGHHook(app, path) {
             
                 // pull request events
                 if (eventType === "pull_request") {
-                    //  if event.action === "synchronize" or "closed" we have to store the new head SHA in
+                    var sha = event.pull_request.head.sha;
+
+                    //  if event.action === "closed" we have to store the new head SHA in
                     //  the DB, but other than that we can ignore it
-                    if (event.action === "synchronize" || event.action === "closed") {
+                    if (event.action === "closed") {
                         return store.updatePR(
                                 repo
                             ,   prNum
                             ,   {
-                                    status:     event.action === "closed" ? "closed" : "open"
-                                ,   sha:        event.pull_request.head.sha
+                                    status:     "closed"
+                                ,   sha:        sha
                                 }
                             ,   makeOK(res)
                         );
+                    //  if event.action === "synchronize" we have to store the new head SHA in
+                    //  the DB, and re-send the pr status to github based on stored data
+                    } else if (event.action === "synchronize") {
+                        return store.getPR(repo, prNum, function (err, storedpr) {
+                            if (err || !storedpr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+                            storedpr.sha = sha;
+                            prStatus(storedpr, parseMessage(""), makeOK(res));
+                        });
                     }
-                    var sha = event.pull_request.head.sha
-                    ,   pr = {
+                    var pr = {
                             fullName:       repo
                         ,   shortName:      repoShort
                         ,   owner:          owner
@@ -502,7 +510,7 @@ function addGHHook(app, path) {
                     ;
                     store.addPR(pr, function (err) {
                         if (err) return error(res, err);
-                        prStatus(pr, delta, req, res, makeOK(res));
+                        prStatus(pr, delta, makeOK(res));
                     });
                 }
                 // issue comment events
@@ -511,7 +519,7 @@ function addGHHook(app, path) {
                     if (!delta.total) return ok(res);
                     store.getPR(repo, prNum, function (err, pr) {
                         if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
-                        prStatus(pr, delta, req, res, makeOK(res));
+                        prStatus(pr, delta, makeOK(res));
                     });
                 }
             });
@@ -532,7 +540,7 @@ router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (r
     log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        prStatus(pr, delta, req, res, makeRes(res));
+        prStatus(pr, delta, makeRes(res));
     });
 });
 // Mark a PR as non substantive

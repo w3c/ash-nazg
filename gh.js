@@ -1,9 +1,9 @@
-
 var Octokat = require("octokat")
 ,   fs = require("fs")
 ,   jn = require("path").join
 ,   log = require("./log")
 ,   pg = require("password-generator")
+,   crypto = require("crypto")
 ;
 
 // helpers
@@ -237,6 +237,10 @@ GH.prototype = {
             .catch(cb)
         ;
     }
+};
+
+GH.signPayload = function (algo, secret, buffer) {
+    return algo + "=" + crypto.createHmac(algo, secret).update(buffer).digest("hex");
 };
 
 module.exports = GH;

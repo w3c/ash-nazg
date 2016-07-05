@@ -14,7 +14,7 @@ export default class GroupLine extends React.Component {
         this.state = { managed: props.managed };
     }
     makeManaged () {
-        React.findDOMNode(this.refs.managed).disabled = true;
+        this.refs.managed.disabled = true;
         var p = this.props;
         fetch(
             pp + "api/groups"
@@ -35,7 +35,7 @@ export default class GroupLine extends React.Component {
                 MessageActions.success("Group now managed under the system.");
                 return this.setState({ managed: true });
             }
-            React.findDOMNode(this.refs.managed).disabled = false;
+            this.refs.managed.disabled = false;
             MessageActions.error("Failure to add group to those managed: " + data.error);
         })
         .catch(utils.catchHandler)

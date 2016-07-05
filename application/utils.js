@@ -14,7 +14,7 @@ module.exports = {
         return pathPrefix;
     }
 ,   val:    (ref) => {
-        let el = React.findDOMNode(ref)
+        let el = ref
         ,   value
         ;
         if (!el) return null;

@@ -15,7 +15,7 @@ export default class UserLine extends React.Component {
         this.state = { admin: props.admin, blanket: props.blanket };
     }
     makeAdmin () {
-        React.findDOMNode(this.refs.admin).disabled = true;
+        this.refs.admin.disabled = true;
         fetch(
             pp + "api/user/" + this.props.username + "/admin"
         ,   {
@@ -31,14 +31,14 @@ export default class UserLine extends React.Component {
                 MessageActions.success("User turned into admin.");
                 return this.setState({ admin: true });
             }
-            React.findDOMNode(this.refs.admin).disabled = false;
+            this.refs.admin.disabled = false;
             MessageActions.error("Failure to set admin flag on user: " + data.error);
         })
         .catch(utils.catchHandler)
         ;
     }
     makeBlanket () {
-        React.findDOMNode(this.refs.blanket).disabled = true;
+        this.refs.blanket.disabled = true;
         fetch(
             pp + "api/user/" + this.props.username + "/blanket"
         ,   {
@@ -54,7 +54,7 @@ export default class UserLine extends React.Component {
                 MessageActions.success("User given blanket contribution rights.");
                 return this.setState({ blanket: true });
             }
-            React.findDOMNode(this.refs.blanket).disabled = false;
+            this.refs.blanket.disabled = false;
             MessageActions.error("Failure to set blanket flag on user: " + data.error);
         })
         .catch(utils.catchHandler)

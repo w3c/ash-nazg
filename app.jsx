@@ -129,5 +129,5 @@ ReactDOM.render(
             <Route path="admin/groups" component={AdminGroups}/>
         </Route>
     </Router>
-,   document.body
+,   document.getElementById("ashnazg")
 );

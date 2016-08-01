@@ -246,7 +246,13 @@ function makeCreateOrImportRepo (mode) {
 }
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
-
+router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), function(req, res) {
+    store.updateRepo(req.params.owner + "/" + req.params.shortname, {groups: req.body.groups}, function(err, data) {
+        if (err) return makeRes(res)(err);
+        data.actions = ["Moved repository to groups with id " + req.body.groups.join(", ")];
+        makeRes(res)(null, data);
+    });
+});
 
 // GITHUB HOOKS
 function parseMessage (msg) {

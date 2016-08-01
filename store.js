@@ -378,6 +378,15 @@ Store.prototype = {
         log.info("Adding repo " + repo.fullName);
         this.add(repo, cb);
     }
+,   updateRepo:    function (fullName, data, cb) {
+        this.getRepo(fullName, function(err, doc) {
+            if (err) return cb(err);
+            for (var k in data) doc[k] = data[k];
+            doc.lastUpdated = couchNow();
+            log.info("Updating repo " + doc.fullName);
+            this.add(doc, cb);
+        }.bind(this));
+    }
     // get a repo by fullName (username/reponame)
 ,   getRepo:   function (fullName, cb) {
         var store = this;

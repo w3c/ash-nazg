@@ -19,13 +19,19 @@ export default class RepoNew extends React.Component {
         ,   org:        null
         ,   repo:       null
         ,   repoGroups: null
-        ,   isNew:      true
+        ,   mode:      "new"
         };
     }
     componentWillMount () {
+        let org, repo;
         let mode = this.props.params.mode;
-        if (mode !== "new" && mode !== "import") throw new Error("Unknown repository mode: " + mode);
-        this.setState({ isNew: mode === "new" });
+        if (["new", "import", "edit"].indexOf(mode) === -1) throw new Error("Unknown repository mode: " + mode);
+        if (mode === "edit") {
+            org = this.props.params.owner;
+            repo = this.props.params.shortname;
+            console.log(org, repo);
+        }
+        this.setState({ mode: mode, org:org, repo: repo });
     }
     componentDidMount () {
         let orgs;
@@ -44,8 +50,8 @@ export default class RepoNew extends React.Component {
         
     }
     componentWillReceiveProps (nextProps) {
-        let nextIsNew = nextProps.params.mode === "new";
-        if (nextIsNew !== this.state.isNew) this.setState({ isNew: nextIsNew });
+        let nextMode = nextProps.params.mode;
+        if (nextMode !== this.state.mode) this.setState({ mode: nextMode });
     }
     onSubmit (ev) {
         ev.preventDefault();
@@ -60,8 +66,20 @@ export default class RepoNew extends React.Component {
         ,   repo:       repo
         ,   repoGroups: repoGroups
         });
+        let apiPath;
+        switch(this.state.mode) {
+        case "new":
+            apiPath = "api/create-repo";
+            break;
+        case "edit":
+            apiPath = "api/repos/" + org + "/" + repo + "/edit";
+            break;
+        case "import":
+            apiPath = "api/import-repo";
+            break;
+        }
         fetch(
-            pp + (this.state.isNew ? "api/create-repo" : "api/import-repo")
+            pp + apiPath
         ,   {
                 method:     "post"
             ,   headers:    { "Content-Type": "application/json" }
@@ -84,7 +102,7 @@ export default class RepoNew extends React.Component {
                 newState.org = "";
                 newState.repo = "";
                 newState.repoGroups = "";
-                MessageActions.success("Successfully " + (this.state.isNew ? "created" : "imported") + " repository.");
+                MessageActions.success("Successfully " + (this.state.mode === "new" ? "created" : (this.state.mode === "import" ? "imported" : "edited data on")) + " repository.");
             }
             else MessageActions.error(data.error);
             this.setState(newState);
@@ -96,17 +114,18 @@ export default class RepoNew extends React.Component {
     render () {
         let st = this.state
         ,   results = ""
+        ,   readonly = st.mode === "edit"
         ,   content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
                     :
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select ref="org" defaultValue={st.org} required>
+                                <select disabled={readonly} ref="org" defaultValue={st.org} required>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input type="text" ref="repo" id="repo" defaultValue={st.repo} required/>
+                                <input readOnly={readonly} type="text" ref="repo" id="repo" defaultValue={st.repo} required/>
                             </div>
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>
@@ -115,7 +134,7 @@ export default class RepoNew extends React.Component {
                                 </select>
                             </div>
                             <div className="formline actions">
-                                <button>{st.isNew ? "Create" : "Import"}</button>
+                                <button>{st.mode === "new" ? "Create" : (st.mode === "import" ? "Import" : "Update")}</button>
                             </div>
                         </form>
         ;
@@ -137,13 +156,13 @@ export default class RepoNew extends React.Component {
                                 { st.result.actions.map((act) => { return <li key={act}>{act}</li>; }) }
                             </ul>
                             <p>
-                                You can view your { st.isNew ? "newly minted" : "imported" } repository over 
+                                You can view your { st.mode === "new" ? "newly minted" : "" } repository over 
                                 there: <a href={"https://github.com/" + st.result.repo} target="_blank">{st.result.repo}</a>
                             </p>
                           </div>;
             }
         }
-        if (st.isNew) {
+        if (st.mode === "new") {
             return  <div className="primary-app">
                         <h2>New Repository</h2>
                         <p>
@@ -153,6 +172,17 @@ export default class RepoNew extends React.Component {
                             a proposal is simply your own, using your personal repository is preferred.
                             No preference is given to a specification proposal based on the user or
                             organisation it belongs to.
+                        </p>
+                        {content}
+                        {results}
+                    </div>
+            ;
+        }
+        else if (st.mode === "edit") {
+            return  <div className="primary-app">
+                        <h2>Update Repository Data</h2>
+                        <p>
+                            Use the form below to update the group(s) to which an existing managed repository is associated.
                         </p>
                         {content}
                         {results}

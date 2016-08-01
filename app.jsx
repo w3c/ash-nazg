@@ -117,6 +117,7 @@ class AshNazg extends React.Component {
 ReactDOM.render(
     <Router history={browserHistory}>
         <Route path={pp} component={AshNazg}>
+            <Route path="repo/:owner/:shortname/:mode" component={RepoManager}/>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="repos" component={RepoList}/>
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>

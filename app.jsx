@@ -92,7 +92,7 @@ class AshNazg extends React.Component {
                         <NavItem><LogoutButton/></NavItem>
                     </NavBox>
                 </Col>;
-            body = <Col>{ this.props.children || <Welcome/> }</Col>;
+            body = <Col>{ renderChildrenWithAdminProp(this.props.children, st.admin) || <Welcome/> }</Col>;
         }
         // when logged out off to log in
         else if (st.loggedIn === false) {
@@ -112,6 +112,15 @@ class AshNazg extends React.Component {
                 </Application>
         ;
     }
+}
+
+// Set the "isAdmin" property on children components
+function renderChildrenWithAdminProp(children, admin) {
+    return React.Children.map(children, child =>
+                              React.cloneElement(child, {
+                                  isAdmin: admin
+                              })
+                             );
 }
 
 ReactDOM.render(

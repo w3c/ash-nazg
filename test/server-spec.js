@@ -184,10 +184,30 @@ function mockPRStatus(pr, status, description) {
 describe('Server starts and responds with no login', function () {
     var app, req, http;
 
-    before(function () {
+    before(function (done) {
         http = server.run(config, transporter);
         app = server.app;
         req = request(app);
+
+        // database clean-up
+        store = new Store(config);
+        /* Delete non-design documents in a database. */
+        store.db.all(function(err, doc) {
+            /* Loop through all documents. */
+            var total = doc.length;
+            for(var i = 0; i < doc.length; i++) {
+                /* Don't delete design documents. */
+                if(doc[i].id.indexOf("_design") == -1) {
+                    store.db.remove(doc[i].id, doc[i].value.rev, function(err, doc) {
+                        total--;
+                        if (!total) done();
+                    });
+                } else {
+                    total--;
+                    if (!total) done();
+                }
+            }
+        });
     });
 
     after(function (done) {

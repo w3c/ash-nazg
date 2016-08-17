@@ -305,7 +305,6 @@ describe('Server manages requests from regular logged-in users', function () {
                 req
                     .get('/api/groups')
                     .expect(function(res) {
-                        console.log(res.body);
                         res.body = res.body.map(function(g) { return {name:g.name, id: "" + g.w3cid, type: g.groupType === "WG" ? "working group": "error"};}).sort((a,b) => a.w3cid-b.w3cid);
                     })
                     .expect(200, [w3cGroup2, w3cGroup], done);

@@ -74,7 +74,7 @@ markNonSubstantive () {
             link = "loading";
         }
         else if (st.status === "ready") {
-            let cs = st.pr.contribStatus
+            let cs = st.pr.contribStatus || {}
             ,   thStyle = { paddingRight: "20px" }
             ;
             link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">

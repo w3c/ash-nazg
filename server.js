@@ -6,7 +6,6 @@ var express = require("express")
 ,   session = require("express-session")
 ,   FileStore = require("session-file-store")(session)
 ,   serveStatic = require("serve-static")
-,   cookieParser = require("cookie-parser")
 ,   bp = require("body-parser")
 ,   async = require("async")
 ,   fs = require("fs")
@@ -86,8 +85,6 @@ passport.deserializeUser(function (id, done) {
 });
 
 // Express configuration
-app.use(cookieParser());
-
 // static resources
 app.use(serveStatic("public"));
 

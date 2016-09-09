@@ -6,7 +6,6 @@ var express = require("express")
 ,   session = require("express-session")
 ,   FileStore = require("session-file-store")(session)
 ,   serveStatic = require("serve-static")
-,   cookieParser = require("cookie-parser")
 ,   bp = require("body-parser")
 ,   async = require("async")
 ,   fs = require("fs")
@@ -86,8 +85,6 @@ passport.deserializeUser(function (id, done) {
 });
 
 // Express configuration
-app.use(cookieParser());
-
 // static resources
 app.use(serveStatic("public"));
 
@@ -680,7 +677,7 @@ function run(configuration, configuredmailer) {
                                     path:   jn(dataDir, "sessions")
                                 ,   ttl:    60 * 60 * 24 * 7
                             })
-    ,   cookie:             { maxAge: 1000 * 60 * 60 * 24 * 365 }
+    ,   cookie:             { maxAge: 1000 * 60 * 60 * 24 * 365 , sameSite: "lax", path: config.urlPathPrefix}
     ,   name:               "ash-nazg"
     ,   resave:             false
     ,   rolling:            true

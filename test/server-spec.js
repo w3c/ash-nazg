@@ -27,6 +27,7 @@ var githubCode = 'abcd';
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
 var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
+var w3cGroup2 = {id: 12, type: "working group", name: "Other Test Working Group"};
 var testOrg = {login: "acme", id:12};
 
 function RepoMock(_name, _owner, _files, _hooks) {
@@ -104,7 +105,7 @@ var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html",
 var w3c = nock('https://api.w3.org')
     .get('/groups')
     .query({embed:"true",apikey:'foobar'})
-    .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup]}});
+    .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup, w3cGroup2]}});
 
 function emptyNock(cb) {
     return function(err) {
@@ -160,8 +161,8 @@ function login(agent, cb) {
         });
 }
 
-function addgroup(agent, cb) {
-    var wg = {name: "Test Working Group", w3cid: 42, groupType: "WG"};
+function addgroup(agent, group, cb) {
+    var wg = {name: group.name, w3cid: group.id, groupType: "WG"};
     agent
         .post('/api/groups')
         .send(wg)
@@ -229,7 +230,7 @@ describe('Server starts and responds with no login', function () {
     it('responds to /api/w3c/groups', function testW3cApi(done) {
         req
             .get('/api/w3c/groups')
-            .expect(200, [w3cGroup], done);
+            .expect(200, [w3cGroup, w3cGroup2], done);
     });
 
     it('responds to login query correctly when not logged in', function testLoggedIn(done) {
@@ -319,18 +320,20 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     it('allows to add a new group', function testAddGroup(done) {
-        addgroup(authAgent, function(err, res) {
-            req
-                .get('/api/groups')
-                .expect(function(res) {
-                    res.body = res.body.map(function(g) { return {name:g.name, id: "" + g.w3cid, type: g.groupType === "WG" ? "working group": "error"};});
-                })
-                .expect(200, [w3cGroup], done);
+        addgroup(authAgent, w3cGroup, function(err, res) {
+            addgroup(authAgent, w3cGroup2, function(err, res) {
+                req
+                    .get('/api/groups')
+                    .expect(function(res) {
+                        res.body = res.body.map(function(g) { return {name:g.name, id: "" + g.w3cid, type: g.groupType === "WG" ? "working group": "error"};}).sort((a,b) => a.w3cid-b.w3cid);
+                    })
+                    .expect(200, [w3cGroup2, w3cGroup], done);
+            });
         });
     });
 
     it('responds with 403 to admin POST routes', function testAdminRoutes(done) {
-        var protectedPOSTs = ["api/user/--ghtest/affiliate", "api/user/--ghtest/add"];
+        var protectedPOSTs = ["api/user/--ghtest/affiliate", "api/user/--ghtest/add", "api/repos/acme/existingrepo/edit"];
         erroringroutes(req.post, protectedPOSTs, 403, done);
     });
 
@@ -364,7 +367,7 @@ describe('Server manages requests in a set up repo', function () {
         store = new Store(config);
         login(authAgent, function(err) {
             if (err) return done(err);
-            addgroup(authAgent, done);
+            addgroup(authAgent, w3cGroup, done);
         });
     });
 
@@ -484,6 +487,20 @@ describe('Server manages requests in a set up repo', function () {
                     })
                     .expect(200, testUser2, done);
 
+            });
+    });
+
+    it('allows admins to update the association of a repo to a group', function testReassociateRepo(done) {
+        authAgent
+            .post('/api/repos/' + testNewRepo.full_name + '/edit')
+            .send({groups:[w3cGroup2.id]})
+            .expect(200)
+            .end(function(err, res) {
+                req.get('/api/repos')
+                    .expect(200, function(err, res) {
+                        expect(res.body.filter(g => g.fullName === 'acme/newrepo')[0].groups[0].w3cid).to.be("" + w3cGroup2.id);
+                        done();
+                    });
             });
     });
 

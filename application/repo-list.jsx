@@ -1,7 +1,6 @@
 
 import React from "react";
 import Spinner from "../components/spinner.jsx";
-import { Link } from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("./utils")
@@ -45,7 +44,7 @@ export default class RepoList extends React.Component {
                                 st.repos.map((r) => {
                                     let admin = "";
                                     if (this.props.isAdmin) {
-                                        admin = <td><Link to={`repo/${r.fullName}/edit`} className="button">Update</Link></td>;
+                                        admin = <td><a href={`repo/${r.fullName}/edit`} className="button">Update</a></td>;
                                     }
                                     return <tr key={r.id} style={{paddingLeft: "20px"}}>
                                             <td><a href={`https://github.com/${r.fullName}`} target="_blank">{r.fullName}</a></td>

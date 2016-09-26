@@ -677,7 +677,7 @@ function run(configuration, configuredmailer) {
                                     path:   jn(dataDir, "sessions")
                                 ,   ttl:    60 * 60 * 24 * 7
                             })
-    ,   cookie:             { maxAge: 1000 * 60 * 60 * 24 * 365 , sameSite: "lax", path: config.urlPathPrefix}
+    ,   cookie:             { maxAge: 1000 * 60 * 60 * 24 * 365 , sameSite: "lax"}
     ,   name:               "ash-nazg"
     ,   resave:             false
     ,   rolling:            true

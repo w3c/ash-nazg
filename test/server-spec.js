@@ -25,10 +25,14 @@ var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 // Test Data
 var githubCode = 'abcd';
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
-var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc"};
+var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc", w3capi: "aaaaa"};
+var testUser3 = {ghID: '115', emails: ["barfoo@example.com"], username: "--barfoo", w3cid: 124, w3capi: "bbbbb"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var w3cGroup2 = {id: 12, type: "working group", name: "Other Test Working Group"};
+var w3cGroup3 = {id: 15, type: "community group", name: "Test Community Group"};
 var testOrg = {login: "acme", id:12};
+var w3cAff = {id: 456, name: "ACME Inc"};
+var w3cApify = function(g, type) { return {href:'https://api.w3.org/' + (type ? type : 'groups') + '/' + g.id, title: g.name};};
 
 function RepoMock(_name, _owner, _files, _hooks) {
     var name = _name;
@@ -84,6 +88,7 @@ function RepoMock(_name, _owner, _files, _hooks) {
 
 var testNewRepo = new RepoMock("newrepo", "acme", [], []);
 var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md", "index.html"], []);
+var testCGRepo = new RepoMock("cgrepo","acme", ["README.md", "index.html"], []);
 
 var testPR = {
     repository: testExistingRepo.toGH(),
@@ -100,11 +105,41 @@ var testPR = {
     }
 };
 
+var testCGPR = {
+    repository: testCGRepo.toGH(),
+    number: 6,
+    action: "opened",
+    pull_request: {
+        head: {
+            sha: "fedcba1"
+        },
+        user: {
+            login: testUser3.username
+        },
+        body: ""
+    }
+};
+
+var testWGPR = {
+    repository: testExistingRepo.toGH(),
+    number: 7,
+    action: "opened",
+    pull_request: {
+        head: {
+            sha: "fedcba2"
+        },
+        user: {
+            login: testUser3.username
+        },
+        body: ""
+    }
+};
+
 var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
 
-var w3c = nock('https://api.w3.org')
+nock('https://api.w3.org')
     .get('/groups')
-    .query({embed:"true",apikey:'foobar'})
+    .query({embed:"true"})
     .reply(200, {page: 1, total:1, pages: 1, _embedded: {groups: [w3cGroup, w3cGroup2]}});
 
 function emptyNock(cb) {
@@ -162,13 +197,36 @@ function login(agent, cb) {
 }
 
 function addgroup(agent, group, cb) {
-    var wg = {name: group.name, w3cid: group.id, groupType: "WG"};
+    var wg = {name: group.name, w3cid: group.id, groupType: group.type == "working group" ? "WG" : "CG"};
     agent
         .post('/api/groups')
         .send(wg)
         .expect(200)
         .end(cb);
 
+}
+
+function mockUserAffiliation(user, groups, blessByAffiliation) {
+    nock('https://api.w3.org')
+        .get('/users/' + user.w3capi + '/participations')
+        .query({embed:"true"})
+        .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations:
+            groups.map(function(g) { return {individual: false,
+                                             _links: {
+                                                 organization: w3cApify(w3cAff, "affiliations"),
+                                                 group: w3cApify(g)
+                                             }};})
+                                                            }});
+    if (blessByAffiliation) {
+        var gid = blessByAffiliation.groupid;
+        nock('https://api.w3.org')
+            .get('/groups/' + gid + '/participations')
+            .reply(200, {page: 1, total:1, pages: 1, _links: {participations: [w3cApify(w3cAff, "affiliations")] }});
+        nock('https://api.w3.org')
+            .get('/users/' + user.w3capi + '/affiliations')
+            .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [w3cApify(w3cAff, "affiliations")] }});
+
+    }
 }
 
 function mockPRStatus(pr, status, description) {
@@ -183,7 +241,7 @@ function mockPRStatus(pr, status, description) {
 }
 
 describe('Server starts and responds with no login', function () {
-    var app, req, http;
+    var app, req, http, store;
 
     before(function (done) {
         http = server.run(config, transporter);
@@ -367,7 +425,9 @@ describe('Server manages requests in a set up repo', function () {
         store = new Store(config);
         login(authAgent, function(err) {
             if (err) return done(err);
-            addgroup(authAgent, w3cGroup, done);
+            addgroup(authAgent, w3cGroup, function(err, res) {
+                addgroup(authAgent, w3cGroup3, done);
+            });
         });
     });
 
@@ -380,11 +440,16 @@ describe('Server manages requests in a set up repo', function () {
             http.close.bind(http),
             cleanStore("deleteUser")(testUser.username),
             cleanStore("deleteGroup")("" + w3cGroup.id),
+            cleanStore("deleteGroup")("" + w3cGroup3.id),
             cleanStore("deleteRepo")(testNewRepo.full_name),
             cleanStore("deleteRepo")(testExistingRepo.full_name),
+            cleanStore("deleteRepo")(testCGRepo.full_name),
             cleanStore("deleteToken")(testOrg.login),
             cleanStore("deletePR")(testExistingRepo.full_name, 5),
+            cleanStore("deletePR")(testCGRepo.full_name, 6),
+            cleanStore("deletePR")(testExistingRepo.full_name, 7),
             cleanStore("deleteUser")(testUser2.username),
+            cleanStore("deleteUser")(testUser3.username)
         ], emptyNock(done));
     });
 
@@ -414,6 +479,14 @@ describe('Server manages requests in a set up repo', function () {
             });
     });
 
+    it('allows to import an existing GH repo for CG', function testImportCGRepo(done) {
+        testCGRepo.mockGH();
+        authAgent
+            .post('/api/import-repo')
+            .send({org:testOrg.login, repo: testCGRepo.name, groups:["" + w3cGroup3.id]})
+            .expect(200, done);
+    });
+
     it('reacts to pull requests notifications', function testPullRequestNotif(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')
@@ -432,12 +505,13 @@ describe('Server manages requests in a set up repo', function () {
             .send(testPR)
             .set('X-Github-Event', 'pull_request')
             .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
-            .expect(200, function() {
-                    expect(transport.sentMail.length).to.be.equal(1);
-                    expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
-                    expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
-                    done();
-                });
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                expect(transport.sentMail.length).to.be.equal(1);
+                expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
+                expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
+                done();
+            });
     });
 
     it('recognizes an admin user', function testAdmin(done) {
@@ -453,10 +527,20 @@ describe('Server manages requests in a set up repo', function () {
             .get('/users/' + testUser2.username)
             .reply(200, {login:testUser2.username, id: testUser2.ghID, email: testUser2.emails[0]});
 
+        nock('https://api.github.com')
+            .get('/users/' + testUser3.username)
+            .reply(200, {login:testUser3.username, id: testUser3.ghID, email: testUser3.emails[0]});
+
         authAgent
             .post('/api/user/' + testUser2.username + '/add')
-            .expect(200, done);
-    });
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                authAgent
+                    .post('/api/user/' + testUser3.username + '/add')
+                    .expect(200, done);
+            });
+});
+
 
     it('allows admins to affiliate a user', function testAffiliateUser(done) {
         var groups = {};
@@ -468,6 +552,7 @@ describe('Server manages requests in a set up repo', function () {
                       affiliationName: testUser2.affiliationName,
                       affiliation: testUser2.affiliation,
                       w3cid: testUser2.w3cid,
+                      w3capi: testUser2.w3capi,
                       groups:groups
                   })
             .expect(200)
@@ -479,13 +564,26 @@ describe('Server manages requests in a set up repo', function () {
                         res.body = { ghID: res.body.ghID,
                                    emails: res.body.emails.map(function(x) { return x.value;}),
                                    username:res.body.username,
-                                   w3cid: res.body.w3cid,
+                                     w3cid: res.body.w3cid,
                                      affiliation: res.body.affiliation,
                                      affiliationName: res.body.affiliationName,
+                                     w3capi: res.body.w3capi,
                                      groups: res.body.groups
                                    };
                     })
-                    .expect(200, testUser2, done);
+                    .expect(200, testUser2, function(err, res) {
+                        if (err) return done(err);
+                        authAgent
+                            .post('/api/user/' + testUser3.username + '/affiliate')
+                            .send({
+                                affiliationName: testUser3.affiliationName,
+                                affiliation: testUser3.affiliation,
+                                w3cid: testUser3.w3cid,
+                                w3capi: testUser3.w3capi,
+                                groups:[]
+                            })
+                            .expect(200, done);
+                    });
 
             });
     });
@@ -506,6 +604,7 @@ describe('Server manages requests in a set up repo', function () {
 
     it('allows admins to revalidate a PR', function testRevalidate(done) {
         mockPRStatus(testPR, 'pending', /.*/);
+        mockUserAffiliation(testUser2, [w3cGroup]);
         mockPRStatus(testPR, 'success', /.*/);
         authAgent
             .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
@@ -517,6 +616,7 @@ describe('Server manages requests in a set up repo', function () {
         forcedPR.action = "synchronize";
         forcedPR.pull_request.head.sha = "abcdef";
         mockPRStatus(forcedPR, 'pending', /.*/);
+        mockUserAffiliation(testUser2, [w3cGroup]);
         mockPRStatus(forcedPR, 'success', /.*/);
 
         req.post('/' + config.hookPath)
@@ -526,5 +626,35 @@ describe('Server manages requests in a set up repo', function () {
             .expect(200, done);
     });
 
+    it('rejects pull requests notifications from representatives of organizations in a CG', function testCGPullRequestNotif(done) {
+        mockPRStatus(testCGPR, 'pending', /.*/);
+        mockUserAffiliation(testUser3, []);
+        nock('https://api.github.com')
+            .get('/repos/' + testCGRepo.full_name + '/contents/w3c.json')
+            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username]})).toString('base64'), encoding: "base64"});
+        nock('https://api.github.com')
+            .get('/users/' + testUser.username)
+            .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
+
+        mockPRStatus(testCGPR, 'failure', new RegExp(testCGPR.pull_request.user.login));
+        req.post('/' + config.hookPath)
+            .send(testCGPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testCGPR))))
+            .expect(200, done);
+    });
+
+    it('accepts pull requests notifications from representatives of organizations in a WG', function testWGPullRequestNotif(done) {
+        mockPRStatus(testWGPR, 'pending', /.*/);
+        mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
+
+        mockPRStatus(testWGPR, 'success', /.*/);
+        req.post('/' + config.hookPath)
+            .send(testWGPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testWGPR))))
+            .expect(200, done);
+
+    });
 });
 

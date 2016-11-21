@@ -122,7 +122,7 @@ export default class RepoNew extends React.Component {
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
                                 <select disabled={readonly} ref="org" defaultValue={st.org} required>
-                                    {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
+                                    {Object.keys(st.orgs).map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
                                 <input readOnly={readonly} type="text" ref="repo" id="repo" defaultValue={st.repo} required/>

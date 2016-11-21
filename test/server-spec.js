@@ -312,10 +312,29 @@ describe('Server manages requests from regular logged-in users', function () {
         nock('https://api.github.com')
             .get('/user/orgs')
             .reply(200, [testOrg]);
-
         authAgent
             .get('/api/orgs')
             .expect(200, [testUser.username, testOrg.login], done);
+
+    });
+
+    it('responds to org repos list', function testOrgList(done) {
+        nock('https://api.github.com')
+            .get('/user/orgs')
+            .reply(200, [testOrg]);
+        nock('https://api.github.com')
+            .get('/users/' + testUser.username + '/repos')
+            .reply(200, []);
+        nock('https://api.github.com')
+            .get('/orgs/' + testOrg.login + '/repos')
+            .reply(200, [testExistingRepo]);
+
+        var repos = {};
+        repos[testUser.username]=[];
+        repos[testOrg.login]=[testExistingRepo.name];
+        authAgent
+            .get('/api/org-repos')
+            .expect(200, repos, done);
 
     });
 

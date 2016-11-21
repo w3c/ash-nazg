@@ -14,6 +14,7 @@ export default class RepoNew extends React.Component {
         this.state = {
             status:     "loading"
         ,   orgs:       null
+        ,   orgRepos:   {}
         ,   groups:     null
         ,   disabled:   false
         ,   org:        null
@@ -35,6 +36,7 @@ export default class RepoNew extends React.Component {
     }
     componentDidMount () {
         let orgs;
+        let st = this.state;
         fetch(pp + "api/orgs", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
@@ -42,17 +44,46 @@ export default class RepoNew extends React.Component {
                 return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            this.setState({ orgs: orgs, groups: data, status: "ready" });
+                            this.setState({ orgs: orgs, groups: data, status: "ready", org: st.org || (orgs ? orgs[0] : null) });
                         })
                 ;
             })
             .catch(utils.catchHandler);
-        
+        fetch(pp + "api/org-repos", { credentials: "include" })
+            .then(utils.jsonHandler)
+            .then(((orgRepos) => {
+                this.setState(Object.assign({}, this.state, {orgRepos: orgRepos}));
+            }).bind(this))
+            .catch(utils.catchHandler);
     }
     componentWillReceiveProps (nextProps) {
         let nextMode = nextProps.params.mode;
         if (nextMode !== this.state.mode) this.setState({ mode: nextMode });
     }
+
+    updateOrg (ev) {
+        let org = utils.val(this.refs.org);
+        this.setState(Object.assign({}, this.state, {org: org}));
+    }
+
+    onRepoNameChange (ev) {
+        if (!Object.keys(this.state.orgRepos).length) return;
+        let org = utils.val(this.refs.org);
+        switch(this.state.mode) {
+        case "new":
+            if (this.state.orgRepos[org].indexOf(ev.target.value) !== -1) {
+                return ev.target.setCustomValidity("Can't create a repo with that name - already exists");
+            }
+            break;
+        case "import":
+            if (this.state.orgRepos[org].indexOf(ev.target.value) === -1) {
+                return ev.target.setCustomValidity("Can't import a repo with that name - does not exist");
+            }
+            break;
+        }
+        ev.target.setCustomValidity("");
+    }
+
     onSubmit (ev) {
         ev.preventDefault();
         let org = utils.val(this.refs.org)
@@ -104,7 +135,10 @@ export default class RepoNew extends React.Component {
                 newState.repoGroups = "";
                 MessageActions.success("Successfully " + (this.state.mode === "new" ? "created" : (this.state.mode === "import" ? "imported" : "edited data on")) + " repository.");
             }
-            else MessageActions.error(data.error);
+            else {
+                MessageActions.error(data.error.json);
+                newState.result.error = data.error.json.message;
+            }
             this.setState(newState);
         })
         .catch(utils.catchHandler)
@@ -114,18 +148,28 @@ export default class RepoNew extends React.Component {
     render () {
         let st = this.state
         ,   results = ""
-        ,   readonly = st.mode === "edit"
-        ,   content = (st.status === "loading") ?
+        ,   readonly = st.mode === "edit";
+        let org = st.org || (st.orgs ? st.orgs[0] : null);
+        let repos = org && Object.keys(this.state.orgRepos).length ? st.orgRepos[org] : [];
+
+        let content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
                     :
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select disabled={readonly} ref="org" defaultValue={st.org} required>
-                                    {Object.keys(st.orgs).map((org) => { return <option value={org} key={org}>{org}</option>; })}
+                                <select disabled={readonly} ref="org" defaultValue={st.org} required onChange={this.updateOrg.bind(this)}>
+                                    {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input readOnly={readonly} type="text" ref="repo" id="repo" defaultValue={st.repo} required/>
+                                <input readOnly={readonly} type="text" ref="repo" id="repo" defaultValue={st.repo} required list="repos" onChange={this.onRepoNameChange.bind(this)}/>
+                                {(st.mode === "import") ?
+                                <datalist id="repos">
+                                   {repos.map(repo => {
+                                     return <option key={org +"/" + repo}>{repo}</option>;
+                                   })}
+                                 </datalist>
+                                 : ""}
                             </div>
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>

@@ -129,8 +129,7 @@ export default class EditUser extends React.Component {
                                                  })
                                                  .catch(utils.catchHandler)
                                                      ;
-                                         }, function (results) {
-                                             // Warning: async 2 has a different API
+                                         }, function (err, results) {
                                              var aff;
                                              if (results.length > 0) {
                                                  // If we're dealing with (at least one) CG

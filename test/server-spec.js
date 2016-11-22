@@ -221,7 +221,8 @@ function mockUserAffiliation(user, groups, blessByAffiliation) {
         var gid = blessByAffiliation.groupid;
         nock('https://api.w3.org')
             .get('/groups/' + gid + '/participations')
-            .reply(200, {page: 1, total:1, pages: 1, _links: {participations: [w3cApify(w3cAff, "affiliations")] }});
+            .query({embed:"true"})
+            .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [{individual: false, _links: {organization: w3cApify(w3cAff, "affiliations")}}] }});
         nock('https://api.w3.org')
             .get('/users/' + user.w3capi + '/affiliations')
             .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [w3cApify(w3cAff, "affiliations")] }});

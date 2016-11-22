@@ -32,13 +32,16 @@ module.exports = function iprcheck(w3c, w3cprofileid, name, w3cgroupids, store, 
                                // with an organization that is participating
                                w3c.group(g)
                                    .participations()
-                                   .fetch(function(err, participations) {
+                                   .fetch({embed: true}, function(err, participations) {
                                        if (err) return groupcb(err);
-                                       var orgids = participations.map(function(p) { return fromUrlToId(p.href);});
+                                       var orgids = participations
+                                           .filter(function(p) { return !p.individual;})
+                                           .map(function(p) { return fromUrlToId(p._links.organization.href);});
                                        w3c.user(w3cprofileid)
                                            .affiliations()
                                            .fetch(function(err, affiliations) {
                                                if (err) return groupcb(err);
+
                                                var affids = affiliations.map(function(a) { return fromUrlToId(a.href);});
                                                var intersection = orgids.filter(function(id) {
                                                    return affids.indexOf(id) !== -1;

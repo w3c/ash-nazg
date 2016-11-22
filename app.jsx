@@ -1,7 +1,4 @@
 
-// this adds some missing ES6 bits, notably Promises
-// require("babel/polyfill");
-
 import React from "react";
 
 import { Router, Route, Link } from "react-router";

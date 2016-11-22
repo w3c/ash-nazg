@@ -20,6 +20,7 @@ var express = require("express")
 ,   app = express()
 ,   version = require("./package.json").version
 ,   nodemailer = require('nodemailer')
+,    w3ciprcheck = require('./w3c-ipr')
 ;
 
 var config, log, Store, store, mailer;
@@ -335,21 +336,26 @@ function prStatus (pr, delta, cb) {
                                     return cb(null, "unknown");
                                 }
                                 if (err) return cb(err);
-                                pr.affiliations[user.affiliation] = user.affiliationName;
+                                // TODO: check that this is appropriate
+                                // and if so, replace by check of affiliation
+                                // to staff
                                 if (user.blanket) {
+                                    pr.affiliations[user.affiliation] = user.affiliationName;
                                     pr.contribStatus[username] = "ok";
                                     return cb(null, "ok");
                                 }
-                                var ok = false;
-                                repoGroups.forEach(function (g) {
-                                    if (user.groups && user.groups[g + ""]) ok = true;
+                                w3ciprcheck(w3c, user.w3capi, user.displayName, repoGroups, store, function(err, result) {
+                                    if (err) return cb(err);
+                                    var ok = result.ok;
+                                    if (ok) {
+                                        pr.affiliations[result.affiliation.id] = result.affiliation.name;
+                                        pr.contribStatus[username] = "ok";
+                                        return cb(null, "ok");
+                                    } else {
+                                        pr.contribStatus[username] = "not in group";
+                                        return cb(null, "not in group");
+                                    }
                                 });
-                                if (ok) {
-                                    pr.contribStatus[username] = "ok";
-                                    return cb(null, "ok");
-                                }
-                                pr.contribStatus[username] = "not in group";
-                                return cb(null, "not in group");
                             });
                         }
                     ,   function (err, results) {

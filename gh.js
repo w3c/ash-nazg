@@ -1,5 +1,6 @@
 var Octokat = require("octokat")
 ,   fs = require("fs")
+,   async = require("async")
 ,   jn = require("path").join
 ,   log = require("./log")
 ,   pg = require("password-generator")
@@ -71,10 +72,41 @@ function andify (groups, field) {
 }
 
 GH.prototype = {
-    userOrgs:   function (cb) {
+    userOrgs:       function(cb) {
         this.octo.me.orgs.fetch(function (err, data) {
             if (err) return cb(err);
             cb(null, [this.user.username].concat(data.map(function (org) { return org.login; })));
+        }.bind(this));
+    }
+,   userOrgRepos:   function (cb) {
+        this.octo.me.orgs.fetch(function (err, data) {
+            if (err) return cb(err);
+            async.map(
+                [{login: this.user.username, type: 'user'}].concat(data.map(function (org) { return {login: org.login, type: 'org'}; })),
+                function(account, accountCB) {
+                    var accountRepo;
+                    if (account.type === 'user') {
+                        accountRepo = this.octo.users(account.login);
+                    } else {
+                        accountRepo = this.octo.orgs(account.login);
+                    }
+                    var repoPage =function(list) {
+                        return function(err, repos) {
+                            if (err) return accountCB(err);
+                            var names = repos.map(function(r) { return r.name;});
+                            if (repos.nextPage) {
+                                repos.nextPage(repoPage(list.concat(names)));
+                            } else {
+                                accountCB(null, {login: account.login, repos: list.concat(names)});
+                            }
+                        };
+                    };
+                    accountRepo.repos.fetch(repoPage([]));
+                }.bind(this),
+                function(err, results) {
+                    if (err) return cb(err);
+                    cb(null, results.reduce(function(a,b) { a[b.login] = b.repos; return a;}, {}));
+                });
         }.bind(this));
     }
 ,   commentOnPR: function(data, cb) {

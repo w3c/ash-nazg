@@ -198,6 +198,10 @@ router.post("/api/groups", ensureAPIAuth, bp.json(), function (req, res) {
 router.get("/api/orgs", ensureAPIAuth, loadGH, function (req, res) {
     req.gh.userOrgs(makeRes(res));
 });
+// GITHUB APIs
+router.get("/api/org-repos", ensureAPIAuth, loadGH, function (req, res) {
+    req.gh.userOrgRepos(makeRes(res));
+});
 function makeCreateOrImportRepo (mode) {
     var ghFunc = mode === "create" ? "createRepo" : "importRepo";
     return function (req, res) {

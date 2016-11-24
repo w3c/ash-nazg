@@ -449,7 +449,7 @@ function notifyContacts(gh, pr, status, cb) {
         if (err) return cb(err);
         var actualEmails = emails.filter(function(e) { return e !== null;});
         if (!actualEmails.length) {
-            return cb(new Error("Could not retrieve email addresses from repos contacts"));
+            return cb("Could not retrieve email addresses from repos contacts");
         }
         mailer.sendMail({
             from: config.notifyFrom,

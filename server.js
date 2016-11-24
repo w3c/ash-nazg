@@ -348,6 +348,10 @@ function prStatus (pr, delta, cb) {
                                     pr.contribStatus[username] = "ok";
                                     return cb(null, "ok");
                                 }
+                                if (!user.w3capi) {
+                                    pr.contribStatus[username] = "undetermined affiliation";
+                                    return cb(null, "undetermined affiliation");
+                                }
                                 w3ciprcheck(w3c, user.w3capi, user.displayName, repoGroups, store, function(err, result) {
                                     if (err) return cb(err);
                                     var ok = result.ok;
@@ -387,14 +391,22 @@ function prStatus (pr, delta, cb) {
                                 pr.acceptable = "no";
                                 pr.unknownUsers = [];
                                 pr.outsideUsers = [];
+                                pr.unaffiliatedUsers = [];
                                 for (var u in pr.contribStatus) {
                                     if (pr.contribStatus[u] === "unknown") pr.unknownUsers.push(u);
+                                    if (pr.contribStatus[u] === "undetermined affiliation") pr.unaffiliatedUsers.push(u);
                                     if (pr.contribStatus[u] === "not in group") pr.outsideUsers.push(u);
                                 }
                                 var msg = "PR has contribution issues.";
                                 if (pr.unknownUsers.length)
                                     msg += " The following users were unknown: " +
                                             pr.unknownUsers
+                                                .map(function (u) { return "@" + u; })
+                                                .join(", ") +
+                                                ".";
+                                if (pr.unaffiliatedUsers.length)
+                                    msg += " The following users' affiliation could not be determined - please edit their profile to link it to their W3C account: " +
+                                            pr.unaffiliatedUsers
                                                 .map(function (u) { return "@" + u; })
                                                 .join(", ") +
                                                 ".";

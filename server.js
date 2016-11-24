@@ -405,7 +405,7 @@ function prStatus (pr, delta, cb) {
                                                 .join(", ") +
                                                 ".";
                                 if (pr.unaffiliatedUsers.length)
-                                    msg += " The following users' affiliation could not be determined - please edit their profile to link it to their W3C account: " +
+                                    msg += " The following users' affiliation could not be determined: " +
                                             pr.unaffiliatedUsers
                                                 .map(function (u) { return "@" + u; })
                                                 .join(", ") +
@@ -418,6 +418,9 @@ function prStatus (pr, delta, cb) {
                                                 ".";
                                 statusData.payload.state = "failure";
                                 statusData.payload.description =  msg;
+                                if (statusData.payload.description.length > 140) {
+                                    statusData.payload.description = statusData.payload.description.slice(0, 139) + '…';
+                                }
                                 log.info("Setting status failure for " + prString + ", " + msg);
                                 gh.status(
                                     statusData

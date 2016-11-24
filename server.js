@@ -426,9 +426,9 @@ function prStatus (pr, delta, cb) {
                                     statusData
                                 ,   function (err) {
                                     if (err) return cb(err);
-                                    notifyContacts(gh, pr, statusData, function(err) {
+                                    store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                         if (err) return cb(err);
-                                        store.updatePR(pr.fullName, pr.num, pr, function (err) {
+                                        notifyContacts(gh, pr, statusData, function(err) {
                                             cb(err, pr);
                                         });
                                     });

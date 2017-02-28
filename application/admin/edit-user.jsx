@@ -42,20 +42,20 @@ export default class EditUser extends React.Component {
             .catch(utils.catchHandler)
         ;
     }
-    
+
     removeGroup (w3cid) {
         let user = this.state.user;
         delete user.groups[w3cid];
         this.setState({ user: user, modified: true, w3cidStatus: "showing" });
     }
-    
+
     addGroup (w3cid) {
         let user = this.state.user;
         if (!user.groups) user.groups = {};
         user.groups[w3cid + ""] = true;
         this.setState({ user: user, modified: true, w3cidStatus: "showing" });
     }
-    
+
     pickW3CID () {
         this.setState(({ w3cidStatus: "loading" }));
         let groups = Object.keys(this.state.user.groups);
@@ -76,8 +76,18 @@ export default class EditUser extends React.Component {
                 ;
             }
         ,   (err, data) => {
+                // sometimes you get an empty group, just handle it
+                if (!data.length) {
+                    console.error("Got no participants for " + group + ", skipping.");
+                    return;
+                }
                 let users = {}, hrefs = {};
                 data.forEach((res) => {
+                    // sometimes you get an empty group, just handle it
+                    if (!res || !res.length) {
+                        console.error("Got no participants for " + group + ", skipping.");
+                        return;
+                    }
                     res.forEach((u) => {
                         if (!users[u.href]) users[u.href] = 0;
                         users[u.href]++;
@@ -180,7 +190,7 @@ export default class EditUser extends React.Component {
         })
         ;
     }
-    
+
     render () {
         let st = this.state
         ,   u = st.user
@@ -197,7 +207,7 @@ export default class EditUser extends React.Component {
                             return <tr key={g.w3cid}>
                                     <td>{g.name}</td>
                                     <td>
-                                        { u.groups && u.groups[g.w3cid] ? 
+                                        { u.groups && u.groups[g.w3cid] ?
                                             <button onClick={function () { this.removeGroup(g.w3cid); }.bind(this)}>Remove</button>
                                             :
                                             <button onClick={function () { this.addGroup(g.w3cid); }.bind(this)}>Add</button> }
@@ -209,7 +219,7 @@ export default class EditUser extends React.Component {
             ,   w3cid
             ;
             if (st.w3cidStatus === "showing") {
-                w3cid = u.w3cid ? 
+                w3cid = u.w3cid ?
                             u.w3cid
                             :
                             <button onClick={this.pickW3CID.bind(this)} disabled={Object.keys(st.user.groups || []).length === 0}>Set</button>
@@ -250,7 +260,7 @@ export default class EditUser extends React.Component {
                         </td>
                     </tr>
                     {
-                        u.affiliation ? 
+                        u.affiliation ?
                                 <tr>
                                     <th>Affiliation</th>
                                     <td>{u.affiliationName + " [" + u.affiliation + "]"}</td>

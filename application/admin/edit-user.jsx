@@ -77,7 +77,7 @@ export default class EditUser extends React.Component {
             }
         ,   (err, data) => {
                 // sometimes you get an empty group, just handle it
-                if (!data.length) {
+                if (!data || !data.length) {
                     console.error("Got no participants for " + group + ", skipping.");
                     return;
                 }

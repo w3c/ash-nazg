@@ -584,6 +584,7 @@ router.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAPIAuth
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prStatus(updatedPR, delta, function(err, pr) {
+                    if (err) return error(res, err);
                     pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
                     req.gh.commentOnPR(pr, function(err, comment) {
                         makeRes(res)(err, pr);

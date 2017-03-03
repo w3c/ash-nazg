@@ -89,6 +89,7 @@ export default class EditUser extends React.Component {
                         return;
                     }
                     res.forEach((u) => {
+                        if (!u) return;
                         if (!users[u.href]) users[u.href] = 0;
                         users[u.href]++;
                         hrefs[u.href] = u.title;

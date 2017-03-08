@@ -276,6 +276,36 @@ function parseMessage (msg) {
     ;
     return ret;
 }
+
+function findOrCreateUserFromGithub(username, gh, cb) {
+    store.getUser(username, function (err, user) {
+        if ((err && err.error === "not_found") || !user) {
+            log.info("Getting GH id from github for " + username);
+            gh.getUser(username, function (err, user) {
+                if (err) return cb(err);
+                // we store this for sake of efficiency
+                store.addUser(user, function(err) {
+                    if (err) return cb(err);
+                    log.info("Looking for github user with id " + user.ghID + " in W3C API");
+                    w3c.user({type: 'github', id: user.ghID}).fetch(function(err, w3cuser) {
+                        if (err) return cb(null, user);
+                        store.mergeOnUser(username, {
+                            w3cid:              w3cuser.id,
+                            w3capi:             w3cuser._links.self.href.replace(/.*\//, "")
+                        },  function(err) {
+                            if (err) return cb(null, user);
+                            store.getUser(username, cb);
+                        });
+                    });
+                });
+            })
+        } else {
+            if (err) return cb(err);
+            cb(null, user);
+        }
+    });
+}
+
 function prStatus (pr, delta, cb) {
     var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
     ,   statusData = {
@@ -333,12 +363,9 @@ function prStatus (pr, delta, cb) {
                     async.map(
                         pr.contributors
                     ,   function (username, cb) {
-                            store.getUser(username, function (err, user) {
-                                if ((err && err.error === "not_found") || !user) {
-                                    pr.contribStatus[username] = "unknown";
-                                    return cb(null, "unknown");
-                                }
+                            findOrCreateUserFromGithub(username, gh, function(err, user) {
                                 if (err) return cb(err);
+
                                 // TODO: check that this is appropriate
                                 // and if so, replace by check of affiliation
                                 // to staff
@@ -347,6 +374,10 @@ function prStatus (pr, delta, cb) {
                                     pr.contribStatus[username] = "ok";
                                     return cb(null, "ok");
                                 }
+                                // if user not found in W3C API,
+                                // report undetermined affiliation
+                                // TODO: We will contact contributor to ask
+                                // establishing the connection.
                                 if (!user.w3capi) {
                                     pr.contribStatus[username] = "undetermined affiliation";
                                     return cb(null, "undetermined affiliation");
@@ -444,6 +475,7 @@ function prStatus (pr, delta, cb) {
 }
 
 function notifyContacts(gh, pr, status, cb) {
+    log.info("Attempting to notify error on " + pr.fullName);
     var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
         if (err) return cb(err);
         var actualEmails = emails.filter(function(e) { return e !== null;});

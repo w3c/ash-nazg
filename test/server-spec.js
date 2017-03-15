@@ -232,8 +232,8 @@ function mockUserAffiliation(user, groups, blessByAffiliation) {
 
 function mockGHUser(user) {
     nock('https://api.github.com')
-        .get('/users/' + testUser.username)
-        .reply(200, {login:user.username, id: user.ghID, email: user.emails[0]});
+        .get('/users/' + user.username)
+        .reply(200, {login:user.username, id: user.ghID, email: user.emails[0] || null});
 }
 
 function mockPRStatus(pr, status, description) {
@@ -513,14 +513,32 @@ describe('Server manages requests in a set up repo', function () {
             .expect(200, done);
     });
 
-    it('reacts to pull requests notifications', function testPullRequestNotif(done) {
+    it('recognizes an admin user', function testAdmin(done) {
+        store.makeUserAdmin(testUser.username, function() {
+            authAgent
+                .get('/api/logged-in')
+                .expect(200, {ok: true, admin: true}, done);
+        });
+    });
+
+
+    it('allows admins to add a new user', function testAddUser(done) {
+        nock('https://api.github.com')
+            .get('/users/' + testUser2.username)
+            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: testUser2.emails[0]});
+
+        authAgent
+            .post('/api/user/' + testUser2.username + '/add')
+            .expect(200, done);
+    });
+
+    it('reacts to pull requests notifications from GH users without a known W3C account', function testPullRequestNotif(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
             .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
 
         mockGHUser(testUser);
-        mockGHUser(testUser2);
         mockGHUser(testUser2);
 
         mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
@@ -537,33 +555,6 @@ describe('Server manages requests in a set up repo', function () {
                 done();
             });
     });
-
-    it('recognizes an admin user', function testAdmin(done) {
-        store.makeUserAdmin(testUser.username, function() {
-            authAgent
-                .get('/api/logged-in')
-                .expect(200, {ok: true, admin: true}, done);
-        });
-    });
-
-    it('allows admins to add a new user', function testAddUser(done) {
-        nock('https://api.github.com')
-            .get('/users/' + testUser2.username)
-            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: testUser2.emails[0]});
-
-        nock('https://api.github.com')
-            .get('/users/' + testUser3.username)
-            .reply(200, {login:testUser3.username, id: testUser3.ghID, email: testUser3.emails[0]});
-
-        authAgent
-            .post('/api/user/' + testUser2.username + '/add')
-            .expect(200, function(err, res) {
-                if (err) return done(err);
-                authAgent
-                    .post('/api/user/' + testUser3.username + '/add')
-                    .expect(200, done);
-            });
-});
 
 
     it('allows admins to affiliate a user', function testAffiliateUser(done) {
@@ -595,19 +586,7 @@ describe('Server manages requests in a set up repo', function () {
                                      groups: res.body.groups
                                    };
                     })
-                    .expect(200, testUser2, function(err, res) {
-                        if (err) return done(err);
-                        authAgent
-                            .post('/api/user/' + testUser3.username + '/affiliate')
-                            .send({
-                                affiliationName: testUser3.affiliationName,
-                                affiliation: testUser3.affiliation,
-                                w3cid: testUser3.w3cid,
-                                w3capi: testUser3.w3capi,
-                                groups:[]
-                            })
-                            .expect(200, done);
-                    });
+                    .expect(200, testUser2, done);
 
             });
     });
@@ -652,6 +631,10 @@ describe('Server manages requests in a set up repo', function () {
 
     it('rejects pull requests notifications from representatives of organizations in a CG', function testCGPullRequestNotif(done) {
         mockPRStatus(testCGPR, 'pending', /.*/);
+        mockGHUser(testUser3);
+        nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser3.ghID)
+            .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser3.w3capi}}});
         mockUserAffiliation(testUser3, []);
         nock('https://api.github.com')
             .get('/repos/' + testCGRepo.full_name + '/contents/w3c.json')

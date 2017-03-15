@@ -25,7 +25,7 @@ var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 // Test Data
 var githubCode = 'abcd';
 var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"};
-var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc", w3capi: "aaaaa"};
+var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc", w3capi: "aaaaa", emails:[]};
 var testUser3 = {ghID: '115', emails: ["barfoo@example.com"], username: "--barfoo", w3cid: 124, w3capi: "bbbbb"};
 var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
 var w3cGroup2 = {id: 12, type: "working group", name: "Other Test Working Group"};
@@ -228,6 +228,12 @@ function mockUserAffiliation(user, groups, blessByAffiliation) {
             .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [w3cApify(w3cAff, "affiliations")] }});
 
     }
+}
+
+function mockGHUser(user) {
+    nock('https://api.github.com')
+        .get('/users/' + testUser.username)
+        .reply(200, {login:user.username, id: user.ghID, email: user.emails[0]});
 }
 
 function mockPRStatus(pr, status, description) {
@@ -512,12 +518,10 @@ describe('Server manages requests in a set up repo', function () {
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
             .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
-        nock('https://api.github.com')
-            .get('/users/' + testUser.username)
-            .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
-        nock('https://api.github.com')
-            .get('/users/' + testUser2.username)
-            .reply(200, {login:testUser2.username, id: testUser2.ghID, email: null});
+
+        mockGHUser(testUser);
+        mockGHUser(testUser2);
+        mockGHUser(testUser2);
 
         mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
 

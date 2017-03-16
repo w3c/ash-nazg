@@ -21,6 +21,7 @@ var express = require("express")
 ,   version = require("./package.json").version
 ,   nodemailer = require('nodemailer')
 ,    w3ciprcheck = require('./w3c-ipr')
+,    notification = require('./notification')
 ;
 
 var config, log, Store, store, mailer;
@@ -467,7 +468,8 @@ function prStatus (pr, delta, cb) {
                                     if (err) return cb(err);
                                     store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                         if (err) return cb(err);
-                                        notifyContacts(gh, pr, statusData, function(err) {
+                                        // FIXME: make it less context-dependent
+                                        notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, store, log, function(err) {
                                             cb(err, pr);
                                         });
                                     });
@@ -483,22 +485,6 @@ function prStatus (pr, delta, cb) {
     });
 }
 
-function notifyContacts(gh, pr, status, cb) {
-    log.info("Attempting to notify error on " + pr.fullName);
-    var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
-        if (err) return cb(err);
-        var actualEmails = emails.filter(function(e) { return e !== null;});
-        if (!actualEmails.length) {
-            return cb("Could not retrieve email addresses from repos contacts");
-        }
-        mailer.sendMail({
-            from: config.notifyFrom,
-            to: actualEmails.join(","),
-            subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
-            text: status.payload.description + "\n\n See " + status.payload.target_url
-        }, cb);
-    });
-}
 
 function addGHHook(app, path) {
     app.post("/" + path, function (req, res) {

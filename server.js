@@ -277,6 +277,20 @@ function parseMessage (msg) {
     return ret;
 }
 
+function findW3CUserFromGithub(user, cb) {
+    log.info("Looking for github user with id " + user.ghID + " in W3C API");
+    w3c.user({type: 'github', id: user.ghID}).fetch(function(err, w3cuser) {
+        if (err) return cb(null, user);
+        store.mergeOnUser(user.username, {
+            w3cid:              w3cuser.id,
+            w3capi:             w3cuser._links.self.href.replace(/.*\//, "")
+        },  function(err) {
+            if (err) return cb(null, user);
+                return store.getUser(user.username, cb);
+        });
+    });
+}
+
 function findOrCreateUserFromGithub(username, gh, cb) {
     store.getUser(username, function (err, user) {
         if ((err && err.error === "not_found") || !user) {
@@ -286,22 +300,17 @@ function findOrCreateUserFromGithub(username, gh, cb) {
                 // we store this for sake of efficiency
                 store.addUser(user, function(err) {
                     if (err) return cb(err);
-                    log.info("Looking for github user with id " + user.ghID + " in W3C API");
-                    w3c.user({type: 'github', id: user.ghID}).fetch(function(err, w3cuser) {
-                        if (err) return cb(null, user);
-                        store.mergeOnUser(username, {
-                            w3cid:              w3cuser.id,
-                            w3capi:             w3cuser._links.self.href.replace(/.*\//, "")
-                        },  function(err) {
-                            if (err) return cb(null, user);
-                            store.getUser(username, cb);
-                        });
-                    });
+                    return findW3CUserFromGithub(user, cb);
                 });
             })
         } else {
             if (err) return cb(err);
-            cb(null, user);
+            // Let's check if the link has since been established
+            if (!user.w3capi) {
+                return findW3CUserFromGithub(user, cb);
+            } else {
+                return cb(null, user);
+            }
         }
     });
 }

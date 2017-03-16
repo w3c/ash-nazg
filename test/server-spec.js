@@ -19,8 +19,15 @@ var mockTransport = require('nodemailer-mock-transport');
 var transport = mockTransport();
 var transporter = nodemailer.createTransport(transport);
 
-
 var ghScope = "user:email,public_repo,write:repo_hook,read:org";
+
+// simplify debugging of missed nock requests
+nock.emitter.on('no match', function(req, options, requestBody) {
+    if (!req || req.hostname !== '127.0.0.1') {
+        console.error("No match for nock request on " + JSON.stringify(req, null, 2));
+    }
+});
+
 
 // Test Data
 var githubCode = 'abcd';
@@ -176,6 +183,7 @@ function login(agent, cb) {
     })
     .reply(302, {location: config.url + '?access_token=bcdef&scope='+ encodeURIComponent(ghScope) + '&token_type=bearer'});
 
+
     nock('https://api.github.com')
     .get('/user')
     .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
@@ -185,7 +193,7 @@ function login(agent, cb) {
         .expect(302)
         .end(function(err, res) {
             if (err) return cb(err);
-            request(res.header.location).get(res.header.location)
+            agent.get(res.header.location)
                 .expect(302, { location: config.url + 'auth/github/callback?code=' + githubCode})
                 .end(function(err, res) {
                     agent.get('/auth/github/callback?code=' + githubCode)
@@ -542,6 +550,12 @@ describe('Server manages requests in a set up repo', function () {
         mockGHUser(testUser);
         mockGHUser(testUser2);
         mockGHUser(testUser3);
+        nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser2.ghID)
+            .reply(404);
+        nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser3.ghID)
+            .reply(404);
 
         mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
 

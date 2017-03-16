@@ -286,6 +286,7 @@ describe('Server starts and responds with no login', function () {
     });
 
     after(function (done) {
+        expect(JSON.stringify(transport.sentMail.map(x => x.message.content), null, 2)).to.be.equal("[]");
         http.close(emptyNock(done));
     });
 
@@ -336,6 +337,7 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     after(function (done) {
+        expect(JSON.stringify(transport.sentMail.map(x => x.message.content), null, 2)).to.be.equal("[]");
         async.parallel([
             http.close.bind(http),
             function(cb) {
@@ -467,6 +469,7 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     after(function (done) {
+        expect(JSON.stringify(transport.sentMail.map(x => x.message.content), null, 2)).to.be.equal("[]");
         function cleanStore(task) {
             return curry(store[task].bind(store));
         }
@@ -570,6 +573,7 @@ describe('Server manages requests in a set up repo', function () {
                 expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
                 expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.body.slice(1)));
                 expect(transport.sentMail[0].message.content).to.match(new RegExp("affiliation could not be determined"));
+                transport.sentMail.pop();
                 done();
             });
     });
@@ -670,7 +674,16 @@ describe('Server manages requests in a set up repo', function () {
             .send(testCGPR)
             .set('X-Github-Event', 'pull_request')
             .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testCGPR))))
-            .expect(200, done);
+            .expect(200, function(err) {
+                if (err) return done(err);
+                expect(transport.sentMail.length).to.be.equal(1);
+                expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
+                expect(transport.sentMail[0].message.content).to.match(new RegExp(testCGPR.pull_request.user.login));
+                expect(transport.sentMail[0].message.content).to.match(new RegExp("not in the repository's group"));
+
+                transport.sentMail.pop();
+                done();
+            });
     });
 
     it('accepts pull requests notifications from representatives of organizations in a WG', function testWGPullRequestNotif(done) {

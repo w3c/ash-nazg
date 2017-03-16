@@ -139,7 +139,6 @@ router.get("/api/logout", function (req, res) {
 
 // check if the user is logged in
 router.get("/api/logged-in", function (req, res) {
-    console.log({ ok: req.isAuthenticated(), admin: req.user ? req.user.admin : false });
     res.json({ ok: req.isAuthenticated(), admin: req.user ? req.user.admin : false });
 });
 

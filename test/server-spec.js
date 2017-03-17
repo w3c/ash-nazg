@@ -568,12 +568,19 @@ describe('Server manages requests in a set up repo', function () {
             .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
             .expect(200, function(err, res) {
                 if (err) return done(err);
-                expect(transport.sentMail.length).to.be.equal(1);
+                expect(transport.sentMail.length).to.be.equal(2);
                 expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
                 expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.user.login));
                 expect(transport.sentMail[0].message.content).to.match(new RegExp(testPR.pull_request.body.slice(1)));
                 expect(transport.sentMail[0].message.content).to.match(new RegExp("affiliation could not be determined"));
-                transport.sentMail.pop();
+                transport.sentMail.shift();
+
+                expect(transport.sentMail[0].data.to).to.be(testUser3.emails[0]);
+                expect(transport.sentMail[0].message.content).to.contain(testPR.pull_request.body.slice(2));
+                expect(transport.sentMail[0].message.content).to.contain("Royalty-Free Patent Policy");
+                expect(transport.sentMail[0].message.content).to.contain("https://www.w3.org/users/myprofile/connectedaccounts");
+                transport.sentMail.shift();
+
                 done();
             });
     });
@@ -680,8 +687,7 @@ describe('Server manages requests in a set up repo', function () {
                 expect(transport.sentMail[0].data.to).to.be(testUser.emails[0]);
                 expect(transport.sentMail[0].message.content).to.match(new RegExp(testCGPR.pull_request.user.login));
                 expect(transport.sentMail[0].message.content).to.match(new RegExp("not in the repository's group"));
-
-                transport.sentMail.pop();
+                transport.sentMail.shift();
                 done();
             });
     });

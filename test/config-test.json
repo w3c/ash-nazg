@@ -7,7 +7,8 @@
 ,   "sessionSecret":    "I'm a secret"
 ,   "ghClientID":       "1234"
 ,   "ghClientSecret":   "5678"
-,   "logToConsole":     true
+,   "logToConsole":     false
+,   "logToFile":        "test/logs"
 ,   "couchDB":  "ashnazg-test"
 ,   "w3cAPIKey": "foobar"
 ,   "notifyFrom": "test@localhost.test"

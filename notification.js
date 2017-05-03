@@ -42,13 +42,18 @@ To ensure that the Web can be used by any one free of charge, W3C develops its s
 As part of this policy, W3C groups need to assess the IPR context of contributions made to their repositories.
 
 As our automated tool was not able to determine with what organization (if any) you are affiliated, we would be very grateful if you could see which of the following applies to you:
- * if your contribution is editorial in nature (e.g. fixing typos or examples), you don't need to to anything
 
- * if you are a member of the group owning this repository, please link your W3C and github accounts together at https://www.w3.org/users/myprofile/connectedaccounts
+* if your contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), you don't need to do anything
 
- * if you work for a W3C Member company, please get a W3C account at http://www.w3.org/Help/Account/Request/Member ; once done or if you already have one, please link your W3C and github accounts together at https://www.w3.org/users/myprofile/connectedaccounts
+* if you are a member of the group owning this repository, please link your W3C and github accounts together at
+     https://www.w3.org/users/myprofile/connectedaccounts
 
- * otherwise, please contact ${actualEmails.join(',')} to see how to proceed with your contribution.
+* if you work for a W3C Member organization, please get a W3C account at
+     http://www.w3.org/Help/Account/Request/Member
+   once done or if you already have one, please link your W3C and github accounts together at
+     https://www.w3.org/users/myprofile/connectedaccounts
+
+* otherwise, please contact ${actualEmails.join(',')} to see how to proceed with your contribution.
 
 Thanks again for your contribution. If any of this is unclear, please contact web-human@w3.org or ${actualEmails.join(',')} for assistance.
 

@@ -68,6 +68,7 @@ markNonSubstantive () {
         let st = this.state
         ,   content
         ,   link
+        ,   doc
         ;
         if (st.status === "loading") {
             content = <Spinner prefix={pp}/>;
@@ -126,15 +127,29 @@ markNonSubstantive () {
                             </tr>
                         </table>
             ;
+           if (st.pr.acceptable !== "yes") {
+               var wgDoc, groups = utils.andify(st.pr.groupDetails.map(g => g.name), "or");
+               // we assume that all groups are of the same type
+               if (st.pr.groupDetails[0].groupType === 'WG') {
+                   wgDoc = <li>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/Help/Account/Request/Member">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
+
+               }
+               doc = <div>
+                        <p>Some of the contributors in this pull request were not recognized as having made the required IPR commitment to make substantive changes to the specification in this repository.</p>
+                        <p>To fix this situation, please see which of the following applies:</p>
+                        <ul>
+                        <li>if the contribution  does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
+                       <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
+                        {wgDoc}
+                        <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor</li>
+                     </ul>
+                  </div>;
+              }
         }
         return  <div className="primary-app">
                     <h2>Pull Request {link}</h2>
-                    <p>
-                        If a pull request is not acceptable and you have edited tweaked some of the
-                        users in order to grant them the proper rights, then you can hit revalidate
-                        in order to get the PR to be checked again in full with the new information.
-                    </p>
                     {content}
+                    {doc}
                 </div>
         ;
     }

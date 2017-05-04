@@ -27,4 +27,8 @@ module.exports = {
         else value = el.value.trim();
         return value;
     }
+,   andify: (list, conjunction = "and") => {
+    if (list.length === 1) return list[0];
+    return list.slice(0, -1).join(", ") + " " + conjunction + " " + list.slice(-1);
+    }
 };

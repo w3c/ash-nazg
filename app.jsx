@@ -1,4 +1,3 @@
-
 import React from "react";
 
 import { Router, Route, Link } from "react-router";
@@ -62,6 +61,8 @@ class AshNazg extends React.Component {
         ,   nav
         ,   body
         ,   admin
+        ,   repoNav
+        ,   userNav
         ;
         // show admin links as well
         if (st.admin) {
@@ -72,22 +73,34 @@ class AshNazg extends React.Component {
                     </NavBox>
             ;
         }
-        // when logged in show an actual menu and content
         if (st.loggedIn === true) {
+            repoNav = <div>
+                <NavItem><Link to={`${pp}repo/new`}>New Repository</Link></NavItem>
+                <NavItem><Link to={`${pp}repo/import`}>Import Repository</Link></NavItem>
+                </div>
+                ;
+
+            userNav = <NavBox title="User">
+                <NavItem><LogoutButton/></NavItem>
+                </NavBox>
+                ;
+        } else {
+            userNav = <NavBox title="User"><NavItem><Link to={`${pp}login`}>Login</Link></NavItem></NavBox>;
+        }
+        // when logged in show an actual menu and content
+        const isRoutePublic = this.props.routes[this.props.routes.length - 1].public;
+        if (st.loggedIn === true || isRoutePublic) {
             nav = <Col className="nav">
                     <NavBox title="Repositories">
                         <NavItem><Link to={`${pp}repos`}>List Repositories</Link></NavItem>
-                        <NavItem><Link to={`${pp}repo/new`}>New Repository</Link></NavItem>
-                        <NavItem><Link to={`${pp}repo/import`}>Import Repository</Link></NavItem>
+                        {repoNav}
                     </NavBox>
                     <NavBox title="Pull Requests">
                         <NavItem><Link to={`${pp}pr/open`}>Currently Open</Link></NavItem>
                         <NavItem><Link to={`${pp}pr/last-week`}>Active Last Week</Link></NavItem>
                     </NavBox>
                     {admin}
-                    <NavBox title="User">
-                        <NavItem><LogoutButton/></NavItem>
-                    </NavBox>
+                    {userNav}
                 </Col>;
             body = <Col>{ renderChildrenWithAdminProp(this.props.children, st.admin) || <Welcome/> }</Col>;
         }
@@ -122,13 +135,14 @@ function renderChildrenWithAdminProp(children, admin) {
 
 ReactDOM.render(
     <Router history={browserHistory}>
-        <Route path={pp} component={AshNazg}>
+        <Route path={pp} component={AshNazg} public="true">
+            <Route path="login" component={LoginWelcome}/>
             <Route path="repo/:owner/:shortname/:mode" component={RepoManager}/>
             <Route path="repo/:mode" component={RepoManager}/>
-            <Route path="repos" component={RepoList}/>
-            <Route path="pr/id/:owner/:shortName/:num" component={PRViewer}/>
-            <Route path="pr/open" component={PROpen}/>
-            <Route path="pr/last-week" component={PRLastWeek}/>
+            <Route path="repos" component={RepoList} public="true"/>
+            <Route path="pr/id/:owner/:shortName/:num" component={PRViewer} public="true"/>
+            <Route path="pr/open" component={PROpen} public="true"/>
+            <Route path="pr/last-week" component={PRLastWeek} public="true"/>
             <Route path="admin/add-user" component={PickUser}/>
             <Route path="admin/users" component={AdminUsers}/>
             <Route path="admin/user/:username" component={EditUser}/>

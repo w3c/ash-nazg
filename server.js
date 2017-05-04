@@ -598,7 +598,18 @@ function addGHHook(app, path) {
 // get a given PR
 router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     var prms = req.params;
-    store.getPR(prms.owner + "/" + prms.shortName, prms.num, makeRes(res));
+    store.getPR(prms.owner + "/" + prms.shortName, prms.num, function(err, pr) {
+        if (err) return makeRes(res)(err);
+        async.map(pr.groups,
+                  function(groupid, cb) {
+                      store.getGroup(groupid, cb)
+                  },
+                  function (err, results) {
+                      if (err) return makeRes(res)(err);
+                      pr.groupDetails = results;
+                      makeRes(res)(null, pr);
+                  });
+    });
 });
 // revalidate a PR
 router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req, res) {

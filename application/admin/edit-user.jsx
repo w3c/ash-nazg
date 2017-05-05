@@ -141,6 +141,7 @@ export default class EditUser extends React.Component {
                                                  .catch(utils.catchHandler)
                                                      ;
                                          }, function (err, results) {
+                                             if (err) return utils.catchHandler(err);
                                              var aff;
                                              if (results.length > 0) {
                                                  // If we're dealing with (at least one) CG

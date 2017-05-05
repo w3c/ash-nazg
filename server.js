@@ -469,7 +469,7 @@ function prStatus (pr, delta, cb) {
                                     store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                         if (err) return cb(err);
                                         // FIXME: make it less context-dependent
-                                        notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, store, log, function(err) {
+                                        notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, config.emailFallback, store, log, function(err) {
                                             cb(err, pr);
                                         });
                                     });

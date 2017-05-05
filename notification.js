@@ -1,5 +1,5 @@
 var async = require("async");
-exports.notifyContacts = function (gh, pr, status, mailer, from, store, log, cb) {
+exports.notifyContacts = function (gh, pr, status, mailer, from, emailFallback, store, log, cb) {
     log.info("Attempting to notify error on " + pr.fullName);
     var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
         if (err) {
@@ -8,8 +8,8 @@ exports.notifyContacts = function (gh, pr, status, mailer, from, store, log, cb)
         }
         var actualEmails = emails.filter(function(e) { return e !== null;});
         if (!actualEmails.length) {
-            log.error("Could not retrieve email addresses from repos contacts");
-            return cb();
+            log.error("Could not retrieve email addresses from repo contacts for " + pr.fullName);
+            actualEmails = emailFallback;
         }
         mailer.sendMail({
             from: from,

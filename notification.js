@@ -3,7 +3,7 @@ exports.notifyContacts = function (gh, pr, status, mailer, from, emailFallback, 
     log.info("Attempting to notify error on " + pr.fullName);
     var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
         var actualEmails;
-        if (err) {
+        if (err || !emails) {
             log.error(err);
             actualEmails = emailFallback;
         }

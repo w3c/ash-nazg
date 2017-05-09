@@ -52,7 +52,7 @@ As our automated tool was not able to determine with what organization (if any) 
      https://www.w3.org/users/myprofile/connectedaccounts
 
 * if you work for a W3C Member organization, please get a W3C account at
-     http://www.w3.org/Help/Account/Request/Member
+     https://www.w3.org/accounts/request
    once done or if you already have one, please link your W3C and github accounts together at
      https://www.w3.org/users/myprofile/connectedaccounts
 

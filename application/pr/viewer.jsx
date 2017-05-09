@@ -130,7 +130,7 @@ markNonSubstantive () {
            if (st.pr.acceptable !== "yes") {
                var wgDoc, groups = utils.andify(st.pr.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
-               if (!st.pr.groupDetails || st.pr.groupDetails[0].groupType === 'WG') {
+               if (!st.pr.groupDetails.length || st.pr.groupDetails[0].groupType === 'WG') {
                    wgDoc = <li>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/Help/Account/Request/Member">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
 
                }

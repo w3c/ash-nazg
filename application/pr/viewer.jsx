@@ -106,10 +106,9 @@ markNonSubstantive () {
                                                     if (cs[username] === "ok") {
                                                         return <li className="good" key={username}>{username}</li>;
                                                     }
-                                                    else if (cs[username] === "unknown") {
+                                                    else if (cs[username] === "undetermined affiliation") {
                                                         return <li key={username}>
-                                                                <span className="bad">{username}</span> is unknown,{" "}
-                                                                <Link to={`${pp}admin/user/${username}/add`}>add them to the system</Link>.
+                                                                <span className="bad">{username}</span> is unknown,{" "} they need to link their <a href="https://www.w3.org/users/myprofile/connectedaccounts">Github account with a W3C account</a>.
                                                             </li>
                                                         ;
                                                     }

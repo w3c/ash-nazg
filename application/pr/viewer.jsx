@@ -124,7 +124,7 @@ markNonSubstantive () {
                             </tr>
                         </table>
             ;
-           if (st.pr.acceptable == "no" && st.pr.unknownUsers.length) {
+           if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
                var wgDoc, groups = utils.andify(st.pr.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
                if (!st.pr.groupDetails || !st.pr.groupDetails.length || st.pr.groupDetails[0].groupType === 'WG') {

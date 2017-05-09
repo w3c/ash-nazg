@@ -115,9 +115,7 @@ markNonSubstantive () {
                                                     }
                                                     else {
                                                         return <li key={username}>
-                                                                <span className="bad">{username}</span> is not
-                                                                in the right groups, {" "}
-                                                                <Link to={`${pp}admin/user/${username}`}>manage their membership</Link>.
+                                                                <span className="bad">{username}</span> did not make IPR commitments for this group.
                                                             </li>;
                                                     }
                                                 })

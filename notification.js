@@ -37,7 +37,7 @@ exports.notifyContacts = function (gh, pr, status, mailer, from, emailFallback, 
                             text: `Dear ${user.displayName ? user.displayName : user.login}
 
 Thank you for submitting a pull request (PR #${pr.num}) on the W3C specification repository ${pr.fullName}.
-  https://github.com/${pr.fullName}/pulls/${pr.num}
+  https://github.com/${pr.fullName}/pull/${pr.num}
 
 To ensure that the Web can be used and developed by anyone free of charge, W3C develops specifications under a Royalty-Free Patent Policy:
   https://www.w3.org/Consortium/Patent-Policy/

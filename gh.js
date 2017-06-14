@@ -179,7 +179,7 @@ GH.prototype = {
             .then(action(this, "LICENSE.md", license, report))
             .then(action(this, "CONTRIBUTING.md", contributing, report))
             .then(action(this, "README.md", readme, report))
-            .then(action(this, "index.html", index, report))
+            .then(setupAction == pickUserRepo ? null : action(this, "index.html", index, report))
             .then(action(this, "w3c.json", w3cJSON, report))
             .then(function () {
                 return this.currentRepo

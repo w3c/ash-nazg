@@ -72,7 +72,7 @@ function RepoMock(_name, _owner, _files, _hooks) {
         }
         nock('https://api.github.com')
             .put(contentRE)
-            .times(expectedFiles.length)
+            .times(files.length === 0 ? expectedFilesInCreatedRepo.length : expectedFilesInImportedRepo.length)
             .reply(function(uri) {
                 var filename = uri.split("/").slice(5).join("/");
                 if (addFile(filename)) {
@@ -95,7 +95,7 @@ function RepoMock(_name, _owner, _files, _hooks) {
 }
 
 var testNewRepo = new RepoMock("newrepo", "acme", [], []);
-var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md", "index.html"], []);
+var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md"], []);
 var testCGRepo = new RepoMock("cgrepo","acme", ["README.md", "index.html"], []);
 
 var testPR = {
@@ -143,7 +143,8 @@ var testWGPR = {
     }
 };
 
-var expectedFiles = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
+var expectedFilesInCreatedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
+var expectedFilesInImportedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md",  "w3c.json"];
 
 nock('https://api.w3.org')
     .get('/groups')
@@ -498,7 +499,7 @@ describe('Server manages requests in a set up repo', function () {
             .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id]})
             .expect(200, function(err, res) {
                 if (err) return done(err);
-                expect(testNewRepo.files).to.have.length(expectedFiles.length);
+                expect(testNewRepo.files).to.have.length(expectedFilesInCreatedRepo.length);
                 expect(testNewRepo.hooks).to.have.length(1);
                 done();
             });
@@ -511,7 +512,7 @@ describe('Server manages requests in a set up repo', function () {
             .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id]})
             .expect(200, function(err, res) {
                 if (err) return done(err);
-                expect(testExistingRepo.files).to.have.length(expectedFiles.length);
+                expect(testExistingRepo.files).to.have.length(expectedFilesInImportedRepo.length);
                 expect(testExistingRepo.hooks).to.have.length(1);
                 done();
             });

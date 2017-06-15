@@ -30,9 +30,8 @@ export default class RepoNew extends React.Component {
         if (mode === "edit") {
             org = this.props.params.owner;
             repo = this.props.params.shortname;
-            console.log(org, repo);
         }
-        this.setState({ mode: mode, org:org, repo: repo });
+        this.updateState({ mode: mode, org:org, repo: repo });
     }
     componentDidMount () {
         let orgs;
@@ -44,7 +43,7 @@ export default class RepoNew extends React.Component {
                 return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            this.setState({ orgs: orgs, groups: data, status: "ready", org: st.org || (orgs ? orgs[0] : null) });
+                            this.updateState({ orgs: orgs, groups: data, status: "ready", org: st.org || (orgs ? orgs[0] : null) });
                         })
                 ;
             })
@@ -52,18 +51,22 @@ export default class RepoNew extends React.Component {
         fetch(pp + "api/org-repos", { credentials: "include" })
             .then(utils.jsonHandler)
             .then(((orgRepos) => {
-                this.setState(Object.assign({}, this.state, {orgRepos: orgRepos}));
+                this.updateState({orgRepos: orgRepos});
             }).bind(this))
             .catch(utils.catchHandler);
     }
     componentWillReceiveProps (nextProps) {
         let nextMode = nextProps.params.mode;
-        if (nextMode !== this.state.mode) this.setState({ mode: nextMode });
+        if (nextMode !== this.state.mode) this.updateState({ mode: nextMode });
+    }
+
+    updateState(partialState) {
+        this.setState(Object.assign({}, this.state, partialState));
     }
 
     updateOrg (ev) {
         let org = utils.val(this.refs.org);
-        this.setState(Object.assign({}, this.state, {org: org}));
+        this.updateState({org: org});
     }
 
     onRepoNameChange (ev) {

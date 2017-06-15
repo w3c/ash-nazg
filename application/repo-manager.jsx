@@ -108,8 +108,17 @@ export default class RepoNew extends React.Component {
 
     onSubmit (ev) {
         ev.preventDefault();
-        let org = utils.val(this.refs.org)
+        let st = this.state
+        ,   org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
+        ,   includeW3cJson = this.refs.w3c.checked
+        ,   w3cJsonContacts = utils.val(this.refs.contacts).replace(/ /,'').split(',').filter(x=>x)
+        ,   includeContributing = this.refs.contributing.checked
+        ,   includeLicense = this.refs.license.checked
+        ,   wgLicense = st.license
+        ,   includeReadme = this.refs.readme.checked
+        ,   includeSpec = this.refs.spec.checked
+        ,   repoGroups = st.repoGroups
         ;
         this.setState({
             disabled:   true
@@ -118,7 +127,7 @@ export default class RepoNew extends React.Component {
         ,   repo:       repo
         });
         let apiPath;
-        switch(this.state.mode) {
+        switch(st.mode) {
         case "new":
             apiPath = "api/create-repo";
             break;
@@ -136,9 +145,16 @@ export default class RepoNew extends React.Component {
             ,   headers:    { "Content-Type": "application/json" }
             ,   credentials: "include"
             ,   body:   JSON.stringify({
-                    org:    org
-                ,   repo:   repo
+                    org
+                ,   repo
                 ,   groups: repoGroups
+                ,   includeW3cJson
+                ,   w3cJsonContacts
+                ,   includeContributing
+                ,   includeLicense
+                ,   wgLicense
+                ,   includeReadme
+                ,   includeSpec
                 })
             }
         )
@@ -184,7 +200,7 @@ export default class RepoNew extends React.Component {
         
         let licensePicker = selectedGroupType === 'WG' ?
            <div className="formLine">License of the specification in that repository:
-             <RadioGroup name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
+             <RadioGroup ref="wglicense" name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
                 <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents">W3C Document license</a> </label>
                 <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/Consortium/Legal/copyright-software" target="_blank">W3C Software and Document license</a> </label>
                 </RadioGroup></div>
@@ -192,11 +208,11 @@ export default class RepoNew extends React.Component {
         let customization = st.mode === "edit" ? "" : <div className="formline">
           <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist" : ""}:</p>
           <ul>
-          <li><label><input defaultChecked type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input name="contacts" defaultValue={st.login + ","}/></label>)</li>
-          <li><label><input type="checkbox" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
-          <li><label><input type="checkbox" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
-          <li><label><input type="checkbox" name="README" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
-          <li><label><input type="checkbox" name="index" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
+          <li><label><input defaultChecked ref="w3c" type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input ref="contacts" name="contacts" defaultValue={st.login + ","}/></label>)</li>
+          <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
+          <li><label><input type="checkbox" ref="license" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
+          <li><label><input type="checkbox" ref="readme" name="readme" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
+          <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
           </ul>
         </div>;
 

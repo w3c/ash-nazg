@@ -1,6 +1,7 @@
 
 import React from "react";
 import Spinner from "../components/spinner.jsx";
+import {RadioGroup, Radio} from 'react-radio-group';
 import MessageActions from "../actions/messages";
 
 require("isomorphic-fetch");
@@ -21,6 +22,8 @@ export default class RepoNew extends React.Component {
         ,   repo:       null
         ,   repoGroups: []
         ,   mode:       "new"
+        ,   license:    'doc'
+        ,   login:      null
         };
     }
     componentWillMount () {
@@ -36,6 +39,12 @@ export default class RepoNew extends React.Component {
     componentDidMount () {
         let orgs;
         let st = this.state;
+        fetch(pp + "api/logged-in", { credentials: "include" })
+            .then(utils.jsonHandler)
+            .then((data) => {
+                this.updateState({login: data.login});
+            })
+            .catch(utils.catchHandler);
         fetch(pp + "api/orgs", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
@@ -91,6 +100,11 @@ export default class RepoNew extends React.Component {
         let repoGroups = utils.val(this.refs.groups);
         this.updateState({repoGroups});
     }
+
+    updateWGLicense (license) {
+        this.updateState({license});
+    }
+
 
     onSubmit (ev) {
         ev.preventDefault();
@@ -158,6 +172,33 @@ export default class RepoNew extends React.Component {
         let org = st.org || (st.orgs ? st.orgs[0] : null);
         let repos = org && Object.keys(st.orgRepos).length ? st.orgRepos[org] : [];
         let selectedGroupType = st.repoGroups.length ? st.groups.filter(g => g.w3cid == st.repoGroups[0])[0].groupType : null;
+        let contributingLink, licenseLink;
+        if (selectedGroupType) {
+            contributingLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-CONTRIBUTING.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING.md' : 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING-SW.md');
+            licenseLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-LICENSE.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-LICENSE.md' : 'https://github.com/w3c/licenses/blob/master/WG-LICENSE-SW.md');
+        }
+        // Files selected by default:
+        // w3c.json in all cases (since it's used by ashnazg for operation)
+        // for new repos: CONTRIBUTING, LICENSE
+        // for new CG repos: +basic respec doc
+        
+        let licensePicker = selectedGroupType === 'WG' ?
+           <div className="formLine">License of the specification in that repository:
+             <RadioGroup name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
+                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents">W3C Document license</a> </label>
+                <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/Consortium/Legal/copyright-software" target="_blank">W3C Software and Document license</a> </label>
+                </RadioGroup></div>
+            : "";
+        let customization = st.mode === "edit" ? "" : <div className="formline">
+          <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist" : ""}:</p>
+          <ul>
+          <li><label><input defaultChecked type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input name="contacts" defaultValue={st.login + ","}/></label>)</li>
+          <li><label><input type="checkbox" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
+          <li><label><input type="checkbox" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
+          <li><label><input type="checkbox" name="README" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
+          <li><label><input type="checkbox" name="index" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
+          </ul>
+        </div>;
 
         let content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
@@ -184,6 +225,8 @@ export default class RepoNew extends React.Component {
                                     {st.groups.sort((g1,g2) => g1.groupType.localeCompare(g2.groupType)).map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
                                 </select>
                             </div>
+                            {licensePicker}
+                            {customization}
                             <div className="formline actions">
                                 <button>{st.mode === "new" ? "Create" : (st.mode === "import" ? "Import" : "Update")}</button>
                             </div>

@@ -95,6 +95,10 @@ a[href]:hover {
     display:    block;
     font-weight:    bold;
 }
+.formline label.inline {
+    display:    inline-block;
+    font-weight:    normal;
+}
 .formline.actions {
     text-align: right;
 }

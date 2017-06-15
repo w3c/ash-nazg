@@ -312,7 +312,7 @@ describe('Server starts and responds with no login', function () {
     it('responds to login query correctly when not logged in', function testLoggedIn(done) {
         req
             .get('/api/logged-in')
-            .expect(200, {ok: false, admin: false}, done);
+            .expect(200, {ok: false, login: null, admin: false}, done);
     });
 
     it('responds with 401 to protected GET routes', function testProtectedRoutes(done) {
@@ -357,7 +357,7 @@ describe('Server manages requests from regular logged-in users', function () {
     it('responds to login query correctly when logged in', function testLoggedIn(done) {
         authAgent
             .get('/api/logged-in')
-            .expect(200, {ok: true, admin: false}, done);
+            .expect(200, {ok: true, login: testUser.username, admin: false}, done);
     });
 
 
@@ -447,7 +447,7 @@ describe('Server manages requests from regular logged-in users', function () {
                 if (err) return done(err);
                 authAgent
                     .get('/api/logged-in')
-                    .expect(200, {ok: false, admin: false}, done);
+                    .expect(200, {ok: false, login: null, admin: false}, done);
             });
     });
 });
@@ -530,7 +530,7 @@ describe('Server manages requests in a set up repo', function () {
         store.makeUserAdmin(testUser.username, function() {
             authAgent
                 .get('/api/logged-in')
-                .expect(200, {ok: true, admin: true}, done);
+                .expect(200, {ok: true, login: testUser.username, admin: true}, done);
         });
     });
 

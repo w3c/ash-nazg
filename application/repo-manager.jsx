@@ -15,12 +15,12 @@ export default class RepoNew extends React.Component {
             status:     "loading"
         ,   orgs:       null
         ,   orgRepos:   {}
-        ,   groups:     null
+        ,   groups:     []
         ,   disabled:   false
         ,   org:        null
         ,   repo:       null
-        ,   repoGroups: null
-        ,   mode:      "new"
+        ,   repoGroups: []
+        ,   mode:       "new"
         };
     }
     componentWillMount () {
@@ -87,18 +87,21 @@ export default class RepoNew extends React.Component {
         ev.target.setCustomValidity("");
     }
 
+    updateGroups () {
+        let repoGroups = utils.val(this.refs.groups);
+        this.updateState({repoGroups});
+    }
+
     onSubmit (ev) {
         ev.preventDefault();
         let org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
-        ,   repoGroups = utils.val(this.refs.groups)
         ;
         this.setState({
             disabled:   true
         ,   status:     "submitting"
         ,   org:        org
         ,   repo:       repo
-        ,   repoGroups: repoGroups
         });
         let apiPath;
         switch(this.state.mode) {
@@ -135,7 +138,7 @@ export default class RepoNew extends React.Component {
             if (!data.error) {
                 newState.org = "";
                 newState.repo = "";
-                newState.repoGroups = "";
+                newState.repoGroups = [];
                 MessageActions.success("Successfully " + (this.state.mode === "new" ? "created" : (this.state.mode === "import" ? "imported" : "edited data on")) + " repository.");
             }
             else {
@@ -153,7 +156,8 @@ export default class RepoNew extends React.Component {
         ,   results = ""
         ,   readonly = st.mode === "edit";
         let org = st.org || (st.orgs ? st.orgs[0] : null);
-        let repos = org && Object.keys(this.state.orgRepos).length ? st.orgRepos[org] : [];
+        let repos = org && Object.keys(st.orgRepos).length ? st.orgRepos[org] : [];
+        let selectedGroupType = st.repoGroups.length ? st.groups.filter(g => g.w3cid == st.repoGroups[0])[0].groupType : null;
 
         let content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
@@ -176,8 +180,8 @@ export default class RepoNew extends React.Component {
                             </div>
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>
-                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10" required>
-                                    {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
+                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10" required onChange={this.updateGroups.bind(this)}>
+                                    {st.groups.sort((g1,g2) => g1.groupType.localeCompare(g2.groupType)).map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
                                 </select>
                             </div>
                             <div className="formline actions">

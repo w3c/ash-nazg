@@ -24,6 +24,7 @@ export default class RepoNew extends React.Component {
         ,   mode:       "new"
         ,   license:    'doc'
         ,   login:      null
+        ,   lastAddedRepo: {groups: []}
         };
     }
     componentWillMount () {
@@ -45,6 +46,13 @@ export default class RepoNew extends React.Component {
                 this.updateState({login: data.login});
             })
             .catch(utils.catchHandler);
+        fetch(pp + "api/my/last-added-repo", { credentials: "include" })
+            .then(utils.jsonHandler)
+            .then((lastAddedRepo) => {
+                if (lastAddedRepo)
+                    this.updateState({lastAddedRepo});
+            })
+            .catch(utils.catchHandler);
         fetch(pp + "api/orgs", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
@@ -52,7 +60,7 @@ export default class RepoNew extends React.Component {
                 return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            this.updateState({ orgs: orgs, groups: data, status: "ready", org: st.org || (orgs ? orgs[0] : null) });
+                            this.updateState({ orgs: orgs, groups: data, status: "ready" });
                         })
                 ;
             })
@@ -169,13 +177,32 @@ export default class RepoNew extends React.Component {
                 newState.org = "";
                 newState.repo = "";
                 newState.repoGroups = [];
-                MessageActions.success("Successfully " + (this.state.mode === "new" ? "created" : (this.state.mode === "import" ? "imported" : "edited data on")) + " repository.");
+                MessageActions.success("Successfully " + (st.mode === "new" ? "created" : (st.mode === "import" ? "imported" : "edited data on")) + " repository.");
             }
             else {
                 MessageActions.error(data.error.json);
                 newState.result.error = data.error.json.message;
             }
             this.setState(newState);
+            return !data.error;
+        })
+        .then ((success) => {
+            if (success && st.mode !== "edit") {
+                return fetch(
+                    pp + 'api/my/last-added-repo'
+                    ,   {
+                        method:     "post"
+                        ,   headers:    { "Content-Type": "application/json" }
+                        ,   credentials: "include"
+                        ,   body:   JSON.stringify({
+                                groups: repoGroups,
+                                repo,
+                                org,
+                                w3cJsonContacts
+                        })
+                    }
+                );
+            }
         })
         .catch(utils.catchHandler)
         ;
@@ -208,7 +235,7 @@ export default class RepoNew extends React.Component {
         let customization = st.mode === "edit" ? "" : <div className="formline">
           <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist" : ""}:</p>
           <ul>
-          <li><label><input defaultChecked ref="w3c" type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input ref="contacts" name="contacts" defaultValue={st.login + ","}/></label>)</li>
+          <li><label><input defaultChecked ref="w3c" type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input ref="contacts" name="contacts" defaultValue={st.lastAddedRepo.w3cJsonContacts ? st.lastAddedRepo.w3cJsonContacts.join(",") : st.login + ","}/></label>)</li>
           <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
           <li><label><input type="checkbox" ref="license" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
           <li><label><input type="checkbox" ref="readme" name="readme" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
@@ -222,7 +249,7 @@ export default class RepoNew extends React.Component {
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select disabled={readonly} ref="org" defaultValue={st.org} required onChange={this.updateOrg.bind(this)}>
+                                <select disabled={readonly} ref="org" defaultValue={st.org ? st.org : st.lastAddedRepo.org} required onChange={this.updateOrg.bind(this)}>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
@@ -237,7 +264,7 @@ export default class RepoNew extends React.Component {
                             </div>
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>
-                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10" required onChange={this.updateGroups.bind(this)}>
+                                <select ref="groups" id="groups" defaultValue={st.group ? st.group : st.lastAddedRepo.groups} multiple size="10" required onChange={this.updateGroups.bind(this)}>
                                     {st.groups.sort((g1,g2) => g1.groupType.localeCompare(g2.groupType)).map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
                                 </select>
                             </div>

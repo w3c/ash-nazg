@@ -410,25 +410,6 @@ in the system. Each line in the table is rendered by `group-line.jsx`.
 
 A very simple interface that links to `add-user` in order to add a user.
 
-## Suggested Improvements
-
-As indicated above, the natural next step would be to start using Flux more. Right now, most 
-components access data from the backend directly. This is okay because the data is not shared
-across components, and because each backend endpoint is only access by one component (such that if
-the backend is changed, only one component needs an update). But it would be better for the 
-long-term development and testability of the application if endpoints were logically encapsulated in
-stores that components listened to. It would de-duplicate some of the fetch code, too.
-
-Much of the client side is protected behind a login (that requires strong commitments); some of it
-probably does not need to be. What's needed there is to stop hiding those parts and to make sure
-that they don't display affordances that aren't available to unlogged users.
-
-The components and much of the style can probably be extracted so that that can be reused in other
-W3C applications, notably in [Midgard][Midgard] (and possibly the GitHub guide).
-
-The backend store could use a bit of abstraction to dull the repetition; this is a simple 
-refactoring that is probably a good way to get into the codebase.
-
 # Test suite
 
 The [test suite](./test/) only deals with the server-side of the app.

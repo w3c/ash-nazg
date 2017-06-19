@@ -598,7 +598,7 @@ router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     });
 });
 // revalidate a PR
-router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;

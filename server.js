@@ -317,6 +317,7 @@ function findOrCreateUserFromGithub(username, gh, cb) {
 }
 
 function prStatus (pr, delta, cb) {
+    const currentPrAcceptability = pr.acceptable;
     var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
     ,   statusData = {
             owner:      pr.owner
@@ -468,10 +469,17 @@ function prStatus (pr, delta, cb) {
                                     if (err) return cb(err);
                                     store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                         if (err) return cb(err);
-                                        // FIXME: make it less context-dependent
-                                        notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, config.emailFallback, store, log, function(err) {
-                                            cb(err, pr);
-                                        });
+                                        // Only send email notifications
+                                        // if the status of the PR has just
+                                        // changed
+                                        if (currentPrAcceptability !== pr.acceptable) {
+                                            // FIXME: make it less context-dependent
+                                            return notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, config.emailFallback, store, log, function(err) {
+                                                cb(err, pr);
+                                            });
+                                        } else {
+                                            return cb(null, pr);
+                                        }
                                     });
                                 }
                                 );

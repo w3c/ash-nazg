@@ -554,26 +554,30 @@ function addGHHook(app, path) {
                             storedpr.sha = sha;
                             prStatus(storedpr, parseMessage(""), makeOK(res));
                         });
-                    }
-                    var pr = {
+                    } else if (event.action === "opened" || event.action === "reopened") {
+                        var pr = {
                             fullName:       repo
-                        ,   shortName:      repoShort
-                        ,   owner:          owner
-                        ,   num:            prNum
-                        ,   sha:            sha
-                        ,   status:         "open"
-                        ,   acceptable:     "pending"
-                        ,   unknownUsers:   []
-                        ,   outsideUsers:   []
-                        ,   contributors:   [event.pull_request.user.login]
-                        ,   contribStatus:  {}
+                            ,   shortName:      repoShort
+                            ,   owner:          owner
+                            ,   num:            prNum
+                            ,   sha:            sha
+                            ,   status:         "open"
+                            ,   acceptable:     "pending"
+                            ,   unknownUsers:   []
+                            ,   outsideUsers:   []
+                            ,   contributors:   [event.pull_request.user.login]
+                            ,   contribStatus:  {}
                         }
-                    ,   delta = parseMessage(event.pull_request.body)
-                    ;
-                    store.addPR(pr, function (err) {
-                        if (err) return error(res, err);
-                        prStatus(pr, delta, makeOK(res));
-                    });
+                        ,   delta = parseMessage(event.pull_request.body)
+                        ;
+                        store.addPR(pr, function (err) {
+                            if (err) return error(res, err);
+                            prStatus(pr, delta, makeOK(res));
+                        });
+                    } else {
+                        // we ignore other pull request events
+                        return ok(res);
+                    }
                 }
                 // issue comment events
                 else if (eventType === "issue_comment") {

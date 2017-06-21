@@ -6,8 +6,8 @@ export default class Welcome extends React.Component {
         return  <div className="primary-app">
                     <h2>Welcome!</h2>
                     <p>
-                        Use this site to manage your usage of GitHub repositories for W3C
-                        projects.
+                        Use this site to <a href="https://w3c.github.io/repo-management.html">manage IPR of contributions made to GitHub repositories for W3C specifications</a>
+                        .
                     </p>
                 </div>
         ;

@@ -25,6 +25,7 @@ function Store (config) {
     ;
     log = require("./log")(config);
     if (config.couchAuth) couchConf.auth = config.couchAuth;
+    if (config.couchDbPort) couchConf.port = config.couchDbPort;
     this.client = new cradle.Connection(couchConf);
     this.db = this.client.database(dbName);
     this._config = config;

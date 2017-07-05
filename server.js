@@ -504,7 +504,7 @@ function addGHHook(app, path) {
             var event;
             try { event = JSON.parse(buffer.toString()); }
             catch (e) { return error(res, e); }
-        
+
             // run checks before getting the secret to check the crypto
             var eventType = req.headers["x-github-event"];
             log.info("Hook got GH event " + eventType);
@@ -518,7 +518,7 @@ function addGHHook(app, path) {
             store.getSecret(repo, function (err, data) {
                 // if there's an error, we can't set an error on the status because we have no secret, so bail
                 if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
-            
+
                 // we have the secret, crypto check becomes possible
                 var ourSig = GH.signPayload("sha1", data.secret, buffer)
                 ,   theirSig = req.headers["x-hub-signature"]
@@ -529,7 +529,7 @@ function addGHHook(app, path) {
                 var repoShort = event.repository.name
                 ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
                 ;
-            
+
                 // pull request events
                 if (eventType === "pull_request") {
                     var sha = event.pull_request.head.sha;
@@ -808,7 +808,6 @@ module.exports.run = run;
 module.exports.app = app;
 
 if (require.main === module) {
-    var sendmailTransport = require('nodemailer-sendmail-transport');
-    var transporter = nodemailer.createTransport(sendmailTransport())
+    var transporter = nodemailer.createTransport({sendmail: true});
     run(require("./config.json"), transporter);
 }

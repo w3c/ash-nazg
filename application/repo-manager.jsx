@@ -201,7 +201,7 @@ export default class RepoNew extends React.Component {
         let licensePicker = selectedGroupType === 'WG' ?
            <div className="formLine">License of the specification in that repository:
              <RadioGroup ref="wglicense" name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
-                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents">W3C Document license</a> </label>
+                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents" target="_blank">W3C Document license</a> </label>
                 <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/Consortium/Legal/copyright-software" target="_blank">W3C Software and Document license</a> </label>
                 </RadioGroup></div>
             : "";
@@ -212,7 +212,7 @@ export default class RepoNew extends React.Component {
           <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
           <li><label><input type="checkbox" ref="license" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
           <li><label><input type="checkbox" ref="readme" name="readme" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
-          <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
+          <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html" target="_blank">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
           </ul>
         </div>;
 

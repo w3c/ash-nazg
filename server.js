@@ -182,6 +182,20 @@ router.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function 
     });
 });
 
+// log the last repo a user added to the system (to simplify UI)
+router.get("/api/my/last-added-repo", ensureAPIAuth, function (req, res) {
+    store.getUser(req.user.username, (err, user) => {
+        if (err) return error(res, err);
+        return makeRes(res)(null, user.lastAddedRepo);
+    });
+});
+router.post("/api/my/last-added-repo", ensureAPIAuth, bp.json(), function (req, res) {
+    store.mergeOnUser(req.user.username, {
+            lastAddedRepo:      req.body
+        }
+    ,   makeOK(res));
+});
+
 // GROUPS
 // list all the groups known to the system
 router.get("/api/groups", function (req, res) {

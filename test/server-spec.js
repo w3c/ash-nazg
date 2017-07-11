@@ -653,7 +653,7 @@ describe('Server manages requests in a set up repo', function () {
             });
     });
 
-    it('allows admins to revalidate a PR', function testRevalidate(done) {
+    it('allows logged-in users to revalidate a PR', function testRevalidate(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         mockUserAffiliation(testUser2, [w3cGroup]);
 
@@ -665,7 +665,7 @@ describe('Server manages requests in a set up repo', function () {
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
         mockPRStatus(testPR, 'success', /.*/);
         authAgent
-            .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .post('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
             .expect(200, done);
     });
 

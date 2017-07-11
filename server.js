@@ -624,7 +624,7 @@ router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     });
 });
 // revalidate a PR
-router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;
@@ -635,20 +635,21 @@ router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (r
     });
 });
 // Mark a PR as non substantive
-router.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAPIAuth, loadGH, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/markAs(|Non)Substantive", ensureAPIAuth, loadGH, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
+    ,   qualifier = prms[0].toLowerCase() // "" or "non" depending on the path
     ;
-    log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as non substantive");
+    log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as " + qualifier + " substantive");
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        store.updatePR(pr.fullName, pr.num, {markedAsNonSubstantiveBy: req.user.username}, function (err) {
+        store.updatePR(pr.fullName, pr.num, {markedAsNonSubstantiveBy: qualifier == "non" ? req.user.username : null}, function (err) {
             if (err) return error(res, err);
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prStatus(updatedPR, delta, function(err, pr) {
                     if (err) return error(res, err);
-                    pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
+                    pr.comment = "Marked as " + qualifier + " substantive for IPR from ash-nazg.";
                     req.gh.commentOnPR(pr, function(err, comment) {
                         makeRes(res)(err, pr);
                     });

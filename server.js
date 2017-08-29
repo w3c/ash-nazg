@@ -734,6 +734,7 @@ function addClientSideRoutes(app, prefix) {
         res.send(indexHTML);
     }
     app.get("/", showIndex);
+    app.get("/login", showIndex);
     app.get("/repo/*", showIndex);
     app.get("/repos", showIndex);
     app.get("/admin/*", showIndex);

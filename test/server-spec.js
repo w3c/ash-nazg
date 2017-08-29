@@ -597,7 +597,7 @@ describe('Server manages requests in a set up repo', function () {
             .reply(404);
         mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
         authAgent
-            .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .post('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
             .expect(200, function(err, res) {
                 if (err) return done(err);
                 expect(transport.sentMail.length).to.be.equal(0);

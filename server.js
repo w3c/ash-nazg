@@ -186,7 +186,7 @@ router.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function 
 router.get("/api/my/last-added-repo", ensureAPIAuth, function (req, res) {
     store.getUser(req.user.username, (err, user) => {
         if (err) return error(res, err);
-        return makeRes(res)(null, user.lastAddedRepo);
+        return makeRes(res)(null, user.lastAddedRepo || {});
     });
 });
 router.post("/api/my/last-added-repo", ensureAPIAuth, bp.json(), function (req, res) {

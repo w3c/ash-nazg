@@ -1,6 +1,6 @@
 {
   "name": "ash-nazg",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "scripts": {
     "start": "node server.js",
     "watch-server": "nodemon -w server.js -w gh.js -w store.js -w log.js --exec 'npm run start'",

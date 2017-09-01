@@ -488,7 +488,7 @@ function prStatus (pr, delta, cb) {
                                         // changed
                                         if (currentPrAcceptability !== pr.acceptable) {
                                             // FIXME: make it less context-dependent
-                                            return notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, config.emailFallback, store, log, function(err) {
+                                            return notification.notifyContacts(gh, pr, statusData, mailer, {from: config.notifyFrom, fallback: config.emailFallback || [], cc: config.emailCC || []}, store, log, function(err) {
                                                 cb(err, pr);
                                             });
                                         } else {

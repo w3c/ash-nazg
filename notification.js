@@ -1,4 +1,6 @@
 var async = require("async");
+const template = require("./template");
+
 exports.notifyContacts = function (gh, pr, status, mailer, emailConfig, store, log, cb) {
     log.info("Attempting to notify error on " + pr.fullName);
     var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
@@ -29,39 +31,18 @@ exports.notifyContacts = function (gh, pr, status, mailer, emailConfig, store, l
                 store.getUser(u, function(err, user) {
                     if (err) return userCB(err);
                     if (user.emails.length) {
+                        const mailData = {
+                            displayName: user.displayName ? user.displayName : user.login,
+                            prnum: pr.num,
+                            repo: pr.fullName,
+                            contacts: actualEmails.join(",")
+                        }
                         mailer.sendMail({
                             from: emailConfig.from,
                             to: user.emails[0].value,
                             cc: actualEmails.join(",") + emailConfig.cc.join(","),
                             subject: "Information needed for your PR #" + pr.num+ " on " + pr.fullName,
-                            text: `Dear ${user.displayName ? user.displayName : user.login}
-
-Thank you for submitting a pull request (PR #${pr.num}) on the W3C specification repository ${pr.fullName}.
-  https://github.com/${pr.fullName}/pull/${pr.num}
-
-To ensure that the Web can be used and developed by anyone free of charge, W3C develops specifications under a Royalty-Free Patent Policy:
-  https://www.w3.org/Consortium/Patent-Policy/
-
-As part of this policy, W3C groups must be able to assess the IPR context of contributions made to their repositories.
-
-As our automated tool was not able to determine with what organization (if any) you are affiliated, we would be very grateful if you could see which of the following applies to you:
-
-* if your contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), you don't need to do anything
-
-* if you are a member of the group that maintains this repository, please link your W3C and github accounts together at
-     https://www.w3.org/users/myprofile/connectedaccounts
-
-* if you work for a W3C Member organization, please get a W3C account at
-     https://www.w3.org/accounts/request
-   once that is done, or if you already have a W3C account, please link your W3C and github accounts together at
-     https://www.w3.org/users/myprofile/connectedaccounts
-
-* otherwise, please contact ${actualEmails.join(',')} to see how to proceed with your contribution.
-
-Thanks again for your contribution. If any of this is unclear, please contact web-human@w3.org or ${actualEmails.join(',')} for assistance.
-
--- 
-W3C automated IPR checker`
+                            text: template('affiliation-mail.txt', mailData)
                         }, userCB);
                     } else {
                         // TODO: comment on pull request directly?

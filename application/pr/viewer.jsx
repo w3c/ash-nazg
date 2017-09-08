@@ -94,7 +94,7 @@ export default class PRViewer extends React.Component {
                 if (st.pr.status === "open") {
                     merge = <span>go merge it at {link}</span>;
                 }
-                action = <span>{revert}{ revert && merge ? " — or " : (revert || merge ? " — " : "")}{merge}</span>;
+                action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
                 action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
             }

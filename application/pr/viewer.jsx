@@ -79,22 +79,31 @@ export default class PRViewer extends React.Component {
             let cs = st.pr.contribStatus || {}
             ,   thStyle = { paddingRight: "20px" }
             ;
-            link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">
+            const link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">
                     {st.owner + "/" + st.shortName + "#" + st.num}
                     </a>
             ;
+            let action;
+            if (st.pr.acceptable) {
+                let revert = "";
+                if (st.pr.markedAsNonSubstantiveBy) {
+                     revert = <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button></span>;
+                }
+                let merge = "";
+                if (st.pr.status === "open") {
+                    merge = <span>go merge it at {link}</span>;
+                }
+                action = <span>{revert}{ revert && merge ? " — or " : " — "}{merge}</span>;
+            } else {
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
+            }
             content =   <table className="users-list">
                             <tr>
                                 <th style={thStyle}>Acceptable</th>
                                 <td className={st.pr.acceptable === "yes" ? "good" : "bad"}>
                                     {st.pr.acceptable}
                                     {" "}
-                                    {
-                                        st.pr.acceptable === "yes" ?
-                                                <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button> — or go merge it at {link}</span>
-                                                :
-                                                <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>
-                                    }
+                                    {action}
                                 </td>
                             </tr>
                             <tr>

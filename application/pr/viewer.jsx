@@ -84,7 +84,7 @@ export default class PRViewer extends React.Component {
                     </a>
             ;
             let action;
-            if (st.pr.acceptable) {
+            if (st.pr.acceptable === "yes") {
                 let revert = "";
                 if (st.pr.markedAsNonSubstantiveBy) {
                      revert = <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button></span>;

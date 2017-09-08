@@ -84,6 +84,7 @@ export default class PRViewer extends React.Component {
                     </a>
             ;
             let action;
+            const prAcceptance = st.pr.acceptable === "yes" ? (st.pr.markedAsNonSubstantiveBy ? "Marked as non substantive by " + st.pr.markedAsNonSubstantiveBy : "Made with proper IPR commitments" ) : "no";
             if (st.pr.acceptable === "yes") {
                 let revert = "";
                 if (st.pr.markedAsNonSubstantiveBy) {
@@ -101,7 +102,7 @@ export default class PRViewer extends React.Component {
                             <tr>
                                 <th style={thStyle}>Acceptable</th>
                                 <td className={st.pr.acceptable === "yes" ? "good" : "bad"}>
-                                    {st.pr.acceptable}
+                                    {prAcceptance}
                                     {" "}
                                     {action}
                                 </td>

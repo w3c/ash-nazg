@@ -41,8 +41,7 @@ module.exports = function iprcheck(w3c, w3cprofileid, name, w3cgroupids, store, 
                                            .affiliations()
                                            .fetch(function(err, affiliations) {
                                                if (err) return groupcb(err);
-
-                                               var affids = affiliations.map(a => fromUrlToId(a.href));
+                                               var affids = affiliations.map(a => a ? fromUrlToId(a.href) : undefined);
                                                var intersection = orgids.filter(id =>  affids.includes(id));
                                                if (intersection.length) {
                                                    var affiliationId = intersection[0];

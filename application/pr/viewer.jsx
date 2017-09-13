@@ -79,7 +79,7 @@ export default class PRViewer extends React.Component {
             let cs = st.pr.contribStatus || {}
             ,   thStyle = { paddingRight: "20px" }
             ;
-            const link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">
+            link = <a href={"https://github.com/" + st.owner + "/" + st.shortName + "/pull/" + st.num} target="_blank">
                     {st.owner + "/" + st.shortName + "#" + st.num}
                     </a>
             ;

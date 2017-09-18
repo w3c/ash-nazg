@@ -4,6 +4,9 @@ node_js:
   - "8"
 services:
   - couchdb
+notifications:
+  email:
+    - dom@w3.org
 before_script:
   node store.js "./test/config-test.json"
 script:

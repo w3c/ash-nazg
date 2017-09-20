@@ -40,7 +40,7 @@ exports.notifyContacts = function (gh, pr, status, mailer, emailConfig, store, l
                         mailer.sendMail({
                             from: emailConfig.from,
                             to: user.emails[0].value,
-                            cc: actualEmails.join(",") + emailConfig.cc.join(","),
+                            cc: [...actualEmails, ...emailConfig.cc].join(",")
                             subject: "Information needed for your PR #" + pr.num+ " on " + pr.fullName,
                             text: template('affiliation-mail.txt', mailData)
                         }, userCB);

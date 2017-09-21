@@ -119,13 +119,13 @@ export default class RepoNew extends React.Component {
         let st = this.state
         ,   org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
-        ,   includeW3cJson = this.refs.w3c.checked
+        ,   includeW3cJson = (this.refs.w3c || {}).checked
         ,   w3cJsonContacts = utils.val(this.refs.contacts).replace(/ /,'').split(',').filter(x=>x)
-        ,   includeContributing = this.refs.contributing.checked
-        ,   includeLicense = this.refs.license.checked
+        ,   includeContributing = (this.refs.contributing || {}).checked
+        ,   includeLicense = (this.refs.license || {}).checked
         ,   wgLicense = st.license
-        ,   includeReadme = this.refs.readme.checked
-        ,   includeSpec = this.refs.spec.checked
+        ,   includeReadme = (this.refs.readme || {}).checked
+        ,   includeSpec = (this.refs.spec || {}).checked
         ,   repoGroups = st.repoGroups
         ;
         this.setState({

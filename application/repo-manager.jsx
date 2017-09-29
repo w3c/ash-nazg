@@ -242,7 +242,8 @@ export default class RepoNew extends React.Component {
           <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html" target="_blank">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
           </ul>
         </div>;
-
+        const cgs = st.groups.filter(g => g.groupType === 'CG').sort((g1,g2) => g1.name.localeCompare(g2.name));
+        const wgs = st.groups.filter(g => g.groupType === 'WG').sort((g1,g2) => g1.name.localeCompare(g2.name));
         let content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
                     :
@@ -265,7 +266,12 @@ export default class RepoNew extends React.Component {
                             <div className="formline">
                                 <label htmlFor="groups">relevant group</label>
                                 <select ref="groups" id="groups" defaultValue={st.group ? st.group : st.lastAddedRepo.groups} multiple size="10" required onChange={this.updateGroups.bind(this)}>
-                                    {st.groups.sort((g1,g2) => g1.groupType.localeCompare(g2.groupType)).map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
+                                   <optgroup label='Community Groups'>
+                                    {cgs.map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
+                                   </optgroup>
+                                   <optgroup label='Working Groups'>
+                                    {wgs.map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
+                                   </optgroup>
                                 </select>
                             </div>
                             {licensePicker}

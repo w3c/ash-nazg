@@ -116,6 +116,7 @@ export default class RepoNew extends React.Component {
 
     onSubmit (ev) {
         ev.preventDefault();
+        this.updateGroups();
         let st = this.state
         ,   org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)

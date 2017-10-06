@@ -129,6 +129,7 @@ GH.prototype = {
         ,   index
         ,   simpleRepo
         ,   readme
+        ,   codeOfConduct
         ,   hookURL = config.hookURL || (config.url + config.hookPath)
         ,   tmplData = {
                 name:           andify(data.groups, "name")
@@ -166,6 +167,7 @@ GH.prototype = {
         w3cJSON = data.includeW3cJson ? template("w3c.json", tmplData) : null;
         index = data.includeSpec ? template("index.html", tmplData) : null;
         readme = data.includeReadme ? template("README.md", tmplData) : null;
+        codeOfConduct = data.includeCodeOfConduct ? template("CODE_OF_CONDUCT.md", tmplData) : null;
         setupAction(this, target, data.org, data.repo, report)
             .then(function (repo) {
                 this.currentRepo = repo;
@@ -180,6 +182,7 @@ GH.prototype = {
             .then(license ? action(this, "LICENSE.md", license, report) : null)
             .then(contributing ? action(this, "CONTRIBUTING.md", contributing, report) : null)
             .then(readme ? action(this, "README.md", readme, report) : null)
+            .then(codeOfConduct ? action(this, "CODE_OF_CONDUCT.md", codeOfConduct, report) : null)
             .then(index ? action(this, "index.html", index, report) : null)
             .then(w3cJSON ? action(this, "w3c.json", w3cJSON, report) : null)
             .then(function () {

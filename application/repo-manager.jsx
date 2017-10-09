@@ -126,6 +126,7 @@ export default class RepoNew extends React.Component {
         ,   includeLicense = (this.refs.license || {}).checked
         ,   wgLicense = st.license
         ,   includeReadme = (this.refs.readme || {}).checked
+        ,   includeCodeOfConduct = (this.refs.codeOfConduct || {}).checked
         ,   includeSpec = (this.refs.spec || {}).checked
         ,   repoGroups = st.repoGroups
         ;
@@ -163,6 +164,7 @@ export default class RepoNew extends React.Component {
                 ,   includeLicense
                 ,   wgLicense
                 ,   includeReadme
+                ,   includeCodeOfConduct
                 ,   includeSpec
                 })
             }
@@ -240,6 +242,7 @@ export default class RepoNew extends React.Component {
           <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
           <li><label><input type="checkbox" ref="license" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
           <li><label><input type="checkbox" ref="readme" name="readme" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
+          <li><label><input type="checkbox" ref="codeOfConduct" name="codeOfConduct" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/CODE_OF_CONDUCT.md" target="_blank">CODE_OF_CONDUCT.md</a></label></li>
           <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html" target="_blank">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
           </ul>
         </div>;

@@ -611,7 +611,7 @@ function addGHHook(app, path) {
 router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     var prms = req.params;
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function(err, pr) {
-        if (err) return makeRes(res)(err);
+        if (err || !pr) return makeRes(res)(err  || "PR not found: " + prms.owner + "/" + prms.shortName + "-" + prms.num);
         async.map(pr.groups,
                   function(groupid, cb) {
                       store.getGroup(groupid, cb)

@@ -279,4 +279,8 @@ GH.signPayload = function (algo, secret, buffer) {
     return algo + "=" + crypto.createHmac(algo, secret).update(buffer).digest("hex");
 };
 
+GH.checkPayloadSignature = function (algo, secret, buffer, remotesig) {
+    return crypto.timingSafeEqual(Buffer.from(GH.signPayload(algo, secret, buffer)), Buffer.from(remotesig));
+};
+
 module.exports = GH;

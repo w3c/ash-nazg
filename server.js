@@ -531,13 +531,10 @@ function addGHHook(app, path) {
             ;
             store.getSecret(repo, function (err, data) {
                 // if there's an error, we can't set an error on the status because we have no secret, so bail
-                if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
+                if (err || !data) return error(res, "Secret for " + repo + " not found: " + (err || "simply not there."));
 
                 // we have the secret, crypto check becomes possible
-                var ourSig = GH.signPayload("sha1", data.secret, buffer)
-                ,   theirSig = req.headers["x-hub-signature"]
-                ;
-                if (ourSig !== theirSig) return error(res, "GitHub signature does not match known secret for " + repo + ".");
+                if (!GH.checkPayloadSignature("sha1", data.secret, buffer, req.headers["x-hub-signature"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
 
                 // for status we need: owner, repoShort, and sha
                 var repoShort = event.repository.name

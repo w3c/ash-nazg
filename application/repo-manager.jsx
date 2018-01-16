@@ -21,6 +21,7 @@ export default class RepoNew extends React.Component {
         ,   org:        null
         ,   repo:       null
         ,   repoGroups: []
+        ,   initGroups: null
         ,   mode:       "new"
         ,   license:    'doc'
         ,   login:      null
@@ -46,6 +47,13 @@ export default class RepoNew extends React.Component {
                 this.updateState({login: data.login});
             })
             .catch(utils.catchHandler);
+        if (st.mode === "edit") {
+            fetch(pp + "api/repos")
+                .then(utils.jsonHandler)
+                .then(repos => {
+                    this.updateState({initGroups: repos.find(r => r.owner === st.org && r.name === st.repo).groups.map(g => g.w3cid)});
+                });
+        }
         fetch(pp + "api/my/last-added-repo", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((lastAddedRepo) => {
@@ -267,8 +275,8 @@ export default class RepoNew extends React.Component {
                                  : ""}
                             </div>
                             <div className="formline">
-                                <label htmlFor="groups">relevant group</label>
-                                <select ref="groups" id="groups" defaultValue={st.group ? st.group : st.lastAddedRepo.groups} multiple size="10" required onChange={this.updateGroups.bind(this)}>
+            <label htmlFor="groups">relevant group(s)</label>
+                                <select ref="groups" id="groups" defaultValue={st.initGroups ? st.initGroups : st.lastAddedRepo.groups} multiple size="10" required onChange={this.updateGroups.bind(this)}>
                                    <optgroup label='Community Groups'>
                                     {cgs.map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
                                    </optgroup>

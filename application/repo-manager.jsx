@@ -116,7 +116,6 @@ export default class RepoNew extends React.Component {
 
     onSubmit (ev) {
         ev.preventDefault();
-        this.updateGroups();
         let st = this.state
         ,   org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
@@ -128,7 +127,7 @@ export default class RepoNew extends React.Component {
         ,   includeReadme = (this.refs.readme || {}).checked
         ,   includeCodeOfConduct = (this.refs.codeOfConduct || {}).checked
         ,   includeSpec = (this.refs.spec || {}).checked
-        ,   repoGroups = st.repoGroups
+        ,   repoGroups = utils.val(this.refs.groups)
         ;
         this.setState({
             disabled:   true

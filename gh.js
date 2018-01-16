@@ -115,10 +115,11 @@ GH.prototype = {
     // action is a function returning a promise that creates or imports a file, and logs a message
    // config is a configuration object with data about the server setup
 ,   createOrImportRepo: function (data, setupAction, action, config, cb) {
-        // { org: ..., repo: ... }
-        // we need to treat the current user and an org differently
+                               // { org: ..., repo: ... }
+        if (!data.groups.some(g => g)) return cb("No group selected to associate with repository");
         var report = []
         ,   target = (this.user.username === data.org) ?
+           // we need to treat the current user and an org differently
                             this.octo.me.repos :
                             this.octo.orgs(data.org).repos
         ,   license

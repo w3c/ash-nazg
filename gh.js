@@ -116,7 +116,7 @@ GH.prototype = {
    // config is a configuration object with data about the server setup
 ,   createOrImportRepo: function (data, setupAction, action, config, cb) {
                                // { org: ..., repo: ... }
-        if (!data.groups.some(g => g)) return cb("No group selected to associate with repository");
+        if (!data.groups.some(g => g)) return cb({json: {message: "No group selected to associate with repository"}});
         var report = []
         ,   target = (this.user.username === data.org) ?
            // we need to treat the current user and an org differently
@@ -157,7 +157,7 @@ GH.prototype = {
         }
         else {
             var msg = "We currently don't support creating repos for group type: " + data.groups[0].groupType;
-            return cb(msg);
+            return cb({json: {message: msg}});
         }
         if (data.includeContributing && contributingPath) {
             contributing = template(contributingPath, tmplData);

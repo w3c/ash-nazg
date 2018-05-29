@@ -120,7 +120,7 @@ export default class PRLastWeek extends React.Component {
                                                 <td>
                                                     <ul>
                                                         {
-                                                            byStatus(pr, "unknown")
+                                                            byStatus(pr, "undetermined affiliation")
                                                                 .map((u) => {
                                                                     return <li key={u} className="bad">
                                                                             <Link to={`${pp}admin/user/${u}/add`}>{u}</Link>

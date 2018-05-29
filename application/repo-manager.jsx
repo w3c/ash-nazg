@@ -1,6 +1,7 @@
 
 import React from "react";
 import Spinner from "../components/spinner.jsx";
+import {RadioGroup, Radio} from 'react-radio-group';
 import MessageActions from "../actions/messages";
 
 require("isomorphic-fetch");
@@ -15,12 +16,16 @@ export default class RepoNew extends React.Component {
             status:     "loading"
         ,   orgs:       null
         ,   orgRepos:   {}
-        ,   groups:     null
+        ,   groups:     []
         ,   disabled:   false
         ,   org:        null
         ,   repo:       null
-        ,   repoGroups: null
-        ,   mode:      "new"
+        ,   repoGroups: []
+        ,   initGroups: null
+        ,   mode:       "new"
+        ,   license:    'doc'
+        ,   login:      null
+        ,   lastAddedRepo: {groups: []}
         };
     }
     componentWillMount () {
@@ -30,13 +35,32 @@ export default class RepoNew extends React.Component {
         if (mode === "edit") {
             org = this.props.params.owner;
             repo = this.props.params.shortname;
-            console.log(org, repo);
         }
-        this.setState({ mode: mode, org:org, repo: repo });
+        this.updateState({ mode: mode, org:org, repo: repo });
     }
     componentDidMount () {
         let orgs;
         let st = this.state;
+        fetch(pp + "api/logged-in", { credentials: "include" })
+            .then(utils.jsonHandler)
+            .then((data) => {
+                this.updateState({login: data.login});
+            })
+            .catch(utils.catchHandler);
+        if (st.mode === "edit") {
+            fetch(pp + "api/repos")
+                .then(utils.jsonHandler)
+                .then(repos => {
+                    this.updateState({initGroups: repos.find(r => r.owner === st.org && r.name === st.repo).groups.map(g => g.w3cid)});
+                });
+        }
+        fetch(pp + "api/my/last-added-repo", { credentials: "include" })
+            .then(utils.jsonHandler)
+            .then((lastAddedRepo) => {
+                if (lastAddedRepo)
+                    this.updateState({lastAddedRepo});
+            })
+            .catch(utils.catchHandler);
         fetch(pp + "api/orgs", { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
@@ -44,7 +68,7 @@ export default class RepoNew extends React.Component {
                 return fetch(pp + "api/groups", { credentials: "include" })
                         .then(utils.jsonHandler)
                         .then((data) => {
-                            this.setState({ orgs: orgs, groups: data, status: "ready", org: st.org || (orgs ? orgs[0] : null) });
+                            this.updateState({ orgs: orgs, groups: data, status: "ready" });
                         })
                 ;
             })
@@ -52,18 +76,22 @@ export default class RepoNew extends React.Component {
         fetch(pp + "api/org-repos", { credentials: "include" })
             .then(utils.jsonHandler)
             .then(((orgRepos) => {
-                this.setState(Object.assign({}, this.state, {orgRepos: orgRepos}));
+                this.updateState({orgRepos: orgRepos});
             }).bind(this))
             .catch(utils.catchHandler);
     }
     componentWillReceiveProps (nextProps) {
         let nextMode = nextProps.params.mode;
-        if (nextMode !== this.state.mode) this.setState({ mode: nextMode });
+        if (nextMode !== this.state.mode) this.updateState({ mode: nextMode });
+    }
+
+    updateState(partialState) {
+        this.setState(Object.assign({}, this.state, partialState));
     }
 
     updateOrg (ev) {
         let org = utils.val(this.refs.org);
-        this.setState(Object.assign({}, this.state, {org: org}));
+        this.updateState({org: org});
     }
 
     onRepoNameChange (ev) {
@@ -84,10 +112,29 @@ export default class RepoNew extends React.Component {
         ev.target.setCustomValidity("");
     }
 
+    updateGroups () {
+        let repoGroups = utils.val(this.refs.groups);
+        this.updateState({repoGroups});
+    }
+
+    updateWGLicense (license) {
+        this.updateState({license});
+    }
+
+
     onSubmit (ev) {
         ev.preventDefault();
-        let org = utils.val(this.refs.org)
+        let st = this.state
+        ,   org = utils.val(this.refs.org)
         ,   repo = utils.val(this.refs.repo)
+        ,   includeW3cJson = (this.refs.w3c || {}).checked
+        ,   w3cJsonContacts = (utils.val(this.refs.contacts) || "").replace(/ /,'').split(',').filter(x=>x)
+        ,   includeContributing = (this.refs.contributing || {}).checked
+        ,   includeLicense = (this.refs.license || {}).checked
+        ,   wgLicense = st.license
+        ,   includeReadme = (this.refs.readme || {}).checked
+        ,   includeCodeOfConduct = (this.refs.codeOfConduct || {}).checked
+        ,   includeSpec = (this.refs.spec || {}).checked
         ,   repoGroups = utils.val(this.refs.groups)
         ;
         this.setState({
@@ -95,10 +142,9 @@ export default class RepoNew extends React.Component {
         ,   status:     "submitting"
         ,   org:        org
         ,   repo:       repo
-        ,   repoGroups: repoGroups
         });
         let apiPath;
-        switch(this.state.mode) {
+        switch(st.mode) {
         case "new":
             apiPath = "api/create-repo";
             break;
@@ -116,9 +162,17 @@ export default class RepoNew extends React.Component {
             ,   headers:    { "Content-Type": "application/json" }
             ,   credentials: "include"
             ,   body:   JSON.stringify({
-                    org:    org
-                ,   repo:   repo
+                    org
+                ,   repo
                 ,   groups: repoGroups
+                ,   includeW3cJson
+                ,   w3cJsonContacts
+                ,   includeContributing
+                ,   includeLicense
+                ,   wgLicense
+                ,   includeReadme
+                ,   includeCodeOfConduct
+                ,   includeSpec
                 })
             }
         )
@@ -132,14 +186,33 @@ export default class RepoNew extends React.Component {
             if (!data.error) {
                 newState.org = "";
                 newState.repo = "";
-                newState.repoGroups = "";
-                MessageActions.success("Successfully " + (this.state.mode === "new" ? "created" : (this.state.mode === "import" ? "imported" : "edited data on")) + " repository.");
+                newState.repoGroups = [];
+                MessageActions.success("Successfully " + (st.mode === "new" ? "created" : (st.mode === "import" ? "imported" : "edited data on")) + " repository.");
             }
             else {
                 MessageActions.error(data.error.json);
                 newState.result.error = data.error.json.message;
             }
             this.setState(newState);
+            return !data.error;
+        })
+        .then ((success) => {
+            if (success && st.mode !== "edit") {
+                return fetch(
+                    pp + 'api/my/last-added-repo'
+                    ,   {
+                        method:     "post"
+                        ,   headers:    { "Content-Type": "application/json" }
+                        ,   credentials: "include"
+                        ,   body:   JSON.stringify({
+                                groups: repoGroups,
+                                repo,
+                                org,
+                                w3cJsonContacts
+                        })
+                    }
+                );
+            }
         })
         .catch(utils.catchHandler)
         ;
@@ -150,15 +223,45 @@ export default class RepoNew extends React.Component {
         ,   results = ""
         ,   readonly = st.mode === "edit";
         let org = st.org || (st.orgs ? st.orgs[0] : null);
-        let repos = org && Object.keys(this.state.orgRepos).length ? st.orgRepos[org] : [];
-
+        let repos = org && Object.keys(st.orgRepos).length ? st.orgRepos[org] : [];
+        let selectedGroupType = st.repoGroups.length ? st.groups.filter(g => g.w3cid == st.repoGroups[0])[0].groupType : null;
+        let contributingLink, licenseLink;
+        if (selectedGroupType) {
+            contributingLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-CONTRIBUTING.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING.md' : 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING-SW.md');
+            licenseLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-LICENSE.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-LICENSE.md' : 'https://github.com/w3c/licenses/blob/master/WG-LICENSE-SW.md');
+        }
+        // Files selected by default:
+        // w3c.json in all cases (since it's used by ashnazg for operation)
+        // for new repos: CONTRIBUTING, LICENSE
+        // for new CG repos: +basic respec doc
+        
+        let licensePicker = selectedGroupType === 'WG' ?
+           <div className="formLine">License of the specification in that repository:
+             <RadioGroup ref="wglicense" name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
+                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents" target="_blank">W3C Document license</a> </label>
+                <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/Consortium/Legal/copyright-software" target="_blank">W3C Software and Document license</a> </label>
+                </RadioGroup></div>
+            : "";
+        let customization = st.mode === "edit" ? "" : <div className="formline">
+          <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist" : ""}:</p>
+          <ul>
+          <li><label><input defaultChecked ref="w3c" type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input ref="contacts" name="contacts" defaultValue={st.lastAddedRepo.w3cJsonContacts ? st.lastAddedRepo.w3cJsonContacts.join(",") : st.login + ","}/></label>)</li>
+          <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
+          <li><label><input type="checkbox" ref="license" name="license"  defaultChecked/> <a href={licenseLink} target="_blank">LICENSE.md</a></label></li>
+          <li><label><input type="checkbox" ref="readme" name="readme" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/README.md" target="_blank">README.md</a></label></li>
+          <li><label><input type="checkbox" ref="codeOfConduct" name="codeOfConduct" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/CODE_OF_CONDUCT.md" target="_blank">CODE_OF_CONDUCT.md</a></label></li>
+          <li><label><input type="checkbox" ref="spec" name="spec" defaultChecked={st.mode=='new' && selectedGroupType == 'CG'}/> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/index.html" target="_blank">Basic ReSpec-based document</a> as <code>index.html</code></label></li>
+          </ul>
+        </div>;
+        const cgs = st.groups.filter(g => g.groupType === 'CG').sort((g1,g2) => g1.name.localeCompare(g2.name));
+        const wgs = st.groups.filter(g => g.groupType === 'WG').sort((g1,g2) => g1.name.localeCompare(g2.name));
         let content = (st.status === "loading") ?
                         <Spinner prefix={pp}/>
                     :
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select disabled={readonly} ref="org" defaultValue={st.org} required onChange={this.updateOrg.bind(this)}>
+                                <select disabled={readonly} ref="org" defaultValue={st.org ? st.org : st.lastAddedRepo.org} required onChange={this.updateOrg.bind(this)}>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
@@ -172,11 +275,18 @@ export default class RepoNew extends React.Component {
                                  : ""}
                             </div>
                             <div className="formline">
-                                <label htmlFor="groups">relevant group</label>
-                                <select ref="groups" id="groups" defaultValue={st.group} multiple size="10" required>
-                                    {st.groups.map((g) => { return <option value={g.w3cid} key={g.w3cid}>{g.name}</option>; })}
+            <label htmlFor="groups">relevant group(s)</label>
+                                <select ref="groups" id="groups" defaultValue={st.initGroups ? st.initGroups : st.lastAddedRepo.groups} multiple size="10" required onChange={this.updateGroups.bind(this)}>
+                                   <optgroup label='Community Groups'>
+                                    {cgs.map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
+                                   </optgroup>
+                                   <optgroup label='Working Groups'>
+                                    {wgs.map((g) => { return <option value={g.w3cid} key={g.w3cid} disabled={selectedGroupType ? g.groupType != selectedGroupType : false}>{g.name}</option>; })}
+                                   </optgroup>
                                 </select>
                             </div>
+                            {licensePicker}
+                            {customization}
                             <div className="formline actions">
                                 <button>{st.mode === "new" ? "Create" : (st.mode === "import" ? "Import" : "Update")}</button>
                             </div>

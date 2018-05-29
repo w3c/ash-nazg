@@ -140,7 +140,7 @@ router.get("/api/logout", function (req, res) {
 
 // check if the user is logged in
 router.get("/api/logged-in", function (req, res) {
-    res.json({ ok: req.isAuthenticated(), admin: req.user ? req.user.admin : false });
+    res.json({ ok: req.isAuthenticated(), login: req.user ? req.user.username : null, admin: req.user ? req.user.admin : false });
 });
 
 // list all the users known to the system
@@ -180,6 +180,20 @@ router.post("/api/user/:username/add", ensureAdmin, bp.json(), loadGH, function 
             store.addUser(user, makeRes(res));
         });
     });
+});
+
+// log the last repo a user added to the system (to simplify UI)
+router.get("/api/my/last-added-repo", ensureAPIAuth, function (req, res) {
+    store.getUser(req.user.username, (err, user) => {
+        if (err) return error(res, err);
+        return makeRes(res)(null, user.lastAddedRepo || {});
+    });
+});
+router.post("/api/my/last-added-repo", ensureAPIAuth, bp.json(), function (req, res) {
+    store.mergeOnUser(req.user.username, {
+            lastAddedRepo:      req.body
+        }
+    ,   makeOK(res));
 });
 
 // GROUPS
@@ -317,6 +331,7 @@ function findOrCreateUserFromGithub(username, gh, cb) {
 }
 
 function prStatus (pr, delta, cb) {
+    const currentPrAcceptability = pr.acceptable;
     var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
     ,   statusData = {
             owner:      pr.owner
@@ -468,10 +483,17 @@ function prStatus (pr, delta, cb) {
                                     if (err) return cb(err);
                                     store.updatePR(pr.fullName, pr.num, pr, function (err) {
                                         if (err) return cb(err);
-                                        // FIXME: make it less context-dependent
-                                        notification.notifyContacts(gh, pr, statusData, mailer, config.notifyFrom, config.emailFallback, store, log, function(err) {
-                                            cb(err, pr);
-                                        });
+                                        // Only send email notifications
+                                        // if the status of the PR has just
+                                        // changed
+                                        if (currentPrAcceptability !== pr.acceptable) {
+                                            // FIXME: make it less context-dependent
+                                            return notification.notifyContacts(gh, pr, statusData, mailer, {from: config.notifyFrom, fallback: config.emailFallback || [], cc: config.emailCC || []}, store, log, function(err) {
+                                                cb(err, pr);
+                                            });
+                                        } else {
+                                            return cb(null, pr);
+                                        }
                                     });
                                 }
                                 );
@@ -496,7 +518,7 @@ function addGHHook(app, path) {
             var event;
             try { event = JSON.parse(buffer.toString()); }
             catch (e) { return error(res, e); }
-        
+
             // run checks before getting the secret to check the crypto
             var eventType = req.headers["x-github-event"];
             log.info("Hook got GH event " + eventType);
@@ -509,19 +531,16 @@ function addGHHook(app, path) {
             ;
             store.getSecret(repo, function (err, data) {
                 // if there's an error, we can't set an error on the status because we have no secret, so bail
-                if (err || !data) return error(res, "Secret not found: " + (err || "simply not there."));
-            
+                if (err || !data) return error(res, "Secret for " + repo + " not found: " + (err || "simply not there."));
+
                 // we have the secret, crypto check becomes possible
-                var ourSig = GH.signPayload("sha1", data.secret, buffer)
-                ,   theirSig = req.headers["x-hub-signature"]
-                ;
-                if (ourSig !== theirSig) return error(res, "GitHub signature does not match known secret.");
+                if (!GH.checkPayloadSignature("sha1", data.secret, buffer, req.headers["x-hub-signature"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
 
                 // for status we need: owner, repoShort, and sha
                 var repoShort = event.repository.name
                 ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
                 ;
-            
+
                 // pull request events
                 if (eventType === "pull_request") {
                     var sha = event.pull_request.head.sha;
@@ -546,26 +565,30 @@ function addGHHook(app, path) {
                             storedpr.sha = sha;
                             prStatus(storedpr, parseMessage(""), makeOK(res));
                         });
-                    }
-                    var pr = {
+                    } else if (event.action === "opened" || event.action === "reopened") {
+                        var pr = {
                             fullName:       repo
-                        ,   shortName:      repoShort
-                        ,   owner:          owner
-                        ,   num:            prNum
-                        ,   sha:            sha
-                        ,   status:         "open"
-                        ,   acceptable:     "pending"
-                        ,   unknownUsers:   []
-                        ,   outsideUsers:   []
-                        ,   contributors:   [event.pull_request.user.login]
-                        ,   contribStatus:  {}
+                            ,   shortName:      repoShort
+                            ,   owner:          owner
+                            ,   num:            prNum
+                            ,   sha:            sha
+                            ,   status:         "open"
+                            ,   acceptable:     "pending"
+                            ,   unknownUsers:   []
+                            ,   outsideUsers:   []
+                            ,   contributors:   [event.pull_request.user.login]
+                            ,   contribStatus:  {}
                         }
-                    ,   delta = parseMessage(event.pull_request.body)
-                    ;
-                    store.addPR(pr, function (err) {
-                        if (err) return error(res, err);
-                        prStatus(pr, delta, makeOK(res));
-                    });
+                        ,   delta = parseMessage(event.pull_request.body)
+                        ;
+                        store.addPR(pr, function (err) {
+                            if (err) return error(res, err);
+                            prStatus(pr, delta, makeOK(res));
+                        });
+                    } else {
+                        // we ignore other pull request events
+                        return ok(res);
+                    }
                 }
                 // issue comment events
                 else if (eventType === "issue_comment") {
@@ -585,7 +608,7 @@ function addGHHook(app, path) {
 router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     var prms = req.params;
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function(err, pr) {
-        if (err) return makeRes(res)(err);
+        if (err || !pr) return makeRes(res)(err  || "PR not found: " + prms.owner + "/" + prms.shortName + "-" + prms.num);
         async.map(pr.groups,
                   function(groupid, cb) {
                       store.getGroup(groupid, cb)
@@ -598,7 +621,7 @@ router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     });
 });
 // revalidate a PR
-router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;
@@ -609,20 +632,21 @@ router.get("/api/pr/:owner/:shortName/:num/revalidate", ensureAdmin, function (r
     });
 });
 // Mark a PR as non substantive
-router.post("/api/pr/:owner/:shortName/:num/markAsNonSubstantive", ensureAPIAuth, loadGH, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/markAs(|Non)Substantive", ensureAPIAuth, loadGH, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
+    ,   qualifier = prms[0].toLowerCase() // "" or "non" depending on the path
     ;
-    log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as non substantive");
+    log.info("Marking " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num + " as " + qualifier + " substantive");
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        store.updatePR(pr.fullName, pr.num, {markedAsNonSubstantiveBy: req.user.username}, function (err) {
+        store.updatePR(pr.fullName, pr.num, {markedAsNonSubstantiveBy: qualifier == "non" ? req.user.username : null}, function (err) {
             if (err) return error(res, err);
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prStatus(updatedPR, delta, function(err, pr) {
                     if (err) return error(res, err);
-                    pr.comment = "Marked as non-substantive for IPR from ash-nazg.";
+                    pr.comment = "Marked as " + qualifier + " substantive for IPR from ash-nazg.";
                     req.gh.commentOnPR(pr, function(err, comment) {
                         makeRes(res)(err, pr);
                     });
@@ -707,6 +731,7 @@ function addClientSideRoutes(app, prefix) {
         res.send(indexHTML);
     }
     app.get("/", showIndex);
+    app.get("/login", showIndex);
     app.get("/repo/*", showIndex);
     app.get("/repos", showIndex);
     app.get("/admin/*", showIndex);
@@ -796,7 +821,7 @@ module.exports.run = run;
 module.exports.app = app;
 
 if (require.main === module) {
-    var sendmailTransport = require('nodemailer-sendmail-transport');
-    var transporter = nodemailer.createTransport(sendmailTransport())
+    // FIXME abstract into configuration the mailer parameters
+    var transporter = nodemailer.createTransport({sendmail: true,  tls: {rejectUnauthorized: false}});
     run(require("./config.json"), transporter);
 }

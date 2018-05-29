@@ -4,6 +4,7 @@
 This document describes what one needs to know in order to hack on Ash-Nazg. If you are familiar
 with Node, [CouchDB][CouchDB], and [React][React] you are already on sane territory but I recommend
 you at least skim this document as the local specificities are laid out as well.
+
 ## IMPORTANT WARNING
 
 If you are rebuilding the client-side code on a Mac, you are likely to get an incomprehensible error
@@ -104,7 +105,7 @@ Running the server is as simple as:
 
     npm run start
 
-If you are going to develop however, that isn't the best way of running the server. If you are 
+If you are going to develop however, that isn't the best way of running the server. If you are
 touching several aspects (CSS, client, server) you will want to have several terminals open.
 
 When developing the server code, you want to run:
@@ -118,7 +119,7 @@ When developing client code, you want to run:
 
     npm run watch
 
-This will also use nodemon to monitor the CSS and JS/JSX to rebuild them as needed. Be warned that 
+This will also use nodemon to monitor the CSS and JS/JSX to rebuild them as needed. Be warned that
 the JS build can take a second or two, so if nothing changes because you reload too fast that's why.
 You can `watch-js` and `watch-css` separately if you want to.
 
@@ -128,7 +129,10 @@ you will need to expose yourself to the Web. You may already have your preferred
 but in case you don't you can use [ngrok][ngrok] (which is what I do). In order to expose your
 service through ngrok, just run
 
-    npm run expose
+```bash
+npm run expose # Or, if you don't have an ngrok paid plan:
+node_modules/ngrok/bin/ngrok http 3043
+```
 
 Note that you don't need that for regular development, you only need to be exposed if you want to
 receive GitHub events.
@@ -274,7 +278,7 @@ excessively on `div`s and classes.
 
 #### `application.jsx`
 
-A simple layout wrapper, with a title, that just renders its children. Used to render routed 
+A simple layout wrapper, with a title, that just renders its children. Used to render routed
 components into.
 
 #### `col.jsx` and `row.jsx`
@@ -288,7 +292,7 @@ navigation section, the items are basically just navigation entries.
 
 #### `spinner.jsx`
 
-This is a simple loading/progress spinner (that uses `img/spinner.svg`). If Chrome drops SMIL 
+This is a simple loading/progress spinner (that uses `img/spinner.svg`). If Chrome drops SMIL
 support this will need to be replaced by something else. It understands the `prefix` option in order
 to still work when the application is not running at the site's root (an improvement would be to
 just inline the SVG).
@@ -304,7 +308,7 @@ This just renders the list of success/error messages that are stored in the mess
 One architectural approach that works well with React is known as Flux. At its heart it is a simple
 idea to handle events and data in an application, in such a manner that avoids tangled-up messes.
 
-The application (typically driven by the user) can trigger an **action**, usually with attached 
+The application (typically driven by the user) can trigger an **action**, usually with attached
 data. An example from the code are error messages that can be emitted pretty much anywhere in the
 application (ditto success messages).
 
@@ -321,7 +325,7 @@ rendering.
 
 Overall, this application should make use of actions and stores a lot more. Developing it further
 will likely require refactoring along those lines. One of the great things with React is that the
-components are isolated in such a manner that you can follow bad practices inside of a given 
+components are isolated in such a manner that you can follow bad practices inside of a given
 component without damaging the rest of the application. Not that this is recommended, but it does
 allow one to experiment with what a given component should do before refactoring it. I would not say
 that the components in this application follow bad practices, but they could be refactored to use
@@ -330,11 +334,11 @@ stores and actions in order to be cleaner and more testable.
 #### `actions/messages.js` and `actions/user.js`
 
 These are actions. These modules can just be imported by any component that wishes to carry out such
-actions, without having to know anything about whether or how the result gets stored, or how it 
+actions, without having to know anything about whether or how the result gets stored, or how it
 might influence the rest of the application (it's completely fire-and-forget).
 
 The `messages.js` action module supports `error()` and `success()` messages, and can `dismiss()` a
-given message. The `user.js` action module supports `login()` and `logout()` actions corresponding 
+given message. The `user.js` action module supports `login()` and `logout()` actions corresponding
 to what the user does.
 
 #### `stores/login.js` and `stores/message.js`
@@ -397,7 +401,7 @@ A very simple dialog that can be used to add users with.
 
 #### `admin/edit-user.jsx`
 
-One of the more intricate parts of the system. Brings in data from GitHub, the W3C API, and the 
+One of the more intricate parts of the system. Brings in data from GitHub, the W3C API, and the
 system in order to bridge together various bits of information about the user, such as the groups
 they belong to, their real name, their affiliation, their W3C and GitHub IDs, etc.
 
@@ -410,7 +414,7 @@ in the system. Each line in the table is rendered by `group-line.jsx`.
 
 A very simple interface that links to `add-user` in order to add a user.
 
-# Test suite
+## Test suite
 
 The [test suite](./test/) only deals with the server-side of the app.
 

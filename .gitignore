@@ -29,3 +29,6 @@ node_modules
 scratch
 config.json
 data
+
+# Node.js 8 new shrinkwrap file:
+package-lock.json

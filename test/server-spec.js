@@ -143,8 +143,8 @@ var testWGPR = {
     }
 };
 
-var expectedFilesInCreatedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "index.html", "w3c.json"];
-var expectedFilesInImportedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md",  "w3c.json"];
+var expectedFilesInCreatedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "CODE_OF_CONDUCT.md", "index.html", "w3c.json"];
+var expectedFilesInImportedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "CODE_OF_CONDUCT.md", "w3c.json"];
 
 nock('https://api.w3.org')
     .get('/groups')
@@ -312,7 +312,7 @@ describe('Server starts and responds with no login', function () {
     it('responds to login query correctly when not logged in', function testLoggedIn(done) {
         req
             .get('/api/logged-in')
-            .expect(200, {ok: false, admin: false}, done);
+            .expect(200, {ok: false, login: null, admin: false}, done);
     });
 
     it('responds with 401 to protected GET routes', function testProtectedRoutes(done) {
@@ -357,7 +357,7 @@ describe('Server manages requests from regular logged-in users', function () {
     it('responds to login query correctly when logged in', function testLoggedIn(done) {
         authAgent
             .get('/api/logged-in')
-            .expect(200, {ok: true, admin: false}, done);
+            .expect(200, {ok: true, login: testUser.username, admin: false}, done);
     });
 
 
@@ -447,7 +447,7 @@ describe('Server manages requests from regular logged-in users', function () {
                 if (err) return done(err);
                 authAgent
                     .get('/api/logged-in')
-                    .expect(200, {ok: false, admin: false}, done);
+                    .expect(200, {ok: false, login: null, admin: false}, done);
             });
     });
 });
@@ -496,7 +496,7 @@ describe('Server manages requests in a set up repo', function () {
         testNewRepo.mockGH();
         authAgent
             .post('/api/create-repo')
-            .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id]})
+            .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true, includeSpec: true})
             .expect(200, function(err, res) {
                 if (err) return done(err);
                 expect(testNewRepo.files).to.have.length(expectedFilesInCreatedRepo.length);
@@ -509,7 +509,7 @@ describe('Server manages requests in a set up repo', function () {
         testExistingRepo.mockGH();
         authAgent
             .post('/api/import-repo')
-            .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id]})
+            .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true})
             .expect(200, function(err, res) {
                 if (err) return done(err);
                 expect(testExistingRepo.files).to.have.length(expectedFilesInImportedRepo.length);
@@ -522,7 +522,7 @@ describe('Server manages requests in a set up repo', function () {
         testCGRepo.mockGH();
         authAgent
             .post('/api/import-repo')
-            .send({org:testOrg.login, repo: testCGRepo.name, groups:["" + w3cGroup3.id]})
+            .send({org:testOrg.login, repo: testCGRepo.name, groups:["" + w3cGroup3.id], includeContributing: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeW3cJson: true})
             .expect(200, done);
     });
 
@@ -530,7 +530,7 @@ describe('Server manages requests in a set up repo', function () {
         store.makeUserAdmin(testUser.username, function() {
             authAgent
                 .get('/api/logged-in')
-                .expect(200, {ok: true, admin: true}, done);
+                .expect(200, {ok: true, login: testUser.username, admin: true}, done);
         });
     });
 
@@ -587,6 +587,24 @@ describe('Server manages requests in a set up repo', function () {
     });
 
 
+    it('allows admins to revalidate a PR without re-notifying of failures', function testRevalidateNoNotif(done) {
+        mockPRStatus(testPR, 'pending', /.*/);
+        nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser2.ghID)
+            .reply(404);
+        nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser3.ghID)
+            .reply(404);
+        mockPRStatus(testPR, 'failure', new RegExp(testPR.pull_request.user.login));
+        authAgent
+            .post('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                expect(transport.sentMail.length).to.be.equal(0);
+                done();
+            });
+    });
+
     it('allows admins to affiliate a user', function testAffiliateUser(done) {
         var groups = {};
         groups[w3cGroup.id] = true;
@@ -635,7 +653,7 @@ describe('Server manages requests in a set up repo', function () {
             });
     });
 
-    it('allows admins to revalidate a PR', function testRevalidate(done) {
+    it('allows logged-in users to revalidate a PR', function testRevalidate(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         mockUserAffiliation(testUser2, [w3cGroup]);
 
@@ -647,7 +665,7 @@ describe('Server manages requests in a set up repo', function () {
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
         mockPRStatus(testPR, 'success', /.*/);
         authAgent
-            .get('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
+            .post('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
             .expect(200, done);
     });
 

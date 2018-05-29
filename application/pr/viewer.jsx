@@ -18,6 +18,7 @@ export default class PRViewer extends React.Component {
         ,   owner:      null
         ,   shortName:  null
         ,   num:        null
+        ,   groupDetails: []
         };
     }
     componentDidMount () {
@@ -29,7 +30,7 @@ export default class PRViewer extends React.Component {
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
-                this.setState({ pr: data, status: "ready" });
+                this.setState({ pr: data, status: "ready", groupDetails: data.groupDetails });
             })
             .catch(utils.catchHandler)
         ;
@@ -38,7 +39,7 @@ export default class PRViewer extends React.Component {
     revalidate () {
         let st = this.state;
         this.setState({ status: "loading" });
-        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"), { credentials: "include" })
+        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "revalidate"].join("/"), { method: "POST", credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
                 console.log("got data", data);
@@ -49,13 +50,13 @@ export default class PRViewer extends React.Component {
         ;
     }
 
-markNonSubstantive () {
+    markSubstantiveOrNot (ev) {
+        const nonsubstantive = ev.target.name === "nonsubstantive";
         let st = this.state;
         this.setState({ status: "loading" });
-        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "markAsNonSubstantive"].join("/"), { method: "POST", credentials: "include" })
+        fetch(pp + "api/pr/" + [st.owner, st.shortName, st.num, "markAs" + (nonsubstantive ? "Non" : "") + "Substantive"].join("/"), { method: "POST", credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
-                console.log("got data", data);
                 this.setState({ pr: data, status: "ready" });
                 if (data.error) return MessageActions.error(data.error);
             })
@@ -82,18 +83,28 @@ markNonSubstantive () {
                     {st.owner + "/" + st.shortName + "#" + st.num}
                     </a>
             ;
+            let action;
+            const prAcceptance = st.pr.acceptable === "yes" ? (st.pr.markedAsNonSubstantiveBy ? "Marked as non substantive by " + st.pr.markedAsNonSubstantiveBy : "Made with proper IPR commitments" ) : "no";
+            if (st.pr.acceptable === "yes") {
+                let revert = "";
+                if (st.pr.markedAsNonSubstantiveBy) {
+                     revert = <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button></span>;
+                }
+                let merge = "";
+                if (st.pr.status === "open") {
+                    merge = <span>go merge it at {link}</span>;
+                }
+                action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
+            } else {
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
+            }
             content =   <table className="users-list">
                             <tr>
                                 <th style={thStyle}>Acceptable</th>
                                 <td className={st.pr.acceptable === "yes" ? "good" : "bad"}>
-                                    {st.pr.acceptable}
+                                    {prAcceptance}
                                     {" "}
-                                    {
-                                        st.pr.acceptable === "yes" ?
-                                                <span>— Go merge it at {link}</span>
-                                                :
-                                                <span><button onClick={this.revalidate.bind(this)}>Revalidate</button> <button onClick={this.markNonSubstantive.bind(this)}>Mark as non-substantive</button></span>
-                                    }
+                                    {action}
                                 </td>
                             </tr>
                             <tr>
@@ -125,9 +136,9 @@ markNonSubstantive () {
                         </table>
             ;
            if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
-               var wgDoc, groups = utils.andify(st.pr.groupDetails.map(g => g.name), "or");
+               var wgDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
-               if (!st.pr.groupDetails || !st.pr.groupDetails.length || st.pr.groupDetails[0].groupType === 'WG') {
+               if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
                    wgDoc = <li>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
 
                }

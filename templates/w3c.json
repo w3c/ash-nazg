@@ -1,5 +1,4 @@
  {
     "group":      {{w3cid}}
-,   "contacts":   ["{{username}}"]
-,   "shortName":  "{{repo}}"
+,   "contacts":   {{usernames}}
 }

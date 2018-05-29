@@ -1,23 +1,11 @@
 var Octokat = require("octokat")
-,   fs = require("fs")
 ,   async = require("async")
-,   jn = require("path").join
-,   log = require("./log")
 ,   pg = require("password-generator")
 ,   crypto = require("crypto")
+,   template = require("./template")
 ;
 
 // helpers
-function template (src, data) {
-    return fs.readFileSync(jn(__dirname, "templates", src), "utf8")
-             .replace(/\{\{(\w+)\}\}/g, function (_, k) {
-                 if (typeof data[k] === "undefined") {
-                     log.error("No template data for key=" + k + ", file=" + src);
-                     return "";
-                 }
-                 return data[k];
-             });
-}
 
 function GH (user) {
     if (!user) throw new Error("The GH module requires a user.");
@@ -127,22 +115,26 @@ GH.prototype = {
     // action is a function returning a promise that creates or imports a file, and logs a message
    // config is a configuration object with data about the server setup
 ,   createOrImportRepo: function (data, setupAction, action, config, cb) {
-        // { org: ..., repo: ... }
-        // we need to treat the current user and an org differently
+                               // { org: ..., repo: ... }
+        if (!data.groups.some(g => g)) return cb({json: {message: "No group selected to associate with repository"}});
         var report = []
         ,   target = (this.user.username === data.org) ?
+           // we need to treat the current user and an org differently
                             this.octo.me.repos :
                             this.octo.orgs(data.org).repos
         ,   license
+        ,   licensePath
         ,   contributing
+        ,   contributingPath
         ,   w3cJSON
         ,   index
         ,   simpleRepo
         ,   readme
+        ,   codeOfConduct
         ,   hookURL = config.hookURL || (config.url + config.hookPath)
         ,   tmplData = {
                 name:           andify(data.groups, "name")
-            ,   username:       this.user.username
+            ,   usernames:      data.w3cJsonContacts ? JSON.stringify(data.w3cJsonContacts) : null
             ,   w3cid:          JSON.stringify(data.groups.map(function (g) { return g.w3cid; }))
             ,   repo:           data.repo
             ,   displayName:    this.user.displayName
@@ -151,20 +143,32 @@ GH.prototype = {
         // collaborations between groups of different types aren't really possible, they don't have
         // the same legal regimen, so we only look at the first one
         if (data.groups[0].groupType === "CG") {
-            contributing = template("CG-contributing.md", tmplData);
-            license = template("CG-license.md", tmplData);
+            contributingPath = "CG-contributing.md";
+            licensePath = "CG-license.md";
         }
         else if (data.groups[0].groupType === "WG") {
-            contributing = template("WG-contributing.md", tmplData);
-            license = template("WG-license.md", tmplData);
+            if (data.wgLicense === 'doc') {
+                contributingPath = "WG-CONTRIBUTING.md";
+                licensePath = "WG-LICENSE.md";
+            } else {
+                contributingPath = "WG-CONTRIBUTING-SW.md";
+                licensePath = "WG-LICENSE-SW.md";
+            }
         }
         else {
             var msg = "We currently don't support creating repos for group type: " + data.groups[0].groupType;
-            return cb(msg);
+            return cb({json: {message: msg}});
         }
-        w3cJSON = template("w3c.json", tmplData);
-        index = template("index.html", tmplData);
-        readme = template("README.md", tmplData);
+        if (data.includeContributing && contributingPath) {
+            contributing = template(contributingPath, tmplData);
+        }
+        if (data.includeLicense && licensePath) {
+            license = template(licensePath, tmplData);
+        }
+        w3cJSON = data.includeW3cJson ? template("w3c.json", tmplData) : null;
+        index = data.includeSpec ? template("index.html", tmplData) : null;
+        readme = data.includeReadme ? template("README.md", tmplData) : null;
+        codeOfConduct = data.includeCodeOfConduct ? template("CODE_OF_CONDUCT.md", tmplData) : null;
         setupAction(this, target, data.org, data.repo, report)
             .then(function (repo) {
                 this.currentRepo = repo;
@@ -176,11 +180,12 @@ GH.prototype = {
                 ,   secret:     pg(20)
                 };
             }.bind(this))
-            .then(action(this, "LICENSE.md", license, report))
-            .then(action(this, "CONTRIBUTING.md", contributing, report))
-            .then(action(this, "README.md", readme, report))
-            .then(setupAction == pickUserRepo ? null : action(this, "index.html", index, report))
-            .then(action(this, "w3c.json", w3cJSON, report))
+            .then(license ? action(this, "LICENSE.md", license, report) : null)
+            .then(contributing ? action(this, "CONTRIBUTING.md", contributing, report) : null)
+            .then(readme ? action(this, "README.md", readme, report) : null)
+            .then(codeOfConduct ? action(this, "CODE_OF_CONDUCT.md", codeOfConduct, report) : null)
+            .then(index ? action(this, "index.html", index, report) : null)
+            .then(w3cJSON ? action(this, "w3c.json", w3cJSON, report) : null)
             .then(function () {
                 return this.currentRepo
                         .hooks
@@ -273,6 +278,10 @@ GH.prototype = {
 
 GH.signPayload = function (algo, secret, buffer) {
     return algo + "=" + crypto.createHmac(algo, secret).update(buffer).digest("hex");
+};
+
+GH.checkPayloadSignature = function (algo, secret, buffer, remotesig) {
+    return crypto.timingSafeEqual(Buffer.from(GH.signPayload(algo, secret, buffer)), Buffer.from(remotesig));
 };
 
 module.exports = GH;

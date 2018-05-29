@@ -29,11 +29,11 @@ h2 {
     font-size:  30px;
     margin-bottom:  10px;
 }
-a {
+a[href] {
     color:  #f1647c;
     text-decoration:    underline #84df5d;
 }
-a:hover {
+a[href]:hover {
     color:  #84df5d;
     text-decoration:    underline #f1647c;
 }
@@ -94,6 +94,10 @@ a:hover {
 .formline label {
     display:    block;
     font-weight:    bold;
+}
+.formline label.inline {
+    display:    inline-block;
+    font-weight:    normal;
 }
 .formline.actions {
     text-align: right;

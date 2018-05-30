@@ -22,6 +22,23 @@ that flag from the "Edit User" page.
 If you need to deploy or to hack on this tool, you will want to read the
 [Development Guide](https://github.com/w3c/ash-nazg/blob/master/DEVELOPMENT.md)
 
+Table of COntents (ToC):
+========================
+
+* [Common Tool][#common-tool]
+* [New Repository][#new-repository]
+* [Import Repository][#import-repository]
+* [Logout][#logout]
+* [How Pull Requests Get Handled][#how-pull-requests-get-handled]
+* [Admin Tools][#admin-tools]
+* [Currently Open Pull Requests][#currentl-open-pull-requests]
+* [PR Details][#pr-details]
+* [Add User to system][#add-user-to-system]
+* [Active Last Week PRs][#active-last-week-prs]
+* [Edit User][#edit-user]
+* [Admin > Users][#admin-users]
+* [Admin > Groups][#admin-groups]
+
 ## Common Tool
 
 ### New Repository

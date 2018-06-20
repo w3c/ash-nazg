@@ -7,7 +7,7 @@ This tool was created to support contributions made to a group, under the form o
 order to assess whether they are IPR-OK or not. It still has some rough edges but hopefully it can
 be usable enough to get started, and perfected over time.
 
-The tool is at currently in [my labs hatchery](https://labs.w3.org/hatchery/ash-nazg/), but 
+The tool is at currently in [my labs hatchery](https://labs.w3.org/hatchery/repo-manager/), but 
 hopefully at some point some kind soul will place it at a more memorable URL.
 
 When you get there, you will be asked to log in through GitHub. You can't do much without that, 

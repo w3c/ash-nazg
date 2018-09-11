@@ -59,7 +59,7 @@ one of the groups that the repo belongs to).
 
 Count as contributors not just the person making the pull request, but also anyone added either in 
 the PR description or in any subsequent comment using "`+@username`" on a line on its own. If a 
-contributor was added by mistake, she can be removed wit "`-@username`" on a line on its own. This
+contributor was added by mistake, she can be removed with "`-@username`" on a line on its own. This
 includes the person making the PR. Thanks to that, you can issue a PR completely on behalf of 
 someone else.
 

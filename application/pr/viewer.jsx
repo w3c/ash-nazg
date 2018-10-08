@@ -115,17 +115,17 @@ export default class PRViewer extends React.Component {
                                             Object.keys(cs)
                                                 .map((username) => {
                                                     if (cs[username] === "ok") {
-                                                        return <li className="good" key={username}>{username}</li>;
+                                                        return <li className="good" key={username}><a href={"https://github.com/" + {username} +"/"}>{username}</a></li>;
                                                     }
                                                     else if (cs[username] === "undetermined affiliation") {
                                                         return <li key={username}>
-                                                                <a className="bad" href="https://github.com/{username}/">{username}</a> is unknown,{" "} they need to link their <a href="https://www.w3.org/users/myprofile/connectedaccounts">Github account with a W3C account</a>.
+                                                        <a className="bad" href={"https://github.com/" + {username} +"/"}>{username}</a> is unknown,{" "} they need to link their <a href="https://www.w3.org/users/myprofile/connectedaccounts">Github account with a W3C account</a>.
                                                             </li>
                                                         ;
                                                     }
                                                     else {
                                                         return <li key={username}>
-                                                                <span className="bad">{username}</span> did not make IPR commitments for this group.
+                                                                <a href={"https://github.com/" + {username} +"/"} className="bad">{username}</a> did not make IPR commitments for this group.
                                                             </li>;
                                                     }
                                                 })

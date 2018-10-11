@@ -104,7 +104,7 @@ var testPR = {
     action: "opened",
     pull_request: {
         head: {
-            sha: "fedcba"
+            sha: "fedcbafedcbafedcbafedcbafedcbafedcbafedc"
         },
         user: {
             login: testUser2.username
@@ -119,7 +119,7 @@ var testCGPR = {
     action: "opened",
     pull_request: {
         head: {
-            sha: "fedcba1"
+            sha: "fedcba1fedcba1fedcba1fedcba1fedcba1fedcb"
         },
         user: {
             login: testUser3.username
@@ -134,7 +134,7 @@ var testWGPR = {
     action: "opened",
     pull_request: {
         head: {
-            sha: "fedcba2"
+            sha: "fedcba2fedcba2fedcba2fedcba2fedcba2fedcb"
         },
         user: {
             login: testUser3.username
@@ -672,7 +672,7 @@ describe('Server manages requests in a set up repo', function () {
     it('reacts to forced push in pull requests', function testPullRequestNotif(done) {
         var forcedPR = Object.assign({}, testPR);
         forcedPR.action = "synchronize";
-        forcedPR.pull_request.head.sha = "abcdef";
+        forcedPR.pull_request.head.sha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
         mockPRStatus(forcedPR, 'pending', /.*/);
         mockUserAffiliation(testUser2, [w3cGroup]);
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});

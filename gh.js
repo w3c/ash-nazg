@@ -61,13 +61,13 @@ function andify (groups, field) {
 
 GH.prototype = {
     userOrgs:       function(cb) {
-        this.octo.me.orgs.fetch(function (err, data) {
+        this.octo.me.orgs.fetch(function (err, {items: data}) {
             if (err) return cb(err);
             cb(null, [this.user.username].concat(data.map(function (org) { return org.login; })));
         }.bind(this));
     }
 ,   userOrgRepos:   function (cb) {
-        this.octo.me.orgs.fetch(function (err, data) {
+        this.octo.me.orgs.fetch(function (err, {items: data}) {
             if (err) return cb(err);
             async.map(
                 [{login: this.user.username, type: 'user'}].concat(data.map(function (org) { return {login: org.login, type: 'org'}; })),
@@ -79,7 +79,7 @@ GH.prototype = {
                         accountRepo = this.octo.orgs(account.login);
                     }
                     var repoPage =function(list) {
-                        return function(err, repos) {
+                        return function(err, {items: repos}) {
                             if (err) return accountCB(err);
                             var names = repos.map(function(r) { return r.name;});
                             if (repos.nextPage) {

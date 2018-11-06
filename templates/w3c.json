@@ -1,4 +1,5 @@
  {
     "group":      {{w3cid}}
 ,   "contacts":   {{usernames}}
+,   "repo-type":  {{repotype}}
 }

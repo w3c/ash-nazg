@@ -64,7 +64,6 @@ You now need to configure the system so that it can find various bits and pieces
 ,   "hookPath":         "api/hook"
     // if you aren't running ash-nazg at the root of a site, you can define a prefix so that it
     // knows where its actual root is. Otherwise /.
-,   "urlPathPrefix":    "/"
     // pick a port to use
 ,   "serverPort":       3043
     // you need a secret to seed the sessions

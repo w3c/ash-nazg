@@ -10,7 +10,8 @@ module.exports = {
         MessageActions.error(e);
     }
 ,   pathPrefix: () => {
-        if (!pathPrefix) pathPrefix = document.body.getAttribute("data-path-prefix");
+        if (!pathPrefix)
+            pathPrefix = PREFIX;
         return pathPrefix;
     }
 ,   val:    (ref) => {

@@ -3,10 +3,18 @@
   <head>
     <meta charset="utf-8">
     <title>W3C Repository Manager</title>
-    <link rel="stylesheet" href="{{pathPrefix}}css/app.min.css">
+    <link id="styles" rel="stylesheet" />
   </head>
-  <body data-path-prefix="{{pathPrefix}}">
+  <body>
     <div id="ashnazg"></div>
-    <script src="{{pathPrefix}}js/app.js"></script>
+    <script id="behaviour"></script>
+    <script>
+      if (/\/repo\-manager\//.test(location.pathname))
+        var PREFIX = location.pathname.substr(0, location.pathname.indexOf('/repo-manager/') + 14);
+      else
+        var PREFIX = '/';
+      document.getElementById('styles').href = PREFIX + 'css/app.min.css';
+      document.getElementById('behaviour').src = PREFIX + 'js/app.js';
+    </script>
   </body>
 </html>

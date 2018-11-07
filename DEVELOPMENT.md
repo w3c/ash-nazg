@@ -62,8 +62,6 @@ You now need to configure the system so that it can find various bits and pieces
 ,   "hookURL":          "http://ashnazg.ngrok.io/api/hook"
     // the local path for the GitHub hook
 ,   "hookPath":         "api/hook"
-    // if you aren't running ash-nazg at the root of a site, you can define a prefix so that it
-    // knows where its actual root is. Otherwise /.
     // pick a port to use
 ,   "serverPort":       3043
     // you need a secret to seed the sessions

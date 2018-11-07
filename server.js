@@ -723,10 +723,9 @@ router.get("/api/w3c/user/:user/affiliations", function (req, res) {
 });
 
 
-function addClientSideRoutes(app, prefix) {
+function addClientSideRoutes(app) {
     // handler for client-side routing
-    var indexHTML = fs.readFileSync(jn(__dirname, "templates/app.html"), "utf8")
-                        .replace(/\{\{pathPrefix\}\}/g, prefix);
+    var indexHTML = fs.readFileSync(jn(__dirname, "templates/app.html"), "utf8");
     function showIndex (req, res) {
         res.send(indexHTML);
     }
@@ -810,7 +809,7 @@ function run(configuration, configuredmailer) {
     app.use(passport.session());
     app.use(router);
     addGHHook(app, config.hookPath);
-    addClientSideRoutes(app, config.urlPathPrefix);
+    addClientSideRoutes(app);
     return app.listen(config.serverPort, function (err) {
         if (err) return log.error(err);
         log.info("Ash-Nazg/" + version + " up and running.");

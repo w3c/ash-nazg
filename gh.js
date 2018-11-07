@@ -138,6 +138,7 @@ GH.prototype = {
             ,   w3cid:          JSON.stringify(data.groups.map(function (g) { return g.w3cid; }))
             ,   repo:           data.repo
             ,   displayName:    this.user.displayName
+            ,   repotype:    data.groups[0].groupType === "WG" ? "rec-track" : "cg-report"
             }
         ;
         // collaborations between groups of different types aren't really possible, they don't have

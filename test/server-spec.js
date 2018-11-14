@@ -400,10 +400,10 @@ describe('Server manages requests from regular logged-in users', function () {
             .get('/user/orgs')
             .reply(200, [testOrg]);
         nock('https://api.github.com')
-            .get('/users/' + testUser.username + '/repos')
+            .get('/users/' + testUser.username + '/repos?per_page=100')
             .reply(200, []);
         nock('https://api.github.com')
-            .get('/orgs/' + testOrg.login + '/repos')
+            .get('/orgs/' + testOrg.login + '/repos?per_page=100')
             .reply(200, [testExistingRepo]);
 
         var repos = {};

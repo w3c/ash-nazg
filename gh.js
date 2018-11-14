@@ -79,17 +79,17 @@ GH.prototype = {
                         accountRepo = this.octo.orgs(account.login);
                     }
                     var repoPage =function(list) {
-                        return function(err, {items: repos}) {
+                        return function(err, {items: repos, nextPage}) {
                             if (err) return accountCB(err);
-                            var names = repos.map(function(r) { return r.name;});
-                            if (repos.nextPage) {
-                                repos.nextPage(repoPage(list.concat(names)));
+                            const names = repos.map(r => r.name);
+                            if (nextPage) {
+                                nextPage.fetch(repoPage(list.concat(names)));
                             } else {
                                 accountCB(null, {login: account.login, repos: list.concat(names)});
                             }
                         };
                     };
-                    accountRepo.repos.fetch(repoPage([]));
+                    accountRepo.repos.fetch({per_page: 100}, repoPage([]));
                 }.bind(this),
                 function(err, results) {
                     if (err) return cb(err);

@@ -135,7 +135,7 @@ GH.prototype = {
         ,   tmplData = {
                 name:           andify(data.groups, "name")
             ,   usernames:      data.w3cJsonContacts ? JSON.stringify(data.w3cJsonContacts) : null
-            ,   w3cid:          JSON.stringify(data.groups.map(function (g) { return g.w3cid; }))
+            ,   w3cid:          JSON.stringify(data.groups.map(function (g) { return parseInt(g.w3cid, 10); }))
             ,   repo:           data.repo
             ,   displayName:    this.user.displayName
             ,   repotype:    data.groups[0].groupType === "WG" ? "rec-track" : "cg-report"

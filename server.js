@@ -820,21 +820,7 @@ module.exports.run = run;
 module.exports.app = app;
 
 if (require.main === module) {
-    console.debug('--- started --- ' + new Date() + ' ---');
     // FIXME abstract into configuration the mailer parameters
     var transporter = nodemailer.createTransport({sendmail: true, path: '/usr/sbin/sendmail', tls: {rejectUnauthorized: false}});
-    console.dir(transporter);
-    const message = {
-	from: 'antonio@w3.org',
-	to: 'antonio@w3.org',
-	subject: '[Test ' + new Date() + ']',
-	text: '[Test ' + new Date() + ']',
-	replyTo: 'antonio@w3.org'
-    };
-    transporter.sendMail(message, (error, info) => {
-	if (error)
-	    console.dir(error);
-	console.dir(info);
-    });
     run(require("./config.json"), transporter);
 }

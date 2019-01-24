@@ -821,6 +821,6 @@ module.exports.app = app;
 
 if (require.main === module) {
     // FIXME abstract into configuration the mailer parameters
-    var transporter = nodemailer.createTransport({sendmail: true,  tls: {rejectUnauthorized: false}});
+    var transporter = nodemailer.createTransport({sendmail: true, path: '/usr/sbin/sendmail', tls: {rejectUnauthorized: false}});
     run(require("./config.json"), transporter);
 }

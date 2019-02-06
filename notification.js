@@ -19,6 +19,7 @@ exports.notifyContacts = function (gh, pr, status, mailer, emailConfig, store, l
         mailer.sendMail({
             from: emailConfig.from,
             to: actualEmails.join(","),
+            cc: [...emailConfig.cc].join(","),
             subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
             text: status.payload.description + "\n\n See " + status.payload.target_url
         }, function(err) {

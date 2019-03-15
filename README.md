@@ -1,6 +1,8 @@
 
 # Repository Manager (Ash-Nazg)
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/w3c/ash-nazg.svg)](https://greenkeeper.io/)
+
 One interface to find all group contributors and in IPR bind them.
 
 This tool was created to support contributions made to a group, under the form of pull requests, in

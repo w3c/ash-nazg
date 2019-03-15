@@ -29,7 +29,7 @@ module.exports = function(config) {
             );
         }
 
-        logger = new (winston.Logger)({ transports: transports });
+        logger = winston.createLogger({ transports: transports });
     }
     return logger;
 };

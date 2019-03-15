@@ -139,7 +139,7 @@ var testWGPR = {
         user: {
             login: testUser3.username
         },
-        body: ""
+        body: null
     }
 };
 

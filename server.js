@@ -277,7 +277,7 @@ function parseMessage (msg) {
     ,   remove: []
     ,   total:  0
     };
-    msg.split(/[\n\r]+/)
+    (msg || "").split(/[\n\r]+/)
         .forEach(function (line) {
             if (/^\+@[\w-_]+$/.test(line)) {
                 ret.add.push(line.replace(/^\+@/, ""));

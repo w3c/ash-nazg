@@ -125,7 +125,7 @@ export default class PRViewer extends React.Component {
                                                     }
                                                     else {
                                                         return <li key={username}>
-                                                                <a href={"https://github.com/" + username +"/"} className="bad">{username}</a> did not make IPR commitments for this group.
+                                                                <a href={"https://github.com/" + username +"/"} className="bad">{username}</a> did not make IPR commitments for this group (<a href="https://www.w3.org/community/wicg/participants">join</a>).
                                                             </li>;
                                                     }
                                                 })

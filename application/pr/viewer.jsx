@@ -25,13 +25,25 @@ export default class PRViewer extends React.Component {
         let owner = this.props.params.owner
         ,   shortName = this.props.params.shortName
         ,   num = this.props.params.num
+        ,   groupDetails
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
             .then(utils.jsonHandler)
             .then((data) => {
-                this.setState({ pr: data, status: "ready", groupDetails: data.groupDetails });
+                groupDetails = data.groupDetails || [];
+                this.setState({ pr: data  });
             })
+            .then(() => {
+                return Promise.all(groupDetails
+                                   .map(g => fetch(pp + "api/w3c/group/" + g.w3cid)
+                                        .then(utils.jsonHandler)
+                                        .then(groupdata => {
+                                          groupDetails.find(gg => gg.w3cid === g.w3cid).joinhref = groupdata._links.join.href;
+                                        })
+                                       ));
+            })
+            .then(() => this.setState({groupDetails, status: "ready"}))
             .catch(utils.catchHandler)
         ;
     }
@@ -124,8 +136,9 @@ export default class PRViewer extends React.Component {
                                                         ;
                                                     }
                                                     else {
+                                                        const groupJoins = (st.groupDetails || []).map((g, i, a) => <span><a href={g.joinhref}>join the {g.name}</a> {i < a.length - 1 ? " or " : ""}</span>);
                                                         return <li key={username}>
-                                                                <a href={"https://github.com/" + username +"/"} className="bad">{username}</a> did not make IPR commitments for this group.
+                                                          <a href={"https://github.com/" + username +"/"} className="bad">{username}</a> did not make IPR commitments for this group. To make the IPR commitments, {username} should {groupJoins}.
                                                             </li>;
                                                     }
                                                 })

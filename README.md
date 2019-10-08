@@ -1,7 +1,7 @@
 
 # Repository Manager (Ash-Nazg)
 
-One interface to find all group contributors and in [Intellectual Property Rights (IPR)](https://www.w3.org/IPR/work/NRC-v1.htm) bind them.
+One interface to find all group contributors and in Intellectual Property Rights (IPR) bind them.
 
 This tool was created to support contributions made to a group, under the form of pull requests, in
 order to assess whether they are IPR-OK or not. It still has some rough edges but hopefully it can

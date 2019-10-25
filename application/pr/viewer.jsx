@@ -77,6 +77,22 @@ export default class PRViewer extends React.Component {
 
     }
 
+    // Non-participant licensing commitments
+    askNPLC (ev) {
+        let st = this.state;
+        fetch(pp + "api/get-repo/" + [st.owner, st.shortName].join("/"), { credentials: "include"})
+            .then(utils.jsonHandler)
+            .then((data) => {
+                let repoId = data.id
+                let url = ['https://www.w3.org/2004/01/pp-impl/nplc', repoId, st.num, 'edit'].join("/") + '&';
+                url += st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).join('&') + '&';
+                url += st.pr.groups.map((g) => {return 'groups[]=' + g;}).join('&');
+                window.location = url;
+            })
+            .catch(utils.catchHandler)
+        ;
+    }
+
     render () {
         let st = this.state
         ,   content
@@ -108,7 +124,7 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
             }
             content =   <table className="users-list">
                             <tr>

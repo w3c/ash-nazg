@@ -260,6 +260,10 @@ function makeCreateOrImportRepo (mode) {
         );
     };
 }
+// GITHUB APIs
+router.get("/api/get-repo/:owner/:shortName", ensureAPIAuth, loadGH, function (req, res) {
+    req.gh.getRepo(req.params, makeRes(res));
+});
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), function(req, res) {

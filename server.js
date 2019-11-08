@@ -419,8 +419,24 @@ function prStatus (pr, delta, cb) {
                                         pr.contribStatus[username] = "ok";
                                         return cb(null, "ok");
                                     } else {
-                                        pr.contribStatus[username] = "not in group";
-                                        return cb(null, "not in group");
+                                        log.info("Looking up for non-participant licensing contribution");
+                                        gh.getRepo(pr, function(err, res) {
+                                            if (err) return cb(err);
+                                            w3c.nplc({repoId: res.id, pr: pr.num}).fetch(function(err, w3cnplc) {
+                                                if (err) {
+                                                  pr.contribStatus[username] = "not in group";
+                                                  return cb(null, "not in group");
+                                                }
+                                                const u = w3cnplc.commitments.find(c => {
+                                                    return c.user["connected-accounts"].find(ca => {
+                                                        return ca.nickname === username;
+                                                    });
+                                                });
+                                                const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
+                                                pr.contribStatus[username] = contribStatus;
+                                                return cb(null, contribStatus);
+                                            });
+                                        });
                                     }
                                 });
                             });

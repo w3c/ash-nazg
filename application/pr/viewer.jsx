@@ -83,11 +83,11 @@ export default class PRViewer extends React.Component {
         fetch(pp + "api/get-repo/" + [st.owner, st.shortName].join("/"), { credentials: "include"})
             .then(utils.jsonHandler)
             .then((data) => {
-                let repoId = data.id
-                let url = ['https://www.w3.org/2004/01/pp-impl/nplc', repoId, st.num, 'edit'].join("/") + '&';
-                url += st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).join('&') + '&';
-                url += st.pr.groups.map((g) => {return 'groups[]=' + g;}).join('&');
-                window.location = url;
+                let repoId = data.id;
+                let nplcUrl = new URL(['/2004/01/pp-impl/nplc', repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
+                let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
+                nplcUrl.search = qs;
+                window.location = nplcUrl.toString();
             })
             .catch(utils.catchHandler)
         ;
@@ -151,6 +151,12 @@ export default class PRViewer extends React.Component {
                                                             </li>
                                                         ;
                                                     }
+                                                    else if (cs[username] === "commitment pending") {
+                                                        return <li key={username}>
+                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> needs to submit his non-participant licensing commitment via the link he received by email.
+                                                            </li>
+                                                        ;
+                                                    }
                                                     else {
                                                         const groupJoins = (st.groupDetails || []).map((g, i, a) => <span><a href={g.joinhref}>join the {g.name}</a> {i < a.length - 1 ? " or " : ""}</span>);
                                                         return <li key={username}>
@@ -175,10 +181,10 @@ export default class PRViewer extends React.Component {
                         <p>Some of the contributors in this pull request were not recognized as having made the required IPR commitment to make substantive changes to the specification in this repository.</p>
                         <p>To fix this situation, please see which of the following applies:</p>
                         <ul>
-                        <li>if the contribution  does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
+                        <li>if the contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
                        <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
                         {wgDoc}
-                        <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor</li>
+                        <li>Otherwise, the group’s team contacts will request the non-participant licensing commitments the contributor</li>
                      </ul>
                   </div>;
               }

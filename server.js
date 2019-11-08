@@ -424,8 +424,9 @@ function prStatus (pr, delta, cb) {
                                             if (err) return cb(err);
                                             w3c.nplc({repoId: res.id, pr: pr.num}).fetch(function(err, w3cnplc) {
                                                 if (err) {
-                                                  pr.contribStatus[username] = "not in group";
-                                                  return cb(null, "not in group");
+                                                  // Non-participant licensing contribution doesn't exist yet
+                                                    pr.contribStatus[username] = "not in group";
+                                                    return cb(null, "not in group");
                                                 }
                                                 const u = w3cnplc.commitments.find(c => {
                                                     return c.user["connected-accounts"].find(ca => {

@@ -686,6 +686,9 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('rejects pull requests notifications from representatives of organizations in a CG', function testCGPullRequestNotif(done) {
+      nock('https://api.github.com')
+          .get('/repos/' + testCGRepo.full_name)
+          .reply(200, {id: 123456789, name: testCGRepo.name, full_name: testCGRepo.full_name});
         mockPRStatus(testCGPR, 'pending', /.*/);
         mockUserAffiliation(testUser3, []);
         nock('https://api.github.com')
@@ -694,6 +697,9 @@ describe('Server manages requests in a set up repo', function () {
         nock('https://api.github.com')
             .get('/users/' + testUser.username)
             .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
+        nock('https://api.w3.org')
+            .get('/nplcs/123456789/' + testCGPR.number)
+            .reply(404, {});
 
         mockPRStatus(testCGPR, 'failure', new RegExp(testCGPR.pull_request.user.login));
         req.post('/' + config.hookPath)
@@ -724,4 +730,3 @@ describe('Server manages requests in a set up repo', function () {
 
     });
 });
-

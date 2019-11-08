@@ -642,17 +642,11 @@ router.get("/api/pr/:owner/:shortName/:num", bp.json(), function (req, res) {
     });
 });
 // revalidate a PR
-router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, loadGH, function (req, res) {
+router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function (req, res) {
     var prms = req.params
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;
     log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
-    // check non-participant commitments
-    let repo = req.gh.getRepo({ owner: prms.owner, shortName: prms.shortName }, function (err, data) {
-        if (err) return error(res, err);
-        log.info("Repository ID: " + data.id);
-        // TODO check W3C API
-    });
 
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));

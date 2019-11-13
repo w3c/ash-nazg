@@ -19,6 +19,7 @@ export default class PRViewer extends React.Component {
         ,   shortName:  null
         ,   num:        null
         ,   groupDetails: []
+        ,   repoId:     null
         };
     }
     componentDidMount () {
@@ -44,6 +45,13 @@ export default class PRViewer extends React.Component {
                                        ));
             })
             .then(() => this.setState({groupDetails, status: "ready"}))
+            .catch(utils.catchHandler)
+        ;
+        fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
+            .then(utils.jsonHandler)
+            .then((data) => {
+                this.setState({ repoId: data.id  });
+            })
             .catch(utils.catchHandler)
         ;
     }
@@ -77,22 +85,6 @@ export default class PRViewer extends React.Component {
 
     }
 
-    // Non-participant licensing commitments
-    askNPLC (ev) {
-        let st = this.state;
-        fetch(pp + "api/get-repo/" + [st.owner, st.shortName].join("/"), { credentials: "include"})
-            .then(utils.jsonHandler)
-            .then((data) => {
-                let repoId = data.id;
-                let nplcUrl = new URL(['/2004/01/pp-impl/nplc', repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
-                let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
-                nplcUrl.search = qs;
-                window.location = nplcUrl.toString();
-            })
-            .catch(utils.catchHandler)
-        ;
-    }
-
     render () {
         let st = this.state
         ,   content
@@ -124,7 +116,7 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
             }
             content =   <table className="users-list">
                             <tr>
@@ -170,21 +162,26 @@ export default class PRViewer extends React.Component {
                             </tr>
                         </table>
             ;
-           if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
-               var wgDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
+            if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
+               let nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
+               let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
+               nplcUrl.search = qs;
+               var groupDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
                if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
-                   wgDoc = <li>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
-
+                   groupDoc = [<li key={1}>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>,
+                   <li key={2}>Otherwise, the WG’s team contacts will {this.props.isAdmin ? <a href={nplcUrl.toString()} target="_blank">request the contributors to sign the non-participant licensing commitments</a> : "request the contributors to sign the non-participant licensing commitments"}.</li>]
+               } else {
+                   groupDoc = <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor.</li>
                }
+
                doc = <div>
                         <p>Some of the contributors in this pull request were not recognized as having made the required IPR commitment to make substantive changes to the specification in this repository.</p>
                         <p>To fix this situation, please see which of the following applies:</p>
                         <ul>
                         <li>if the contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
-                       <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
-                        {wgDoc}
-                        <li>Otherwise, the group’s team contacts will request the non-participant licensing commitments the contributor</li>
+                        <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
+                        {groupDoc}
                      </ul>
                   </div>;
               }

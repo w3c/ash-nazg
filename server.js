@@ -261,7 +261,7 @@ function makeCreateOrImportRepo (mode) {
     };
 }
 // GITHUB APIs
-router.get("/api/get-repo/:owner/:shortName", ensureAPIAuth, loadGH, function (req, res) {
+router.get("/api/repos/:owner/:shortName", ensureAPIAuth, loadGH, function (req, res) {
     req.gh.getRepo(req.params, makeRes(res));
 });
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
@@ -419,24 +419,34 @@ function prStatus (pr, delta, cb) {
                                         pr.contribStatus[username] = "ok";
                                         return cb(null, "ok");
                                     } else {
-                                        log.info("Looking up for non-participant licensing contribution");
-                                        gh.getRepo(pr, function(err, res) {
+                                        // we assume that all groups are of the same type
+                                        store.getGroup(repoGroups[0], function(err, group) {
                                             if (err) return cb(err);
-                                            w3c.nplc({repoId: res.id, pr: pr.num}).fetch(function(err, w3cnplc) {
-                                                if (err) {
-                                                  // Non-participant licensing contribution doesn't exist yet
-                                                    pr.contribStatus[username] = "not in group";
-                                                    return cb(null, "not in group");
-                                                }
-                                                const u = w3cnplc.commitments.find(c => {
-                                                    return c.user["connected-accounts"].find(ca => {
-                                                        return ca.nickname === username;
-                                                    });
-                                                });
-                                                const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
-                                                pr.contribStatus[username] = contribStatus;
-                                                return cb(null, contribStatus);
-                                            });
+                                            if (!group) return cb("Unknown group: " + repoGroups[0]);
+                                            if (group.groupType === 'WG') {
+                                              log.info("Looking up for non-participant licensing contribution");
+                                              gh.getRepo(pr, function(err, res) {
+                                                  if (err) return cb(err);
+                                                  w3c.nplc({repoId: res.id, pr: pr.num}).fetch(function(err, w3cnplc) {
+                                                      if (err) {
+                                                          // Non-participant licensing contribution doesn't exist yet
+                                                          pr.contribStatus[username] = "not in group";
+                                                          return cb(null, "not in group");
+                                                      }
+                                                      const u = w3cnplc.commitments.find(c => {
+                                                          return c.user["connected-accounts"].find(ca => {
+                                                              return ca.nickname === username;
+                                                          });
+                                                      });
+                                                      const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
+                                                      pr.contribStatus[username] = contribStatus;
+                                                      return cb(null, contribStatus);
+                                                  });
+                                              });
+                                            } else {
+                                                pr.contribStatus[username] = "not in group";
+                                                return cb(null, "not in group");
+                                            }
                                         });
                                     }
                                 });

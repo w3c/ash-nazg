@@ -145,7 +145,7 @@ export default class PRViewer extends React.Component {
                                                     }
                                                     else if (cs[username] === "commitment pending") {
                                                         return <li key={username}>
-                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> needs to submit his non-participant licensing commitment via the link he received by email.
+                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> needs to submit their non-participant licensing commitment via the link they received by email.
                                                             </li>
                                                         ;
                                                     }

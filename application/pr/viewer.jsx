@@ -85,6 +85,18 @@ export default class PRViewer extends React.Component {
 
     }
 
+    // Non-participant licensing commitments
+    askNPLC (ev) {
+        let st = this.state;
+        let nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
+        let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
+        nplcUrl.search = qs;
+        let link = document.createElement("a");
+        link.href = nplcUrl.toString();
+        link.target = "_blank";
+        link.click();
+    }
+
     render () {
         let st = this.state
         ,   content
@@ -116,7 +128,7 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
             }
             content =   <table className="users-list">
                             <tr>
@@ -163,14 +175,11 @@ export default class PRViewer extends React.Component {
                         </table>
             ;
             if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
-               let nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
-               let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
-               nplcUrl.search = qs;
                var groupDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
                if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
                    groupDoc = [<li key={1}>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>,
-                   <li key={2}>Otherwise, the WG’s team contacts will {this.props.isAdmin ? <a href={nplcUrl.toString()} target="_blank">request the contributors to sign the non-participant licensing commitments</a> : "request the contributors to sign the non-participant licensing commitments"}.</li>]
+                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments.</li>]
                } else {
                    groupDoc = <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor.</li>
                }

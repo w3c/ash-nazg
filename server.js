@@ -732,6 +732,22 @@ router.get("/api/repos", function (req, res) {
 //     // remove hook
 // });
 
+// list the group the current user is team contact of
+router.get("/api/team-contact-of", ensureAPIAuth, function (req, res) {
+    let username = req.user.username;
+    store.getUser(username, function (err, user) {
+        if (err) {
+            return makeRes(res)(err);
+        }
+        w3c.user(user.w3capi).teamcontactofgroups().fetch(function(err, teamcontactof) {
+            if (err || teamcontactof[0] === undefined) {
+                return error(res, err);
+            }
+            return makeRes(res)(null, teamcontactof);
+        });
+
+    });
+});
 
 // W3C APIs
 // given the issues with paging and irregularities in the W3C API, it has been wrapped up in

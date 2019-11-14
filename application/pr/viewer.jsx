@@ -20,6 +20,7 @@ export default class PRViewer extends React.Component {
         ,   num:        null
         ,   groupDetails: []
         ,   repoId:     null
+        ,   teamcontact: null
         };
     }
     componentDidMount () {
@@ -28,6 +29,7 @@ export default class PRViewer extends React.Component {
         ,   num = this.props.params.num
         ,   groupDetails
         ,   repoId
+        ,   teamcontact = false
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
@@ -44,14 +46,26 @@ export default class PRViewer extends React.Component {
                                           groupDetails.find(gg => gg.w3cid === g.w3cid).joinhref = groupdata._links.join.href;
                                         })
                                        ));
-            }).then(() => {
+            })
+            .then(() => {
+                return fetch(pp + "api/team-contact-of", { credentials: "include"})
+                    .then(utils.jsonHandler)
+                    .then((data) => {
+                        if (!data.hasOwnProperty('error')) {
+                            teamcontact = groupDetails.some((g) => {
+                                return data.map((wg) => { return wg.title; }).includes(g.name);
+                            });
+                        }
+                    });
+            })
+            .then(() => {
                 return fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
                     .then(utils.jsonHandler)
                     .then((data) => {
                         repoId = data.id;
                     });
             })
-            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId}))
+            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId, teamcontact: teamcontact}))
             .catch(utils.catchHandler)
         ;
 
@@ -130,7 +144,7 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin || st.teamcontact ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
             }
             content =   <table className="users-list">
                             <tr>

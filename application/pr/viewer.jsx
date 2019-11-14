@@ -27,6 +27,7 @@ export default class PRViewer extends React.Component {
         ,   shortName = this.props.params.shortName
         ,   num = this.props.params.num
         ,   groupDetails
+        ,   repoId
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
@@ -43,17 +44,17 @@ export default class PRViewer extends React.Component {
                                           groupDetails.find(gg => gg.w3cid === g.w3cid).joinhref = groupdata._links.join.href;
                                         })
                                        ));
+            }).then(() => {
+                return fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
+                    .then(utils.jsonHandler)
+                    .then((data) => {
+                        repoId = data.id;
+                    });
             })
-            .then(() => this.setState({groupDetails, status: "ready"}))
+            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId}))
             .catch(utils.catchHandler)
         ;
-        fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
-            .then(utils.jsonHandler)
-            .then((data) => {
-                this.setState({ repoId: data.id  });
-            })
-            .catch(utils.catchHandler)
-        ;
+
     }
 
     revalidate () {
@@ -93,6 +94,7 @@ export default class PRViewer extends React.Component {
         nplcUrl.search = qs;
         let link = document.createElement("a");
         link.href = nplcUrl.toString();
+        link.className = "button";
         link.target = "_blank";
         link.click();
     }

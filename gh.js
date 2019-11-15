@@ -103,12 +103,6 @@ GH.prototype = {
             cb(null, comment);
         });
     }
-,   getRepo: function(data, cb) {
-        this.octo.repos(data.owner, data.shortName).fetch(function(err, data) {
-            if (err) return cb(err);
-            cb(null, data);
-        }.bind(this));
-    }
 ,   createRepo: function (data, config, cb) {
         this.createOrImportRepo(data, makeNewRepo, newFile, config, cb);
     }

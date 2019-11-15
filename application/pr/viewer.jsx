@@ -19,7 +19,6 @@ export default class PRViewer extends React.Component {
         ,   shortName:  null
         ,   num:        null
         ,   groupDetails: []
-        ,   repoId:     null
         ,   isTeamcontact: null
         };
     }
@@ -28,7 +27,6 @@ export default class PRViewer extends React.Component {
         ,   shortName = this.props.params.shortName
         ,   num = this.props.params.num
         ,   groupDetails
-        ,   repoId
         ,   isTeamcontact = false
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
@@ -55,13 +53,7 @@ export default class PRViewer extends React.Component {
                                 }
                             })
             )
-            .then(() => fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
-                            .then(utils.jsonHandler)
-                            .then((data) => {
-                                repoId = data.id;
-                            })
-            )
-            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId, isTeamcontact: isTeamcontact}))
+            .then(() => this.setState({groupDetails, status: "ready", isTeamcontact: isTeamcontact}))
             .catch(utils.catchHandler)
         ;
 
@@ -128,9 +120,9 @@ export default class PRViewer extends React.Component {
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
                 let nplc;
-                if (this.props.isAdmin || st.isTeamcontact) {
+                if ((this.props.isAdmin || st.isTeamcontact) && st.pr.repoId) {
                     let st = this.state
-                    ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
+                    ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.pr.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
                     ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')
                     ;
                     nplcUrl.search = qs;
@@ -187,7 +179,7 @@ export default class PRViewer extends React.Component {
                // we assume that all groups are of the same type
                if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
                    groupDoc = [<li key={1}>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>,
-                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments.</li>]
+                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments{!st.pr.repoId ? " (missing repository ID in the database)" : ""}</li>]
                } else {
                    groupDoc = <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor.</li>
                }

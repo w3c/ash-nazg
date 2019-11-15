@@ -261,9 +261,6 @@ function makeCreateOrImportRepo (mode) {
     };
 }
 // GITHUB APIs
-router.get("/api/repos/:owner/:shortName", ensureAPIAuth, loadGH, function (req, res) {
-    req.gh.getRepo(req.params, makeRes(res));
-});
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), function(req, res) {
@@ -424,21 +421,23 @@ function prStatus (pr, delta, cb) {
                                             if (err) return cb(err);
                                             if (!group) return cb("Unknown group: " + repoGroups[0]);
                                             if (group.groupType === 'WG') {
-                                              log.info("Looking up for non-participant licensing contribution");
-                                              gh.getRepo(pr, function(err, res) {
-                                                  if (err) return cb(err);
-                                                  w3c.nplc({repoId: res.id, pr: pr.num}).fetch(function(err, w3cnplc) {
-                                                      if (err) {
-                                                          // Non-participant licensing contribution doesn't exist yet
-                                                          pr.contribStatus[username] = "no commiment made";
-                                                          return cb(null, "no commiment made");
-                                                      }
-                                                      const u = w3cnplc.commitments.find(c => c.user["connected-accounts"].find(ca => ca.nickname === username));
-                                                      const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
-                                                      pr.contribStatus[username] = contribStatus;
-                                                      return cb(null, contribStatus);
-                                                  });
-                                              });
+                                                log.info("Looking up for non-participant licensing contribution");
+                                                if (pr.repoId) {
+                                                    w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch(function(err, w3cnplc) {
+                                                        if (err) {
+                                                            // Non-participant licensing contribution doesn't exist yet
+                                                            pr.contribStatus[username] = "no commiment made";
+                                                            return cb(null, "no commiment made");
+                                                        }
+                                                        const u = w3cnplc.commitments.find(c => c.user["connected-accounts"].find(ca => ca.nickname === username));
+                                                        const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
+                                                        pr.contribStatus[username] = contribStatus;
+                                                        return cb(null, contribStatus);
+                                                    });
+                                                } else {
+                                                    pr.contribStatus[username] = "no commiment made - missing repository ID";
+                                                    return cb(null, "no commiment made - missing repository ID");
+                                                }
                                             } else {
                                                 pr.contribStatus[username] = "not in group";
                                                 return cb(null, "not in group");
@@ -555,6 +554,7 @@ function addGHHook(app, path) {
 
             var owner = event.repository.owner.login
             ,   repo = event.repository.full_name
+            ,   repoId = event.repository.id
             ;
             store.getSecret(repo, function (err, data) {
                 // if there's an error, we can't set an error on the status because we have no secret, so bail
@@ -594,7 +594,8 @@ function addGHHook(app, path) {
                         });
                     } else if (event.action === "opened" || event.action === "reopened") {
                         var pr = {
-                            fullName:       repo
+                                fullName:       repo
+                            ,   repoId:         repoId
                             ,   shortName:      repoShort
                             ,   owner:          owner
                             ,   num:            prNum

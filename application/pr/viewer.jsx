@@ -47,24 +47,20 @@ export default class PRViewer extends React.Component {
                                         })
                                        ));
             })
-            .then(() => {
-                return fetch(pp + "api/team-contact-of", { credentials: "include"})
-                    .then(utils.jsonHandler)
-                    .then((data) => {
-                        if (!data.hasOwnProperty('error')) {
-                            teamcontact = groupDetails.some((g) => {
-                                return data.map((wg) => { return wg.title; }).includes(g.name);
-                            });
-                        }
-                    });
-            })
-            .then(() => {
-                return fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
-                    .then(utils.jsonHandler)
-                    .then((data) => {
-                        repoId = data.id;
-                    });
-            })
+            .then(() => fetch(pp + "api/team-contact-of", { credentials: "include"})
+                            .then(utils.jsonHandler)
+                            .then((data) => {
+                                if (!data.hasOwnProperty('error')) {
+                                    teamcontact = data.some(wg => groupDetails.map(g => "https://api.w3.org/groups/" + g.w3cid).includes(wg.href));
+                                }
+                            })
+            )
+            .then(() => fetch(pp + "api/repos/" + [owner, shortName].join("/"), { credentials: "include"})
+                            .then(utils.jsonHandler)
+                            .then((data) => {
+                                repoId = data.id;
+                            })
+            )
             .then(() => this.setState({groupDetails, status: "ready", repoId: repoId, teamcontact: teamcontact}))
             .catch(utils.catchHandler)
         ;
@@ -100,19 +96,6 @@ export default class PRViewer extends React.Component {
 
     }
 
-    // Non-participant licensing commitments
-    askNPLC (ev) {
-        let st = this.state;
-        let nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/');
-        let qs = st.pr.contributors.map((c) => {return 'contributors[]=' + c;}).concat(st.pr.groups.map((g) => {return 'groups[]=' + g;})).join('&');
-        nplcUrl.search = qs;
-        let link = document.createElement("a");
-        link.href = nplcUrl.toString();
-        link.className = "button";
-        link.target = "_blank";
-        link.click();
-    }
-
     render () {
         let st = this.state
         ,   content
@@ -144,7 +127,16 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button> { this.props.isAdmin || st.teamcontact ? <button name="nplc" onClick={this.askNPLC.bind(this)}>Ask for non-participant commitment</button> : "" }</span>;
+                let nplc;
+                if (this.props.isAdmin || st.teamcontact) {
+                    let st = this.state
+                    ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
+                    ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')
+                    ;
+                    nplcUrl.search = qs;
+                    nplc = <a className="button" target="_blank" href={nplcUrl}>Ask for non-participant commitment</a>
+                }
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button>{nplc}</span>;
             }
             content =   <table className="users-list">
                             <tr>

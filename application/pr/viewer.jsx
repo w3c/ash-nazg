@@ -20,7 +20,7 @@ export default class PRViewer extends React.Component {
         ,   num:        null
         ,   groupDetails: []
         ,   repoId:     null
-        ,   teamcontact: null
+        ,   isTeamcontact: null
         };
     }
     componentDidMount () {
@@ -29,7 +29,7 @@ export default class PRViewer extends React.Component {
         ,   num = this.props.params.num
         ,   groupDetails
         ,   repoId
-        ,   teamcontact = false
+        ,   isTeamcontact = false
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
@@ -51,7 +51,7 @@ export default class PRViewer extends React.Component {
                             .then(utils.jsonHandler)
                             .then((data) => {
                                 if (!data.hasOwnProperty('error')) {
-                                    teamcontact = data.some(wg => groupDetails.map(g => "https://api.w3.org/groups/" + g.w3cid).includes(wg.href));
+                                    isTeamcontact = data.some(wg => groupDetails.map(g => "https://api.w3.org/groups/" + g.w3cid).includes(wg.href));
                                 }
                             })
             )
@@ -61,7 +61,7 @@ export default class PRViewer extends React.Component {
                                 repoId = data.id;
                             })
             )
-            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId, teamcontact: teamcontact}))
+            .then(() => this.setState({groupDetails, status: "ready", repoId: repoId, isTeamcontact: isTeamcontact}))
             .catch(utils.catchHandler)
         ;
 
@@ -128,7 +128,7 @@ export default class PRViewer extends React.Component {
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
                 let nplc;
-                if (this.props.isAdmin || st.teamcontact) {
+                if (this.props.isAdmin || st.isTeamcontact) {
                     let st = this.state
                     ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
                     ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')

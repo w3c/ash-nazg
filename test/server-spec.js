@@ -736,9 +736,6 @@ describe('Server manages requests in a set up repo', function () {
         nock('https://api.w3.org')
             .get('/users/' + testUser3.w3capi + '/affiliations')
             .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [] }});
-        nock('https://api.github.com')
-            .get('/repos/' + testExistingRepo.full_name)
-            .reply(200, testExistingRepo.toGH());
         nock('https://api.w3.org')
             .get('/nplcs/' + testExistingRepo.id + '/' + testWGPR.number)
             .reply(200, {

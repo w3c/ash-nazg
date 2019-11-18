@@ -42,7 +42,8 @@ var testOrg = {login: "acme", id:12};
 var w3cAff = {id: 456, name: "ACME Inc"};
 var w3cApify = function(g, type) { return {href:'https://api.w3.org/' + (type ? type : 'groups') + '/' + g.id, title: g.name};};
 
-function RepoMock(_name, _owner, _files, _hooks) {
+function RepoMock(_id, _name, _owner, _files, _hooks) {
+    var id = _id;
     var name = _name;
     var owner = _owner;
     var full_name = owner + "/" + name;
@@ -52,6 +53,7 @@ function RepoMock(_name, _owner, _files, _hooks) {
     function addFile(f) { if (files.indexOf(f) === -1) { files.push(f); return true} else { return false;}}
     function toGH() {
         return {
+            id: id,
             name:name,
             full_name: full_name,
             owner: { login: owner},
@@ -91,12 +93,12 @@ function RepoMock(_name, _owner, _files, _hooks) {
             });
     }
 
-    return {name: name, files: files, hooks: hooks, mockGH: mockGH, toGH: toGH, owner: owner, full_name: full_name};
+    return {id: id, name: name, files: files, hooks: hooks, mockGH: mockGH, toGH: toGH, owner: owner, full_name: full_name};
 }
 
-var testNewRepo = new RepoMock("newrepo", "acme", [], []);
-var testExistingRepo = new RepoMock("existingrepo","acme", ["README.md"], []);
-var testCGRepo = new RepoMock("cgrepo","acme", ["README.md", "index.html"], []);
+var testNewRepo = new RepoMock(123, "newrepo", "acme", [], []);
+var testExistingRepo = new RepoMock(456, "existingrepo","acme", ["README.md"], []);
+var testCGRepo = new RepoMock(789, "cgrepo","acme", ["README.md", "index.html"], []);
 
 var testPR = {
     repository: testExistingRepo.toGH(),
@@ -723,5 +725,42 @@ describe('Server manages requests in a set up repo', function () {
             .expect(200, done);
 
     });
-});
 
+    it('revalidate a PR with non-member licensing commitments', function testRevalidate(done) {
+        mockPRStatus(testWGPR, 'pending', /.*/);
+        mockUserAffiliation(testUser3, []);
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id + '/participations')
+            .query({embed:"true"})
+            .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [] }});
+        nock('https://api.w3.org')
+            .get('/users/' + testUser3.w3capi + '/affiliations')
+            .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [] }});
+        nock('https://api.w3.org')
+            .get('/nplcs/' + testExistingRepo.id + '/' + testWGPR.number)
+            .reply(200, {
+                "pull-request": testWGPR.number,
+                "repository-id": testExistingRepo.id,
+                "commitments": [
+                  {
+                      "notification_date": "2019-10-01T00:00:00+00:00",
+                      "commitment_date": "2019-10-02T00:00:00+00:00",
+                      "user": {
+                          "connected-accounts": [
+                              {
+                                  "nickname": testUser3.username
+                              }
+                          ]
+                        }
+                    }
+                ]});
+        mockPRStatus(testWGPR, 'success', /.*/);
+        authAgent
+            .post('/api/pr/' + testExistingRepo.full_name + '/' + testWGPR.number + '/revalidate')
+            .expect(200, function(err, res) {
+                if (err) return done(err);
+                expect((res.body.acceptable === "yes"));
+                done();
+            });
+    });
+});

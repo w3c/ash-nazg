@@ -260,6 +260,7 @@ function makeCreateOrImportRepo (mode) {
         );
     };
 }
+// GITHUB APIs
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), function(req, res) {
@@ -415,8 +416,33 @@ function prStatus (pr, delta, cb) {
                                         pr.contribStatus[username] = "ok";
                                         return cb(null, "ok");
                                     } else {
-                                        pr.contribStatus[username] = "not in group";
-                                        return cb(null, "not in group");
+                                        // we assume that all groups are of the same type
+                                        store.getGroup(repoGroups[0], function(err, group) {
+                                            if (err) return cb(err);
+                                            if (!group) return cb("Unknown group: " + repoGroups[0]);
+                                            if (group.groupType === 'WG') {
+                                                log.info("Looking up for non-participant licensing contribution");
+                                                if (pr.repoId) {
+                                                    w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch(function(err, w3cnplc) {
+                                                        if (err) {
+                                                            // Non-participant licensing contribution doesn't exist yet
+                                                            pr.contribStatus[username] = "no commiment made";
+                                                            return cb(null, "no commiment made");
+                                                        }
+                                                        const u = w3cnplc.commitments.find(c => c.user["connected-accounts"].find(ca => ca.nickname === username));
+                                                        const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
+                                                        pr.contribStatus[username] = contribStatus;
+                                                        return cb(null, contribStatus);
+                                                    });
+                                                } else {
+                                                    pr.contribStatus[username] = "no commiment made - missing repository ID";
+                                                    return cb(null, "no commiment made - missing repository ID");
+                                                }
+                                            } else {
+                                                pr.contribStatus[username] = "not in group";
+                                                return cb(null, "not in group");
+                                            }
+                                        });
                                     }
                                 });
                             });
@@ -528,6 +554,7 @@ function addGHHook(app, path) {
 
             var owner = event.repository.owner.login
             ,   repo = event.repository.full_name
+            ,   repoId = event.repository.id
             ;
             store.getSecret(repo, function (err, data) {
                 // if there's an error, we can't set an error on the status because we have no secret, so bail
@@ -567,7 +594,8 @@ function addGHHook(app, path) {
                         });
                     } else if (event.action === "opened" || event.action === "reopened") {
                         var pr = {
-                            fullName:       repo
+                                fullName:       repo
+                            ,   repoId:         repoId
                             ,   shortName:      repoShort
                             ,   owner:          owner
                             ,   num:            prNum
@@ -626,6 +654,7 @@ router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function
     ,   delta = parseMessage("") // this gets us a valid delta object, even if it has nothing
     ;
     log.info("Revalidating " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num);
+
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
         prStatus(pr, delta, makeRes(res));
@@ -700,6 +729,22 @@ router.get("/api/repos", function (req, res) {
 //     // remove hook
 // });
 
+// list the group the current user is team contact of
+router.get("/api/team-contact-of", ensureAPIAuth, function (req, res) {
+    let username = req.user.username;
+    store.getUser(username, function (err, user) {
+        if (err) {
+            return makeRes(res)(err);
+        }
+        w3c.user(user.w3capi).teamcontactofgroups().fetch(function(err, teamcontactof) {
+            if (err || teamcontactof[0] === undefined) {
+                return error(res, err);
+            }
+            return makeRes(res)(null, teamcontactof);
+        });
+
+    });
+});
 
 // W3C APIs
 // given the issues with paging and irregularities in the W3C API, it has been wrapped up in

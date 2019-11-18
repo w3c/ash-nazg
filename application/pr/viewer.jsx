@@ -19,6 +19,7 @@ export default class PRViewer extends React.Component {
         ,   shortName:  null
         ,   num:        null
         ,   groupDetails: []
+        ,   isTeamcontact: null
         };
     }
     componentDidMount () {
@@ -26,6 +27,7 @@ export default class PRViewer extends React.Component {
         ,   shortName = this.props.params.shortName
         ,   num = this.props.params.num
         ,   groupDetails
+        ,   isTeamcontact = false
         ;
         this.setState({ owner: owner, shortName: shortName, num: num });
         fetch(pp + "api/pr/" + [owner, shortName, num].join("/"), { credentials: "include" })
@@ -43,9 +45,18 @@ export default class PRViewer extends React.Component {
                                         })
                                        ));
             })
-            .then(() => this.setState({groupDetails, status: "ready"}))
+            .then(() => fetch(pp + "api/team-contact-of", { credentials: "include"})
+                            .then(utils.jsonHandler)
+                            .then((data) => {
+                                if (!data.hasOwnProperty('error')) {
+                                    isTeamcontact = data.some(wg => groupDetails.map(g => "https://api.w3.org/groups/" + g.w3cid).includes(wg.href));
+                                }
+                            })
+            )
+            .then(() => this.setState({groupDetails, status: "ready", isTeamcontact: isTeamcontact}))
             .catch(utils.catchHandler)
         ;
+
     }
 
     revalidate () {
@@ -108,7 +119,16 @@ export default class PRViewer extends React.Component {
                 }
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button></span>;
+                let nplc;
+                if ((this.props.isAdmin || st.isTeamcontact) && st.pr.repoId) {
+                    let st = this.state
+                    ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.pr.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
+                    ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')
+                    ;
+                    nplcUrl.search = qs;
+                    nplc = <a className="button" target="_blank" href={nplcUrl}>Ask for non-participant commitment</a>
+                }
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button>{nplc}</span>;
             }
             content =   <table className="users-list">
                             <tr>
@@ -135,6 +155,12 @@ export default class PRViewer extends React.Component {
                                                             </li>
                                                         ;
                                                     }
+                                                    else if (cs[username] === "commitment pending") {
+                                                        return <li key={username}>
+                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> needs to submit their non-participant licensing commitment via the link they received by email.
+                                                            </li>
+                                                        ;
+                                                    }
                                                     else {
                                                         const groupJoins = (st.groupDetails || []).map((g, i, a) => <span><a href={g.joinhref}>join the {g.name}</a> {i < a.length - 1 ? " or " : ""}</span>);
                                                         return <li key={username}>
@@ -148,21 +174,23 @@ export default class PRViewer extends React.Component {
                             </tr>
                         </table>
             ;
-           if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
-               var wgDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
+            if (st.pr.acceptable == "no" && st.pr.unaffiliatedUsers.length) {
+               var groupDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
                if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
-                   wgDoc = <li>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
-
+                   groupDoc = [<li key={1}>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>,
+                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments{!st.pr.repoId ? " (missing repository ID in the database)" : ""}</li>]
+               } else {
+                   groupDoc = <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor.</li>
                }
+
                doc = <div>
                         <p>Some of the contributors in this pull request were not recognized as having made the required IPR commitment to make substantive changes to the specification in this repository.</p>
                         <p>To fix this situation, please see which of the following applies:</p>
                         <ul>
-                        <li>if the contribution  does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
-                       <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
-                        {wgDoc}
-                        <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor</li>
+                        <li>if the contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), the contribution can be marked as non-substantive with the button above - this requires to be logged-in in this system.</li>
+                        <li>if the said contributor is a member of {groups}, they should <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>
+                        {groupDoc}
                      </ul>
                   </div>;
               }

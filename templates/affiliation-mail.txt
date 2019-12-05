@@ -22,7 +22,7 @@ As our automated tool was not able to determine with what organization (if any) 
 
 * otherwise, please contact {{contacts}} to see how to proceed with your contribution.
 
-Thanks again for your contribution. If any of this is unclear, please contact web-human@w3.org or {{contacts}} for assistance.
+Thanks again for your contribution. If any of this is unclear, please contact sysreq@w3.org or {{contacts}} for assistance.
 
 -- 
 W3C automated IPR checker

@@ -19,7 +19,7 @@ var mockTransport = require('nodemailer-mock-transport');
 var transport = mockTransport();
 var transporter = nodemailer.createTransport(transport);
 
-var ghScope = "user:email,public_repo,writse:repo_hook,read:org";
+var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 
 // simplify debugging of missed nock requests
 nock.emitter.on('no match', function(req, options, requestBody) {

@@ -20,8 +20,7 @@ var express = require("express")
 ,   app = express()
 ,   version = require("./package.json").version
 ,   nodemailer = require('nodemailer')
-,    w3ciprcheck = require('./w3c-ipr')
-,    notification = require('./notification')
+,   PRChecker = require('./pr-check')
 ;
 
 var config, log, Store, store, mailer;
@@ -293,247 +292,6 @@ function parseMessage (msg) {
     return ret;
 }
 
-function findW3CUserFromGithub(user, cb) {
-    log.info("Looking for github user with id " + user.ghID + " in W3C API");
-    w3c.user({type: 'github', id: user.ghID}).fetch(function(err, w3cuser) {
-        if (err) return cb(null, user);
-        store.mergeOnUser(user.username, {
-            w3cid:              w3cuser.id,
-            w3capi:             w3cuser._links.self.href.replace(/.*\//, "")
-        },  function(err) {
-            if (err) return cb(null, user);
-                return store.getUser(user.username, cb);
-        });
-    });
-}
-
-function findOrCreateUserFromGithub(username, gh, cb) {
-    store.getUser(username, function (err, user) {
-        if ((err && err.error === "not_found") || !user) {
-            log.info("Getting GH id from github for " + username);
-            gh.getUser(username, function (err, user) {
-                if (err) return cb(err);
-                // we store this for sake of efficiency
-                store.addUser(user, function(err) {
-                    if (err) return cb(err);
-                    return findW3CUserFromGithub(user, cb);
-                });
-            })
-        } else {
-            if (err) return cb(err);
-            // Let's check if the link has since been established
-            if (!user.w3capi) {
-                return findW3CUserFromGithub(user, cb);
-            } else {
-                return cb(null, user);
-            }
-        }
-    });
-}
-
-function prStatus (pr, delta, cb) {
-    const currentPrAcceptability = pr.acceptable;
-    var prString = pr.owner + "/" + pr.shortName + "/" + pr.num
-    ,   statusData = {
-            owner:      pr.owner
-        ,   shortName:  pr.shortName
-        ,   sha:        pr.sha
-        ,   payload:    {
-                state:          "pending"
-            ,   target_url:     config.url + "pr/id/" + prString
-            ,   description:    "PR is being assessed, results will come shortly."
-            ,   context:        "ipr"
-            }
-        }
-    ;
-    log.info("Setting status for PR " + prString);
-    store.getRepo(pr.fullName, function (err, repo) {
-        if (err) return cb(err);
-        if (!repo) return cb("Unknown repository: " + pr.fullName);
-        var repoGroups = repo.groups;
-        store.getToken(repo.owner, function (err, token) {
-            if (err) return cb(err);
-            if (!token) return cb("Token not found for: " + repo.owner);
-            var gh = new GH({ accessToken: token.token });
-            log.info("Setting pending status on " + prString);
-            gh.status(
-                statusData
-            ,   function (err) {
-                    if (err) return cb(err);
-                    var contrib = {};
-                    log.info("Finding deltas for " + prString);
-                    pr.contributors.forEach(function (c) { contrib[c] = true; });
-                    delta.add.forEach(function (c) { contrib[c] = true; });
-                    delta.remove.forEach(function (c) { delete contrib[c]; });
-                    pr.contributors = Object.keys(contrib);
-                    pr.contribStatus = {};
-                    pr.groups = repoGroups;
-                    pr.affiliations = {};
-                    if (pr.markedAsNonSubstantiveBy) {
-                        pr.acceptable = "yes";
-                        statusData.payload.state = "success";
-                        statusData.payload.description = "PR deemed acceptable as non-substantive by @" + pr.markedAsNonSubstantiveBy + ".";
-                        log.info("Setting status success for " + prString);
-                        gh.status(
-                            statusData
-                            ,   function (err) {
-                                if (err) return cb(err);
-                                store.updatePR(pr.fullName, pr.num, pr, function (err) {
-                                    cb(err, pr);
-                                });
-                            }
-                        );
-                        return;
-                    }
-                    log.info("Looking up users for " + prString);
-                    async.map(
-                        pr.contributors
-                    ,   function (username, cb) {
-                            findOrCreateUserFromGithub(username, gh, function(err, user) {
-                                if (err) return cb(err);
-
-                                // TODO: check that this is appropriate
-                                // and if so, replace by check of affiliation
-                                // to staff
-                                if (user.blanket) {
-                                    pr.affiliations[user.affiliation] = user.affiliationName;
-                                    pr.contribStatus[username] = "ok";
-                                    return cb(null, "ok");
-                                }
-                                // if user not found in W3C API,
-                                // report undetermined affiliation
-                                // TODO: We will contact contributor to ask
-                                // establishing the connection.
-                                if (!user.w3capi) {
-                                    pr.contribStatus[username] = "undetermined affiliation";
-                                    return cb(null, "undetermined affiliation");
-                                }
-                                w3ciprcheck(w3c, user.w3capi, user.displayName, repoGroups, store, function(err, result) {
-                                    if (err) return cb(err);
-                                    var ok = result.ok;
-                                    if (ok) {
-                                        pr.affiliations[result.affiliation.id] = result.affiliation.name;
-                                        pr.contribStatus[username] = "ok";
-                                        return cb(null, "ok");
-                                    } else {
-                                        // we assume that all groups are of the same type
-                                        store.getGroup(repoGroups[0], function(err, group) {
-                                            if (err) return cb(err);
-                                            if (!group) return cb("Unknown group: " + repoGroups[0]);
-                                            if (group.groupType === 'WG') {
-                                                log.info("Looking up for non-participant licensing contribution");
-                                                if (pr.repoId) {
-                                                    w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch(function(err, w3cnplc) {
-                                                        if (err) {
-                                                            // Non-participant licensing contribution doesn't exist yet
-                                                            pr.contribStatus[username] = "no commiment made";
-                                                            return cb(null, "no commiment made");
-                                                        }
-                                                        const u = w3cnplc.commitments.find(c => c.user["connected-accounts"].find(ca => ca.nickname === username));
-                                                        const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
-                                                        pr.contribStatus[username] = contribStatus;
-                                                        return cb(null, contribStatus);
-                                                    });
-                                                } else {
-                                                    pr.contribStatus[username] = "no commiment made - missing repository ID";
-                                                    return cb(null, "no commiment made - missing repository ID");
-                                                }
-                                            } else {
-                                                pr.contribStatus[username] = "not in group";
-                                                return cb(null, "not in group");
-                                            }
-                                        });
-                                    }
-                                });
-                            });
-                        }
-                    ,   function (err, results) {
-                            if (err) return cb(err);
-                            var good = results.every(function (st) { return st === "ok"; });
-                            log.info("Got users for " + prString + " results good? " + good);
-                            if (good) {
-                                pr.acceptable = "yes";
-                                pr.unknownUsers = [];
-                                pr.outsideUsers = [];
-                                statusData.payload.state = "success";
-                                statusData.payload.description = "PR deemed acceptable.";
-                                log.info("Setting status success for " + prString);
-                                gh.status(
-                                    statusData
-                                ,   function (err) {
-                                        if (err) return cb(err);
-                                        store.updatePR(pr.fullName, pr.num, pr, function (err) {
-                                            cb(err, pr);
-                                        });
-                                    }
-                                );
-                            }
-                            else {
-                                pr.acceptable = "no";
-                                pr.unknownUsers = [];
-                                pr.outsideUsers = [];
-                                pr.unaffiliatedUsers = [];
-                                for (var u in pr.contribStatus) {
-                                    if (pr.contribStatus[u] === "unknown") pr.unknownUsers.push(u);
-                                    if (pr.contribStatus[u] === "undetermined affiliation") pr.unaffiliatedUsers.push(u);
-                                    if (pr.contribStatus[u] === "not in group") pr.outsideUsers.push(u);
-                                }
-                                var msg = "PR has contribution issues.";
-                                if (pr.unknownUsers.length)
-                                    msg += " The following users were unknown: " +
-                                            pr.unknownUsers
-                                                .map(function (u) { return "@" + u; })
-                                                .join(", ") +
-                                                ".";
-                                if (pr.unaffiliatedUsers.length)
-                                    msg += " The following users' affiliation could not be determined: " +
-                                            pr.unaffiliatedUsers
-                                                .map(function (u) { return "@" + u; })
-                                                .join(", ") +
-                                                ".";
-                                if (pr.outsideUsers.length)
-                                    msg += " The following users were not in the repository's groups: " +
-                                            pr.outsideUsers
-                                                .map(function (u) { return "@" + u; })
-                                                .join(", ") +
-                                                ".";
-                                statusData.payload.state = "failure";
-                                statusData.payload.description =  msg;
-                                if (statusData.payload.description.length > 140) {
-                                    statusData.payload.description = statusData.payload.description.slice(0, 139) + '…';
-                                }
-                                log.info("Setting status failure for " + prString + ", " + msg);
-                                gh.status(
-                                    statusData
-                                ,   function (err) {
-                                    if (err) return cb(err);
-                                    store.updatePR(pr.fullName, pr.num, pr, function (err) {
-                                        if (err) return cb(err);
-                                        // Only send email notifications
-                                        // if the status of the PR has just
-                                        // changed
-                                        if (currentPrAcceptability !== pr.acceptable) {
-                                            // FIXME: make it less context-dependent
-                                            return notification.notifyContacts(gh, pr, statusData, mailer, {from: config.notifyFrom, fallback: config.emailFallback || [], cc: config.emailCC || []}, store, log, function(err) {
-                                                cb(err, pr);
-                                            });
-                                        } else {
-                                            return cb(null, pr);
-                                        }
-                                    });
-                                }
-                                );
-
-                            }
-                        }
-                    );
-                }
-            );
-        });
-    });
-}
-
-
 function addGHHook(app, path) {
     app.post("/" + path, function (req, res) {
         // we can't use bp.json(), that'll wreck secret checking by consuming the buffer
@@ -590,7 +348,7 @@ function addGHHook(app, path) {
                         return store.getPR(repo, prNum, function (err, storedpr) {
                             if (err || !storedpr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
                             storedpr.sha = sha;
-                            prStatus(storedpr, parseMessage(""), makeOK(res));
+                            prChecker.validate(storedpr, parseMessage(""), makeOK(res));
                         });
                     } else if (event.action === "opened" || event.action === "reopened") {
                         var pr = {
@@ -611,7 +369,7 @@ function addGHHook(app, path) {
                         ;
                         store.addPR(pr, function (err) {
                             if (err) return error(res, err);
-                            prStatus(pr, delta, makeOK(res));
+                            prChecker.validate(pr, delta, makeOK(res));
                         });
                     } else {
                         // we ignore other pull request events
@@ -624,7 +382,7 @@ function addGHHook(app, path) {
                     if (!delta.total) return ok(res);
                     store.getPR(repo, prNum, function (err, pr) {
                         if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
-                        prStatus(pr, delta, makeOK(res));
+                        prChecker.validate(pr, delta, makeOK(res));
                     });
                 }
             });
@@ -657,7 +415,7 @@ router.post("/api/pr/:owner/:shortName/:num/revalidate", ensureAPIAuth, function
 
     store.getPR(prms.owner + "/" + prms.shortName, prms.num, function (err, pr) {
         if (err || !pr) return error(res, (err || "PR not found: " + prms.owner + "/" + prms.shortName + "/pulls/" + prms.num));
-        prStatus(pr, delta, makeRes(res));
+        prChecker.validate(pr, delta, makeOK(res));
     });
 });
 // Mark a PR as non substantive
@@ -673,7 +431,7 @@ router.post("/api/pr/:owner/:shortName/:num/markAs(|Non)Substantive", ensureAPIA
             if (err) return error(res, err);
             store.getPR(pr.fullName, pr.num, function(err, updatedPR) {
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
-                prStatus(updatedPR, delta, function(err, pr) {
+                prChecker.validate(updatedPR, delta, function(err, pr) {
                     if (err) return error(res, err);
                     pr.comment = "Marked as " + qualifier + " substantive for IPR from ash-nazg.";
                     req.gh.commentOnPR(pr, function(err, comment) {
@@ -846,6 +604,7 @@ function run(configuration, configuredmailer) {
                 log.info("Login successful: " + profile.username);
                 done(null, profile);
             });
+            prChecker = new PRChecker(config, log, store, GH, mailer);
         }
     ));
 

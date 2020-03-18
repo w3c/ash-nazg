@@ -1,59 +1,46 @@
-var async = require("async");
 const template = require("./template");
+const doAsync = require('doasync') // rather than utils.promisy to get "free" support for object methods
 
-exports.notifyContacts = function (gh, pr, status, mailer, emailConfig, store, log, cb) {
-    log.info("Attempting to notify error on " + pr.fullName);
-    var staff = gh.getRepoContacts(pr.fullName, function(err, emails) {
-        var actualEmails;
-        if (err || !emails) {
-            log.error(err);
-            actualEmails = emailConfig.fallback;
-        }
-        else {
-            actualEmails = emails.filter(function(e) { return e !== null;});
-            if (!actualEmails || !actualEmails.length) {
-                log.error("Could not retrieve email addresses from repo contacts for " + pr.fullName);
-                actualEmails = emailConfig.fallback;
-            }
-        }
-        mailer.sendMail({
-            from: emailConfig.from,
-            to: actualEmails.join(","),
-            cc: emailConfig.cc.join(","),
-            subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
-            text: status.payload.description + "\n\n See " + status.payload.target_url
-        }, function(err) {
-            if (err) {
-                log.error(err);
-                return cb();
-            }
-            // send mail to unaffiliated users
-            async.each(pr.unaffiliatedUsers, function(u, userCB) {
-                store.getUser(u, function(err, user) {
-                    if (err) return userCB(err);
-                    if (user.emails.length) {
-                        const mailData = {
-                            displayName: user.displayName ? user.displayName : user.login,
-                            prnum: pr.num,
-                            repo: pr.fullName,
-                            contacts: actualEmails.join(",")
-                        }
-                        mailer.sendMail({
-                            from: emailConfig.from,
-                            to: user.emails[0].value,
-                            cc: [...actualEmails, ...emailConfig.cc].join(","),
-                            subject: "Information needed for your PR #" + pr.num+ " on " + pr.fullName,
-                            text: template('affiliation-mail.txt', mailData)
-                        }, userCB);
-                    } else {
-                        // TODO: comment on pull request directly?
-                        return userCB();
-                    }
-                })
-            }, function(err) {
-                if (err)  log.error(err);
-                return cb();
-            });
-        });
-    });
+exports.notifyContacts = async function (gh, pr, status, mailer, emailConfig, store, log) {
+  log.info("Attempting to notify error on " + pr.fullName);
+  let actualEmails, emails;
+  try {
+    emails = await gh.getRepoContacts(pr.fullName);
+  } catch (err) {
+    log.error(err);
+  }
+  if (!emails) {
+    actualEmails = emailConfig.fallback;
+  } else {
+    actualEmails = emails.filter(function(e) { return e !== null;});
+    if (!actualEmails || !actualEmails.length) {
+      log.error("Could not retrieve email addresses from repo contacts for " + pr.fullName);
+      actualEmails = emailConfig.fallback;
+    }
+  }
+  await doAsync(mailer).sendMail({
+      from: emailConfig.from,
+      to: actualEmails.join(","),
+      cc: emailConfig.cc.join(","),
+      subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
+      text: status.payload.description + "\n\n See " + status.payload.target_url
+  });
+  for await (let user of  pr.unaffiliatedUsers
+                 .map(u => doAsync(store).getUser(u))) {
+    if (user.emails.length) {
+      const mailData = {
+        displayName: user.displayName ? user.displayName : user.login,
+        prnum: pr.num,
+        repo: pr.fullName,
+        contacts: actualEmails.join(",")
+      };
+      return doAsync(mailer).sendMail({
+        from: emailConfig.from,
+        to: user.emails[0].value,
+        cc: [...actualEmails, ...emailConfig.cc].join(","),
+        subject: "Information needed for your PR #" + pr.num+ " on " + pr.fullName,
+        text: template('affiliation-mail.txt', mailData)
+      });
+    }
+  };
 };

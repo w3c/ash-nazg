@@ -220,7 +220,7 @@ GH.prototype = {
     }
 ,   getRepoContacts: function (repofullname, cb) {
     var self = this;
-    self.octo
+    const ret = self.octo
         .repos(repofullname.split('/')[0], repofullname.split('/')[1])
         .contents('w3c.json').fetch()
         .then(function(w3cinfodesc) {
@@ -231,11 +231,10 @@ GH.prototype = {
                         return u.email;
                     });
             }));
-        }).then(function(emails) {
-            cb(null, emails);
-        })
-        .catch(cb);
-    }
+        });
+    if (!cb) return ret;
+    ret.then(emails =>cb(null, emails), cb);
+}
 ,   status: function (data, cb) {
         this.octo
             .repos(data.owner, data.shortName)
@@ -245,8 +244,16 @@ GH.prototype = {
             .catch(cb)
         ;
     }
+,   getPrFiles: function(owner, name, prnum, cb) {
+        const ret = this.octo
+            .repos(owner, name)
+            .pulls(prnum)
+            .files.fetch();
+        if (!cb) return ret;
+        ret.then(files => cb(null, files), cb);
+    }
 ,   getUser:    function (username, cb) {
-        this.octo
+        const ret = this.octo
             .users(username)
             .fetch()
             .then(function (user) {
@@ -270,10 +277,10 @@ GH.prototype = {
                 };
                 if (user.email) u.emails.push({ value: user.email });
                 if (user.avatar_url) u.photos.push({ value: user.avatar_url });
-                cb(null, u);
-            })
-            .catch(cb)
-        ;
+                return u;
+            });
+        if (!cb) return ret;
+        return ret.then(u => cb(null, u), cb);
     }
 };
 

@@ -48,6 +48,7 @@
     "body-parser": "1.17.2",
     "cradle": "0.7.1",
     "curry": "1.2.0",
+    "doasync": "^2.0.1",
     "es6-object-assign": "1.1.0",
     "es6-promise": "4.1.1",
     "expect.js": "0.3.1",

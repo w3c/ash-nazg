@@ -233,7 +233,7 @@ GH.prototype = {
             }));
         });
     if (!cb) return ret;
-    ret.then(emails =>cb(null, emails), cb);
+    ret.then(emails => cb(null, emails), cb);
 }
 ,   status: function (data, cb) {
         this.octo

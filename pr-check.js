@@ -71,7 +71,7 @@ async function setGhStatus(gh, status) {
 }
 
 async function checkPrScope(gh, pr) {
-  const ignoreFiles = ["package.json", "package-lock.json", ".travis.yml", "w3c.json", "CONTRIBUTING.md", "LICENSE.md", "CODE_OF_CONDUCT.md"];
+  const ignoreFiles = ["package.json", "package-lock.json", ".travis.yml", "w3c.json", "CONTRIBUTING.md", "LICENSE.md", "LICENSE.txt", "CODE_OF_CONDUCT.md"];
   const ignorePath = ".github/";
   let files;
   try {

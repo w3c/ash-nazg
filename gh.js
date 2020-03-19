@@ -219,21 +219,19 @@ GH.prototype = {
         ;
     }
 ,   getRepoContacts: function (repofullname, cb) {
-    var self = this;
-    const ret = self.octo
-        .repos(repofullname.split('/')[0], repofullname.split('/')[1])
-        .contents('w3c.json').fetch()
-        .then(function(w3cinfodesc) {
-            var w3cinfo = JSON.parse(new Buffer(w3cinfodesc.content, 'base64').toString('utf8'));
-            return Promise.all(w3cinfo.contacts.map(function(username) {
-                return self.octo.users(username).fetch()
-                    .then(function(u) {
-                        return u.email;
-                    });
-            }));
-        });
-    if (!cb) return ret;
-    ret.then(emails => cb(null, emails), cb);
+       var self = this;
+       const ret = self.octo
+           .repos(repofullname.split('/')[0], repofullname.split('/')[1])
+           .contents('w3c.json').fetch()
+           .then(function(w3cinfodesc) {
+               var w3cinfo = JSON.parse(new Buffer(w3cinfodesc.content, 'base64').toString('utf8'));
+               return Promise.all(w3cinfo.contacts.map(function(username) {
+                   return self.octo.users(username).fetch()
+                       .then(u => u.email);
+               }));
+           });
+       if (!cb) return ret;
+       ret.then(emails => cb(null, emails), cb);
 }
 ,   status: function (data, cb) {
         this.octo

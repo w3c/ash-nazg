@@ -103,7 +103,8 @@ var testCGRepo = new RepoMock(789, "cgrepo","acme", ["README.md", "index.html"],
 var testPR = {
     repository: testExistingRepo.toGH(),
     number: 5,
-    action: "opened",
+  action: "opened",
+  files: [{filename: "foo.bar"}],
     pull_request: {
         head: {
             sha: "fedcbafedcbafedcbafedcbafedcbafedcbafedc"
@@ -119,6 +120,7 @@ var testCGPR = {
     repository: testCGRepo.toGH(),
     number: 6,
     action: "opened",
+    files: [{filename: "foo.bar"}],
     pull_request: {
         head: {
             sha: "fedcba1fedcba1fedcba1fedcba1fedcba1fedcb"
@@ -134,6 +136,7 @@ var testWGPR = {
     repository: testExistingRepo.toGH(),
     number: 7,
     action: "opened",
+    files: [{filename: "foo.bar"}],
     pull_request: {
         head: {
             sha: "fedcba2fedcba2fedcba2fedcba2fedcba2fedcb"
@@ -144,6 +147,22 @@ var testWGPR = {
         body: null
     }
 };
+
+var testIPRFreePR = {
+    repository: testExistingRepo.toGH(),
+    number: 8,
+  action: "opened",
+  files: [{filename: "package.json", filename: "w3c.json"}],
+    pull_request: {
+        head: {
+            sha: "fedcbafedcbafedcbafedcbafedcbafedcbafedca"
+        },
+        user: {
+            login: testUser3.username
+        }
+    }
+};
+
 
 var expectedFilesInCreatedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "CODE_OF_CONDUCT.md", "index.html", "w3c.json"];
 var expectedFilesInImportedRepo = ["LICENSE.md", "CONTRIBUTING.md", "README.md", "CODE_OF_CONDUCT.md", "w3c.json"];
@@ -489,6 +508,7 @@ describe('Server manages requests in a set up repo', function () {
             cleanStore("deletePR")(testExistingRepo.full_name, 5),
             cleanStore("deletePR")(testCGRepo.full_name, 6),
             cleanStore("deletePR")(testExistingRepo.full_name, 7),
+            cleanStore("deletePR")(testExistingRepo.full_name, 8),
             cleanStore("deleteUser")(testUser2.username),
             cleanStore("deleteUser")(testUser3.username)
         ], emptyNock(done));
@@ -550,6 +570,9 @@ describe('Server manages requests in a set up repo', function () {
     it('reacts to pull requests notifications from GH users without a known W3C account', function testPullRequestNotif(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
+        .reply(200, testPR.files);
+        nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
             .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
 
@@ -588,9 +611,26 @@ describe('Server manages requests in a set up repo', function () {
             });
     });
 
+    it('approves pull requests from unknown GH users that only touch IPR-free files', function testIPRFreePullRequestNotif(done) {
+        mockPRStatus(testIPRFreePR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testIPRFreePR.number + '/files')
+        .reply(200, testIPRFreePR.files);
+        mockPRStatus(testIPRFreePR, 'success', /.*/);
+
+        req.post('/' + config.hookPath)
+            .send(testIPRFreePR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature', GH.signPayload("sha1", passwordGenerator(20), new Buffer(JSON.stringify(testIPRFreePR))))
+            .expect(200, done);
+    });
+
 
     it('allows admins to revalidate a PR without re-notifying of failures', function testRevalidateNoNotif(done) {
         mockPRStatus(testPR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
+        .reply(200, testPR.files);
         nock('https://api.w3.org')
             .get('/users/connected/github/' + testUser2.ghID)
             .reply(404);
@@ -657,6 +697,9 @@ describe('Server manages requests in a set up repo', function () {
 
     it('allows logged-in users to revalidate a PR', function testRevalidate(done) {
         mockPRStatus(testPR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
+        .reply(200, testPR.files);
         mockUserAffiliation(testUser2, [w3cGroup]);
 
         // we assume that testUser3 has in the meantime linked his Github account
@@ -676,6 +719,9 @@ describe('Server manages requests in a set up repo', function () {
         forcedPR.action = "synchronize";
         forcedPR.pull_request.head.sha = "abcdefabcdefabcdefabcdefabcdefabcdefabcd";
         mockPRStatus(forcedPR, 'pending', /.*/);
+        nock('https://api.github.com')
+        .get('/repos/' + testExistingRepo.full_name + '/pulls/' + forcedPR.number + '/files')
+        .reply(200, forcedPR.files);
         mockUserAffiliation(testUser2, [w3cGroup]);
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
         mockPRStatus(forcedPR, 'success', /.*/);
@@ -689,6 +735,9 @@ describe('Server manages requests in a set up repo', function () {
 
     it('rejects pull requests notifications from representatives of organizations in a CG', function testCGPullRequestNotif(done) {
         mockPRStatus(testCGPR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testCGRepo.full_name + '/pulls/' + testCGPR.number + '/files')
+        .reply(200, testCGPR.files);
         mockUserAffiliation(testUser3, []);
         nock('https://api.github.com')
             .get('/repos/' + testCGRepo.full_name + '/contents/w3c.json')
@@ -715,6 +764,9 @@ describe('Server manages requests in a set up repo', function () {
 
     it('accepts pull requests notifications from representatives of organizations in a WG', function testWGPullRequestNotif(done) {
         mockPRStatus(testWGPR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testWGPR.number + '/files')
+        .reply(200, testWGPR.files);
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
 
         mockPRStatus(testWGPR, 'success', /.*/);
@@ -728,6 +780,9 @@ describe('Server manages requests in a set up repo', function () {
 
     it('revalidate a PR with non-member licensing commitments', function testRevalidate(done) {
         mockPRStatus(testWGPR, 'pending', /.*/);
+        nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testWGPR.number + '/files')
+        .reply(200, testWGPR.files);
         mockUserAffiliation(testUser3, []);
         nock('https://api.w3.org')
             .get('/groups/' + w3cGroup.id + '/participations')

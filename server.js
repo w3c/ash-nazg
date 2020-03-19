@@ -575,6 +575,8 @@ function run(configuration, configuredmailer) {
     ,   secret:             config.sessionSecret
     }));
 
+    prChecker = new PRChecker(config, log, store, GH, mailer);
+
     passport.use(
         new GitHubStrategy({
             clientID:       config.ghClientID
@@ -604,7 +606,6 @@ function run(configuration, configuredmailer) {
                 log.info("Login successful: " + profile.username);
                 done(null, profile);
             });
-            prChecker = new PRChecker(config, log, store, GH, mailer);
         }
     ));
 

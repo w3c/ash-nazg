@@ -72,7 +72,7 @@ async function setGhStatus(gh, status) {
 
 async function checkPrScope(gh, pr) {
   const ignoreFiles = ["package.json", "package-lock.json", ".travis.yml", "w3c.json", "CONTRIBUTING.md", "LICENSE.md", "CODE_OF_CONDUCT.md"];
-  const ignorePath = "./github/";
+  const ignorePath = ".github/";
   let files;
   try {
     ({items: files} = await gh.getPrFiles(pr.owner, pr.shortName, pr.num));
@@ -258,4 +258,3 @@ function prChecker(config, argLog, argStore, GH, mailer) {
 }
 
 module.exports = prChecker;
-

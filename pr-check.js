@@ -58,8 +58,8 @@ async function getStoredPR(fullname) {
 
 async function updateStoredPR(pr) {
   log.info("Setting status for PR " + pr.fullName);
-  let updatedPr = await doAsync(store).updatePR(pr.fullName, pr.num, pr);
-  return updatedPr;
+  await doAsync(store).updatePR(pr.fullName, pr.num, pr);
+  return pr;
 }
 
 async function setGhStatus(gh, status) {

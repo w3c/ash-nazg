@@ -173,7 +173,7 @@ GH.prototype = {
                                            owner: self.currentRepo.owner.login, name: self.currentRepo.name
                                          })
                         .then(function ({data: hooks}) {
-                            if (!hooks || !hooks.length || !hooks.some(function (h) { return h.config.url === hookURL; })) {
+                            if (!hooks || !hooks.length || !hooks.some(function (h) { return h && h.config && h.config.url === hookURL; })) {
                                 return self.octo.request("POST /repos/:owner/:name/hooks",
                                          {
                                            owner: self.currentRepo.owner.login, name: self.currentRepo.name, data: {
@@ -230,6 +230,20 @@ GH.prototype = {
             .request("GET /repos/:owner/:name/pulls/:prnum/files", {owner, name, prnum}).then(({data: files}) => files);
         if (!cb) return ret;
         ret.then(files => cb(null, files), cb);
+    }
+,   isAdmin:    function (username, orgOrUser, cb) {
+        if (username === orgOrUser) {
+           return true;
+        }
+        const ret = this.octo.request("GET /orgs/:orgOrUser/memberships/:username", {username, orgOrUser})
+              .then(function ({data: role}) {
+                return role && role.role === "admin";
+              }, (res) => {
+                if (res.status === 404) return false;
+                throw(res);
+              });
+        if (!cb) return ret;
+        return ret.then(u => cb(null, u), cb);
     }
 ,   getUser:    function (username, cb) {
         const ret = this.octo.request("GET /users/:username", {username})

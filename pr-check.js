@@ -75,7 +75,7 @@ async function checkPrScope(gh, pr) {
   const ignorePath = ".github/";
   let files;
   try {
-    ({items: files} = await gh.getPrFiles(pr.owner, pr.shortName, pr.num));
+    files = await gh.getPrFiles(pr.owner, pr.shortName, pr.num);
   } catch(err) {
     log.error(err);
     // if unsure, assumes it is IPR-relevant

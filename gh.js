@@ -1,4 +1,4 @@
-var Octokat = require("octokat")
+const Octokit = require("@octokit/core").Octokit.plugin(require("@octokit/plugin-paginate-rest").paginateRest)
 ,   async = require("async")
 ,   pg = require("password-generator")
 ,   crypto = require("crypto")
@@ -10,40 +10,41 @@ var Octokat = require("octokat")
 function GH (user) {
     if (!user) throw new Error("The GH module requires a user.");
     this.user = user;
-    this.octo = new Octokat({ token: user.accessToken });
+    this.octo = new Octokit({ auth: user.accessToken });
 }
 
 function makeNewRepo (gh, target, owner, repoShortName, report) {
-    return target
-            .create({ name: repoShortName })
-            .then(function (repo) {
-                report.push("Repo '" + repoShortName + "' created.");
-                return repo;
-            })
-    ;
+    return gh.octo.request("POST " + target, {
+      org: owner,
+      data: { name: repoShortName }
+    }).then(function ({data: repo}) {
+      report.push("Repo '" + repoShortName + "' created.");
+      return repo;
+    });
 }
 
 function pickUserRepo (gh, target, owner, repoShortName, report) {
-    var repo = gh.octo.repos(owner, repoShortName);
     report.push("Looking for repo " + owner + "/" + repoShortName + " to import.");
-    return repo.fetch();
+    return gh.octo.request("GET /repos/:owner/:repoShortName", {owner, repoShortName}).then(({data: repo}) => repo);
 }
 
 function newFile (gh, name, content, report) {
     return function () {
-        return gh.currentRepo
-                    .contents(name)
-                    .add({
-                        message:    "Adding baseline " + name
-                    ,   content:    new Buffer(content).toString("base64")
-                    })
-                    .then(function () {
-                        report.push("Added file " + name);
-                    })
-                    .catch(function () {
-                        report.push("Skipped existing file " + name);
-                    })
-        ;
+        return gh.octo.request("PUT /repos/:owner/:reponame/contents/:name", {
+          owner: gh.currentRepo.owner.login,
+          reponame: gh.currentRepo.name,
+          name,
+          data:{
+            message:    "Adding baseline " + name
+            ,   content:    new Buffer(content).toString("base64")
+          }})
+        .then(function () {
+          report.push("Added file " + name);
+        })
+        .catch(function () {
+          report.push("Skipped existing file " + name);
+        })
+      ;
     };
 }
 
@@ -61,47 +62,26 @@ function andify (groups, field) {
 
 GH.prototype = {
     userOrgs:       function(cb) {
-        this.octo.me.orgs.fetch(function (err, {items: data}) {
-            if (err) return cb(err);
-            cb(null, [this.user.username].concat(data.map(function (org) { return org.login; })));
-        }.bind(this));
+        const self = this;
+        self.octo.paginate("GET /user/orgs").then(data => {
+            cb(null, [self.user.username].concat(data.map(function (org) { return org.login; })));
+        }, cb);
     }
 ,   userOrgRepos:   function (cb) {
-        this.octo.me.orgs.fetch(function (err, {items: data}) {
-            if (err) return cb(err);
-            async.map(
-                [{login: this.user.username, type: 'user'}].concat(data.map(function (org) { return {login: org.login, type: 'org'}; })),
-                function(account, accountCB) {
-                    var accountRepo;
-                    if (account.type === 'user') {
-                        accountRepo = this.octo.users(account.login);
-                    } else {
-                        accountRepo = this.octo.orgs(account.login);
-                    }
-                    var repoPage =function(list) {
-                        return function(err, {items: repos, nextPage}) {
-                            if (err) return accountCB(err);
-                            const names = repos.map(r => r.name);
-                            if (nextPage) {
-                                nextPage.fetch(repoPage(list.concat(names)));
-                            } else {
-                                accountCB(null, {login: account.login, repos: list.concat(names)});
-                            }
-                        };
-                    };
-                    accountRepo.repos.fetch({per_page: 100}, repoPage([]));
-                }.bind(this),
-                function(err, results) {
-                    if (err) return cb(err);
+        const self = this;
+        self.octo.paginate("GET /user/orgs").then(data => {
+            Promise.all(
+                [{login: self.user.username, type: 'user'}].concat(data.map(function (org) { return {login: org.login, type: 'org'}; }))
+                .map(({type, login}) => {
+                    const target = type === 'user' ? "users" : "orgs";
+                    return self.octo.paginate("GET /:target/:login/repos", { login, target, per_page: 100}).then(repos => {return {login, repos: repos.map(r => r.name)};});
+                })).then(results => {
                     cb(null, results.reduce(function(a,b) { a[b.login] = b.repos; return a;}, {}));
-                });
-        }.bind(this));
+                }, cb);
+        }, cb);
     }
-,   commentOnPR: function(data, cb) {
-        this.octo.repos(data.owner, data.shortName).issues(data.num).comments.create({body: data.comment}, function(err, comment) {
-            if (err) return cb(err);
-            cb(null, comment);
-        });
+,   commentOnPR: function({owner, shortName, num, comment}, cb) {
+        this.octo.request("POST /repos/:owner/:shortName/issues/:num/comments", { owner, shortName, num, data: comment}).then(({data: comment}) => cb(null, comment), cb);
     }
 ,   createRepo: function (data, config, cb) {
         this.createOrImportRepo(data, makeNewRepo, newFile, config, cb);
@@ -116,12 +96,12 @@ GH.prototype = {
    // config is a configuration object with data about the server setup
 ,   createOrImportRepo: function (data, setupAction, action, config, cb) {
                                // { org: ..., repo: ... }
+        const self = this;
         if (!data.groups.some(g => g)) return cb({json: {message: "No group selected to associate with repository"}});
         var report = []
-        ,   target = (this.user.username === data.org) ?
+        ,   targetPath = (this.user.username === data.org) ?
            // we need to treat the current user and an org differently
-                            this.octo.me.repos :
-                            this.octo.orgs(data.org).repos
+                            "/user/repos": "/orgs/:org/repos"
         ,   license
         ,   licensePath
         ,   contributing
@@ -170,30 +150,33 @@ GH.prototype = {
         index = data.includeSpec ? template("index.html", tmplData) : null;
         readme = data.includeReadme ? template("README.md", tmplData) : null;
         codeOfConduct = data.includeCodeOfConduct ? template("CODE_OF_CONDUCT.md", tmplData) : null;
-        setupAction(this, target, data.org, data.repo, report)
+        setupAction(self, targetPath, data.org, data.repo, report)
             .then(function (repo) {
-                this.currentRepo = repo;
+                self.currentRepo = repo;
                 simpleRepo = {
                     name:       repo.name
-                ,   fullName:   repo.fullName
+                ,   fullName:   repo.owner.login + "/" + repo.name
                 ,   owner:      repo.owner.login
                 ,   groups:     data.groups.map(function (g) { return g.w3cid; })
                 ,   secret:     pg(20)
                 };
-            }.bind(this))
-            .then(license ? action(this, "LICENSE.md", license, report) : null)
-            .then(contributing ? action(this, "CONTRIBUTING.md", contributing, report) : null)
-            .then(readme ? action(this, "README.md", readme, report) : null)
-            .then(codeOfConduct ? action(this, "CODE_OF_CONDUCT.md", codeOfConduct, report) : null)
-            .then(index ? action(this, "index.html", index, report) : null)
-            .then(w3cJSON ? action(this, "w3c.json", w3cJSON, report) : null)
+            })
+            .then(license ? action(self, "LICENSE.md", license, report) : null)
+            .then(contributing ? action(self, "CONTRIBUTING.md", contributing, report) : null)
+            .then(readme ? action(self, "README.md", readme, report) : null)
+            .then(codeOfConduct ? action(self, "CODE_OF_CONDUCT.md", codeOfConduct, report) : null)
+            .then(index ? action(self, "index.html", index, report) : null)
+            .then(w3cJSON ? action(self, "w3c.json", w3cJSON, report) : null)
             .then(function () {
-                return this.currentRepo
-                        .hooks
-                        .fetch()
-                        .then(function (hooks) {
+                return self.octo.request("GET /repos/:owner/:name/hooks",
+                                         {
+                                           owner: self.currentRepo.owner.login, name: self.currentRepo.name
+                                         })
+                        .then(function ({data: hooks}) {
                             if (!hooks || !hooks.length || !hooks.some(function (h) { return h.config.url === hookURL; })) {
-                                return this.currentRepo.hooks.create({
+                                return self.octo.request("POST /repos/:owner/:name/hooks",
+                                         {
+                                           owner: self.currentRepo.owner.login, name: self.currentRepo.name, data: {
                                                             name:   "web"
                                                         ,   config: {
                                                                 url:            config.hookURL || (config.url + "api/hook")
@@ -202,16 +185,16 @@ GH.prototype = {
                                                             }
                                                         ,   events: ["pull_request", "issue_comment"]
                                                         ,   active: true
-                                                        })
+                                           }})
                                                         .then(function () { report.push("Hook installed."); })
                                 ;
                             }
                             else {
                                 report.push("Hook already present.");
                             }
-                        }.bind(this))
+                        })
                 ;
-            }.bind(this))
+            })
             .then(function () {
                 cb(null, { actions: report, repo: simpleRepo });
             })
@@ -221,40 +204,36 @@ GH.prototype = {
 ,   getRepoContacts: function (repofullname, cb) {
        var self = this;
        const ret = self.octo
-           .repos(repofullname.split('/')[0], repofullname.split('/')[1])
-           .contents('w3c.json').fetch()
-           .then(function(w3cinfodesc) {
+             .request("GET /repos/:owner/:name/contents/:file", {
+               owner: repofullname.split('/')[0],
+               name: repofullname.split('/')[1],
+               file: 'w3c.json'
+             })
+           .then(function({data: w3cinfodesc}) {
                var w3cinfo = JSON.parse(new Buffer(w3cinfodesc.content, 'base64').toString('utf8'));
                return Promise.all(w3cinfo.contacts.map(function(username) {
-                   return self.octo.users(username).fetch()
-                       .then(u => u.email);
+                   return self.octo.request("GET /users/:username", {username})
+                       .then(({data: user}) => user.email);
                }));
            });
        if (!cb) return ret;
        ret.then(emails => cb(null, emails), cb);
 }
-,   status: function (data, cb) {
+,   status: function ({owner, shortName, sha, payload}, cb) {
         this.octo
-            .repos(data.owner, data.shortName)
-            .statuses(data.sha)
-            .create(data.payload)
-            .then(function () { cb(null); })
-            .catch(cb)
-        ;
+        .request("POST /repos/:owner/:shortName/statuses/:sha", {
+          owner, shortName, sha, data: payload
+        }).then(function () { cb(null); }, cb);
     }
 ,   getPrFiles: function(owner, name, prnum, cb) {
         const ret = this.octo
-            .repos(owner, name)
-            .pulls(prnum)
-            .files.fetch();
+            .request("GET /repos/:owner/:name/pulls/:prnum/files", {owner, name, prnum}).then(({data: files}) => files);
         if (!cb) return ret;
         ret.then(files => cb(null, files), cb);
     }
 ,   getUser:    function (username, cb) {
-        const ret = this.octo
-            .users(username)
-            .fetch()
-            .then(function (user) {
+        const ret = this.octo.request("GET /users/:username", {username})
+            .then(function ({data: user}) {
                 var u = {
                         accessToken:        null
                     ,   admin:              false

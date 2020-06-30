@@ -63,11 +63,12 @@ async function updateStoredPR(pr) {
 }
 
 async function setGhStatus(gh, status) {
-  try {
-    await doAsync(gh).status(status);
-  } catch(err) {
-    log.error(err);
-  }
+  return new Promise((res, rej) => {
+    gh.status(status, (err) => {
+      if (err) log.error(err);
+      res();
+    })
+  });
 }
 
 async function checkPrScope(gh, pr) {

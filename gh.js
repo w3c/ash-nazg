@@ -233,7 +233,7 @@ GH.prototype = {
     }
 ,   isAdmin:    function (username, orgOrUser, cb) {
         if (username === orgOrUser) {
-           return true;
+           return cb(null, true);
         }
         const ret = this.octo.request("GET /orgs/:orgOrUser/memberships/:username", {username, orgOrUser})
               .then(function ({data: role}) {

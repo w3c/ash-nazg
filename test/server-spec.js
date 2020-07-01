@@ -61,7 +61,7 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
             contents_url: "https://api.github.com/repos/" + full_name + "/contents/{+path}"
         };
     }
-    function mockGH() {
+      function mockGH(username, nonAdmin = false, existinghook = false) {
         var contentRE = new RegExp('/repos/' + full_name + '/contents/.*');
         if (files.length === 0) {
             nock('https://api.github.com')
@@ -72,7 +72,13 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
                 .get('/repos/' + full_name)
                 .reply(200, toGH());
         }
-        nock('https://api.github.com')
+      nock('https://api.github.com')
+        .get(`/orgs/${_owner}/memberships/${username}`)
+        .reply(nonAdmin ? 404 : 200, {
+          role: nonAdmin ? "none" : "admin"
+        });
+
+      nock('https://api.github.com')
             .put(contentRE)
             .times(files.length === 0 ? expectedFilesInCreatedRepo.length : expectedFilesInImportedRepo.length)
             .reply(function(uri) {
@@ -86,11 +92,13 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
         nock('https://api.github.com')
             .get('/repos/' + full_name + '/hooks')
             .reply(200, hooks);
-        nock('https://api.github.com')
+        if (!existinghook) {
+          nock('https://api.github.com')
             .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
             .reply(201, function(uri, body) {
-                addHook(body);
+              addHook(JSON.parse(body));
             });
+        }
     }
 
     return {id: id, name: name, files: files, hooks: hooks, mockGH: mockGH, toGH: toGH, owner: owner, full_name: full_name};
@@ -370,7 +378,6 @@ describe('Server manages requests from regular logged-in users', function () {
             }], emptyNock(done));
     });
 
-
     it('manages Github auth', function testAuthCB(done) {
         login(authAgent, done);
     });
@@ -514,8 +521,20 @@ describe('Server manages requests in a set up repo', function () {
         ], emptyNock(done));
     });
 
+    it('prevents from importing an existing GH repo if the user doesn’t have admin on the hosting org and there is no known secret for it', function testImportRepo(done) {
+      testExistingRepo.mockGH(testUser.username, true);
+      authAgent
+          .post('/api/import-repo')
+          .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true})
+          .expect(500, function(err, res) {
+            if (err) return done(err);
+            expect(res.body.error.message.match(/ first /));
+            done();
+          });
+    });
+
     it('allows to create a new GH repo', function testCreateRepo(done) {
-        testNewRepo.mockGH();
+        testNewRepo.mockGH(testUser.username);
         authAgent
             .post('/api/create-repo')
             .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true, includeSpec: true})
@@ -528,7 +547,7 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('allows to import an existing GH repo', function testImportRepo(done) {
-        testExistingRepo.mockGH();
+        testExistingRepo.mockGH(testUser.username, true, true);
         authAgent
             .post('/api/import-repo')
             .send({org:testOrg.login, repo: testExistingRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true})
@@ -541,7 +560,7 @@ describe('Server manages requests in a set up repo', function () {
     });
 
     it('allows to import an existing GH repo for CG', function testImportCGRepo(done) {
-        testCGRepo.mockGH();
+        testCGRepo.mockGH(testUser.username, true);
         authAgent
             .post('/api/import-repo')
             .send({org:testOrg.login, repo: testCGRepo.name, groups:["" + w3cGroup3.id], includeContributing: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeW3cJson: true})

@@ -241,7 +241,21 @@ function makeCreateOrImportRepo (mode) {
                                 store.addSecret({ repo: repo.fullName, secret: repo.secret }, cb);
                             }
                         ,   function (cb) {
-                                store.createOrUpdateToken({ owner: repo.owner, token: req.user.accessToken }, cb);
+                                // We only set the token if the user is admin of the org
+                                req.gh.isAdmin(req.user.username, repo.owner, function(err, isAdmin) {
+                                    if (err) return cb(err);
+                                    if (isAdmin) {
+                                        return store.createOrUpdateToken({ owner: repo.owner, token: req.user.accessToken, from: req.user.username }, cb);
+                                    } else {
+                                      // If there is no token for this org
+                                      // we send back an error
+                                      store.getToken(repo.owner, (err, token) => {
+                                        if ((err && err.error === "not_found") || !token) return cb({message: "This is the first repo imported in the " + repo.owner + " github account, it needs to be done by an owner of the organization"});
+                                        if (err) return cb(err);
+                                        cb(null);
+                                      });
+                                    }
+                                });
                             }
                         ,   function (cb) {
                                 var secretLess = assign({}, repo);

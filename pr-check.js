@@ -63,11 +63,12 @@ async function updateStoredPR(pr) {
 }
 
 async function setGhStatus(gh, status) {
-  try {
-    await doAsync(gh).status(status);
-  } catch(err) {
-    log.error(err);
-  }
+  return new Promise((res, rej) => {
+    gh.status(status, (err) => {
+      if (err) log.error(err);
+      res();
+    })
+  });
 }
 
 async function checkPrScope(gh, pr) {
@@ -75,7 +76,7 @@ async function checkPrScope(gh, pr) {
   const ignorePath = ".github/";
   let files;
   try {
-    ({items: files} = await gh.getPrFiles(pr.owner, pr.shortName, pr.num));
+    files = await gh.getPrFiles(pr.owner, pr.shortName, pr.num);
   } catch(err) {
     log.error(err);
     // if unsure, assumes it is IPR-relevant

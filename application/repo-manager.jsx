@@ -227,8 +227,8 @@ export default class RepoNew extends React.Component {
         let selectedGroupType = st.repoGroups.length ? st.groups.filter(g => g.w3cid == st.repoGroups[0])[0].groupType : null;
         let contributingLink, licenseLink;
         if (selectedGroupType) {
-            contributingLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-CONTRIBUTING.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING.md' : 'https://github.com/w3c/licenses/blob/master/WG-CONTRIBUTING-SW.md');
-            licenseLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/master/CG-LICENSE.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/master/WG-LICENSE.md' : 'https://github.com/w3c/licenses/blob/master/WG-LICENSE-SW.md');
+            contributingLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/main/CG-CONTRIBUTING.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/main/WG-CONTRIBUTING.md' : 'https://github.com/w3c/licenses/blob/main/WG-CONTRIBUTING-SW.md');
+            licenseLink = selectedGroupType === 'CG' ? 'https://github.com/w3c/licenses/blob/main/CG-LICENSE.md' : (st.license === 'doc' ? 'https://github.com/w3c/licenses/blob/main/WG-LICENSE.md' : 'https://github.com/w3c/licenses/blob/main/WG-LICENSE-SW.md');
         }
         // Files selected by default:
         // w3c.json in all cases (since it's used by ashnazg for operation)

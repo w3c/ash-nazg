@@ -151,7 +151,7 @@ export default class PRViewer extends React.Component {
                                                     }
                                                     else if (cs[username] === "undetermined affiliation") {
                                                         return <li key={username}>
-                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> is unknown,{" "} they need to link their <a href="https://www.w3.org/users/myprofile/connectedaccounts">Github account with a W3C account</a>.
+                                                        <a className="bad" href={"https://github.com/" + username +"/"}>{username}</a> is unknown,{" "} they need to link their <a href="https://www.w3.org/users/myprofile/connectedaccounts">GitHub account with a W3C account</a>.
                                                             </li>
                                                         ;
                                                     }

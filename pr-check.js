@@ -197,7 +197,7 @@ function prChecker(config, argLog, argStore, GH, mailer) {
                 pr.contribStatus[username] = contribStatus;
                 return contribStatus;
               } else {
-                pr.contribStatus[username] = "no commiment made - missing repository ID";
+                pr.contribStatus[username] = "no commitment made - missing repository ID";
                 return "no commiment made - missing repository ID";
               }
             } else {

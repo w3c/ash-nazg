@@ -273,6 +273,42 @@ function makeCreateOrImportRepo (mode) {
         );
     };
 }
+
+// Endpoint of W3C Webhook
+router.post("/api/revalidate", bp.json(), async (req, res) => {
+  // Find pull requests with matching account
+  log.info("Received hook payload on revalidate endpoint");
+  log.info(JSON.stringify(req.body, null, 2));
+  if (!req.body || !req.body.account || !req.body.account.nickname) {
+    return error(res, "Invalid request sent to revalidate endpoint");
+  }
+  if (!req.body.account.service === "github") {
+    return res.json({msg: "ignoring updates to accounts other than github"});
+  }
+  const ghUsername = req.body.account.nickname;
+  try {
+    const prs = await new Promise((res, rej) => store.getUnaffiliatedUserPRs(ghUsername, (err, prs) => {
+      if (err) return rej(err);
+      log.info("Found unaffiliated contributors for PRs" + JSON.stringify(prs, null, 2));
+      return res(prs);
+    }));
+    // revalidate them
+    const delta = parseMessage(""); // this gets us a valid delta object, even if it has nothing
+    for (let pr of prs) {
+      if (pr.acceptable === "no" && pr.status === "open") {
+        log.info("Revalidating " + pr._id);
+        await new Promise((res, rej) => prChecker.validate(pr, delta, (err) => {
+          if (err) return rej(err);
+          return res();
+        }));
+      }
+    }
+    res.json({msg: "OK"});
+  } catch (e) {
+    return error(res, e);
+  }
+});
+
 // GITHUB APIs
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));

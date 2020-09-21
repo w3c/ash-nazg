@@ -163,7 +163,7 @@ var testIPRFreePR = {
   files: [{filename: "package.json", filename: "w3c.json"}],
     pull_request: {
         head: {
-            sha: "fedcbafedcbafedcbafedcbafedcbafedcbafedca"
+            sha: "fedcbafed3cbafedcbafedcbafedcbafedcbafedca"
         },
         user: {
             login: testUser3.username
@@ -666,6 +666,43 @@ describe('Server manages requests in a set up repo', function () {
             });
     });
 
+    it('revalidates pull requests with unknown contributors when their github account has been connected to their W3C account', function testRevalidateUnknownContributor(done) {
+      mockPRStatus(testPR, 'pending', /.*/);
+      nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
+        .reply(200, testPR.files);
+      nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser2.ghID)
+            .reply(404);
+
+      // testUser3 updates their github account, which would trigger
+      // a post to the webhook api/revalidate
+      nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser3.ghID)
+            .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser3_w3capi}}});
+      testUser3.w3capi = testUser3_w3capi;
+      mockUserAffiliation(testUser3, []);
+      nock('https://api.w3.org')
+        .get('/groups/' + w3cGroup.id + '/participations')
+        .query({embed:"true"})
+        .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [] }});
+      // Still no affiliation for testUser3
+      nock('https://api.w3.org')
+        .get('/users/' + testUser3.w3capi + '/affiliations')
+        .reply(200, {page: 1, total:1, pages: 1, _links: {affiliations: [] }});
+      nock('https://api.w3.org')
+        .get('/nplcs/' + testExistingRepo.id + '/' + testPR.number)
+        .reply(404);
+
+      mockPRStatus(testPR, 'failure', new RegExp("The following users were not in"));
+
+
+      // Message received in Webhook on connected account event
+      req.post('/api/revalidate')
+        .send({event: "connected_account.created", account: {"service": "github", "nickname": testUser3.username}})
+        .expect(200, done);
+    });
+  
     it('allows admins to affiliate a user', function testAffiliateUser(done) {
         var groups = {};
         groups[w3cGroup.id] = true;
@@ -722,10 +759,6 @@ describe('Server manages requests in a set up repo', function () {
         mockUserAffiliation(testUser2, [w3cGroup]);
 
         // we assume that testUser3 has in the meantime linked his Github account
-        nock('https://api.w3.org')
-            .get('/users/connected/github/' + testUser3.ghID)
-            .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser3_w3capi}}});
-        testUser3.w3capi = testUser3_w3capi;
         mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
         mockPRStatus(testPR, 'success', /.*/);
         authAgent

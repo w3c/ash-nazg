@@ -157,6 +157,14 @@ Store.prototype = {
                                     });
                                 }.toString()
                     }
+                ,   by_unaffiliated_contributor: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr" || !doc.unaffiliatedUsers) return;
+                                    doc.unaffiliatedUsers.forEach(function (u) {
+                                        emit(u, doc);
+                                    });
+                                }.toString()
+                    }
                 ,   by_affiliation: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "pr" || !doc.affiliations) return;
@@ -467,6 +475,14 @@ Store.prototype = {
         this.db.view("prs/by_date", { endkey: couchNow(), startkey: lastWeek }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning PRs from the past week: " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.toArray());
+        });
+    }
+,   getUnaffiliatedUserPRs: function (username, cb) {
+        log.info("Looking for PRs with unaffiliated contributor " + username);
+        this.db.view("prs/by_unaffiliated_contributor", { key: username }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning PRs from unaffiliated contributor " + username + ": " + (docs.length ? docs.length + " FOUND" : "NOT FOUND"));
             cb(null, docs.toArray());
         });
     }

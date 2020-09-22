@@ -188,17 +188,17 @@ function prChecker(config, argLog, argStore, GH, mailer) {
                 try {
                   nplc = await new Promise((res, rej) => w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch((err, n) => { if (err) return rej(err); return res(n);}));
                 } catch (err) {
-                  // Non-participant licensing contribution doesn't exist yet
-                  pr.contribStatus[username] = "no commitment made";
-                  return "no commitment made";
+                  // Non-participant licensing contribution doesn't exist
+                  pr.contribStatus[username] = "not in group";
+                  return "not in group";
                 }
                 const u = nplc.commitments.find(c => c.user["connected-accounts"].find(ca => ca.nickname === username));
                 const contribStatus = (u.commitment_date === undefined) ? "commitment pending" : "ok";
                 pr.contribStatus[username] = contribStatus;
                 return contribStatus;
               } else {
-                pr.contribStatus[username] = "no commiment made - missing repository ID";
-                return "no commiment made - missing repository ID";
+                pr.contribStatus[username] = "no commitment made - missing repository ID";
+                return "no commitment made - missing repository ID";
               }
             } else {
               pr.contribStatus[username] = "not in group";

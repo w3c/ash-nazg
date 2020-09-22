@@ -165,6 +165,14 @@ Store.prototype = {
                                     });
                                 }.toString()
                     }
+                ,   by_contributor: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr" || !doc.contributors) return;
+                                    doc.contributors.forEach(function (u) {
+                                        emit(u, doc);
+                                    });
+                                }.toString()
+                    }
                 ,   by_affiliation: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "pr" || !doc.affiliations) return;
@@ -483,6 +491,14 @@ Store.prototype = {
         this.db.view("prs/by_unaffiliated_contributor", { key: username }, function (err, docs) {
             if (err) return cb(err);
             log.info("Returning PRs from unaffiliated contributor " + username + ": " + (docs.length ? docs.length + " FOUND" : "NOT FOUND"));
+            cb(null, docs.toArray());
+        });
+    }
+,   getContributorPRs: function (username, cb) {
+        log.info("Looking for PRs from " + username);
+        this.db.view("prs/by_contributor", { key: username }, function (err, docs) {
+            if (err) return cb(err);
+            log.info("Returning PRs from " + username + ": " + (docs.length ? docs.length + " FOUND" : "NOT FOUND"));
             cb(null, docs.toArray());
         });
     }

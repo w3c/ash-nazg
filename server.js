@@ -279,19 +279,36 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
   // Find pull requests with matching account
   log.info("Received hook payload on revalidate endpoint");
   log.info(JSON.stringify(req.body, null, 2));
-  if (!req.body || !req.body.account || !req.body.account.nickname) {
+
+  if (!req.body || !req.body.event) {
     return error(res, "Invalid request sent to revalidate endpoint");
   }
-  if (!req.body.account.service === "github") {
-    return res.json({msg: "ignoring updates to accounts other than github"});
-  }
-  const ghUsername = req.body.account.nickname;
-  try {
-    const prs = await new Promise((res, rej) => store.getUnaffiliatedUserPRs(ghUsername, (err, prs) => {
+
+  if (req.body.event === "connected_account.created" && req.body.account && req.body.account.nickname) {  // new connected account
+    if (!req.body.account.service === "github") {
+      return res.json({msg: "Ignoring updates to accounts other than github"});
+    }
+    getPRs = new Promise((res, rej) => store.getUnaffiliatedUserPRs(req.body.account.nickname, (err, prs) => {
       if (err) return rej(err);
-      log.info("Found unaffiliated contributors for PRs" + JSON.stringify(prs, null, 2));
+      log.info("Found unaffiliated contributors for PRs " + JSON.stringify(prs, null, 2));
       return res(prs);
     }));
+  } else if (req.body.event === "group.participant_joined" && req.body.group && req.body.group.id) {  // new group participant
+    if (!req.body.user || !req.body.user["connected-accounts"] || !req.body.user["connected-accounts"][0] || !req.body.user["connected-accounts"][0]["nickname"]) {
+      return res.json({msg: "Ignoring participations when there's no connected account"});
+    }
+    getPRs = new Promise((res, rej) => store.getContributorPRs(req.body.user["connected-accounts"][0]["nickname"], (err, prs) => {
+      if (err) return rej(err);
+      const groupPRs = prs.filter(pr => pr.groups.includes(req.body.group.id));
+      log.info("Found contributors for group PRs " + JSON.stringify(groupPRs, null, 2));
+      return res(groupPRs);
+    }));
+  } else {
+    return error(res, "Invalid request sent to revalidate endpoint");
+  }
+
+  try {
+    const prs = await getPRs;
     // revalidate them
     const delta = parseMessage(""); // this gets us a valid delta object, even if it has nothing
     for (let pr of prs) {

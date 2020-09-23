@@ -702,7 +702,30 @@ describe('Server manages requests in a set up repo', function () {
         .send({event: "connected_account.created", account: {"service": "github", "nickname": testUser3.username}})
         .expect(200, done);
     });
-  
+
+    it('revalidates pull requests with contributors joining the group', function testRevalidateContributorJoin(done) {
+      mockPRStatus(testPR, 'pending', /.*/);
+      nock('https://api.github.com')
+            .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
+            .reply(200, testPR.files);
+      nock('https://api.w3.org')
+            .get('/users/connected/github/' + testUser2.ghID)
+            .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser2.w3capi}}});
+      mockUserAffiliation(testUser2, [w3cGroup]);
+      mockUserAffiliation(testUser3, [w3cGroup]);
+
+      mockPRStatus(testPR, 'success', /.*/);
+
+      // Message received in Webhook on new group participation event
+      req.post('/api/revalidate')
+        .send({event: "group.participant_joined",
+               user: {
+                 "connected-accounts": [{"service": "github", "nickname": testUser3.username}]
+               },
+               group: {"id": w3cGroup.id}})
+        .expect(200, done);
+    });
+
     it('allows admins to affiliate a user', function testAffiliateUser(done) {
         var groups = {};
         groups[w3cGroup.id] = true;

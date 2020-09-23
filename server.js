@@ -297,9 +297,10 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
     if (!req.body.user || !req.body.user["connected-accounts"] || !req.body.user["connected-accounts"][0] || !req.body.user["connected-accounts"][0]["nickname"]) {
       return res.json({msg: "Ignoring participations when there's no connected account"});
     }
-    getPRs = new Promise((res, rej) => store.getContributorPRs(req.body.user["connected-accounts"][0]["nickname"], (err, prs) => {
+
+    getPRs = new Promise((res, rej) => store.getOutsideUserPRs(req.body.user["connected-accounts"][0]["nickname"], (err, prs) => {
       if (err) return rej(err);
-      const groupPRs = prs.filter(pr => pr.groups.includes(req.body.group.id));
+      const groupPRs = prs.filter(pr => pr.groups ? pr.groups.includes(req.body.group.id.toString()) : false);
       log.info("Found contributors for group PRs " + JSON.stringify(groupPRs, null, 2));
       return res(groupPRs);
     }));

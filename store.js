@@ -165,10 +165,10 @@ Store.prototype = {
                                     });
                                 }.toString()
                     }
-                ,   by_contributor: {
+                ,   by_outside_contributor: {
                         map:    function (doc) {
-                                    if (!doc.type || doc.type !== "pr" || !doc.contributors) return;
-                                    doc.contributors.forEach(function (u) {
+                                    if (!doc.type || doc.type !== "pr" || !doc.outsideUsers) return;
+                                    doc.outsideUsers.forEach(function (u) {
                                         emit(u, doc);
                                     });
                                 }.toString()
@@ -494,11 +494,11 @@ Store.prototype = {
             cb(null, docs.toArray());
         });
     }
-,   getContributorPRs: function (username, cb) {
-        log.info("Looking for PRs from " + username);
-        this.db.view("prs/by_contributor", { key: username }, function (err, docs) {
+,   getOutsideUserPRs: function (username, cb) {
+        log.info("Looking for PRs with outside contributor " + username);
+        this.db.view("prs/by_outside_contributor", { key: username }, function (err, docs) {
             if (err) return cb(err);
-            log.info("Returning PRs from " + username + ": " + (docs.length ? docs.length + " FOUND" : "NOT FOUND"));
+            log.info("Returning PRs from outside contributor " + username + ": " + (docs.length ? docs.length + " FOUND" : "NOT FOUND"));
             cb(null, docs.toArray());
         });
     }

@@ -284,6 +284,7 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
     return error(res, "Invalid request sent to revalidate endpoint");
   }
 
+  let getPRs;
   if (req.body.event === "connected_account.created" && req.body.account && req.body.account.nickname) {  // new connected account
     if (!req.body.account.service === "github") {
       return res.json({msg: "Ignoring updates to accounts other than github"});

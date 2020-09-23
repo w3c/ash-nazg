@@ -294,7 +294,8 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
       return res(prs);
     }));
   } else if (req.body.event === "group.participant_joined" && req.body.group && req.body.group.id) {  // new group participant
-    if (!req.body.user || !req.body.user["connected-accounts"] || !req.body.user["connected-accounts"][0] || !req.body.user["connected-accounts"][0]["nickname"]) {
+    let githubAccount = req.body.user  && req.body.user["connected-accounts"] ? req.body.user["connected-accounts"].find(a => a.service === "github") : undefined;
+    if (!githubAccount || !githubAccount.nickname) {
       return res.json({msg: "Ignoring participations when there's no connected account"});
     }
 

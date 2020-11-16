@@ -10,6 +10,7 @@ let utils = require("../application/utils")
 ,   pp = utils.pathPrefix()
 ,   _loggedIn = null
 ,   _admin = false
+,   _importGranted = false
 ,   LoginStore = module.exports = assign({}, EventEmitter.prototype, {
         emitChange: function () { this.emit("change"); }
     ,   addChangeListener: function (cb) { this.on("change", cb); }
@@ -20,6 +21,9 @@ let utils = require("../application/utils")
         }
     ,   isAdmin: function () {
             return _admin;
+        }
+    ,   isImportGranted: function () {
+            return _importGranted;
         }
     })
 ;
@@ -32,6 +36,13 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                 .then((data) => {
                     _loggedIn = data.ok;
                     _admin = data.admin;
+                    // return data;
+                })
+                .then(data => fetch(`${pp}api/scope-granted`, { credentials: "include" }))
+                .then(data => data.json())
+                .then(data => {
+                    if (data && data.scopes)
+                        _importGranted = data.scopes.includes('admin:repo_hook') || data.scopes.includes('write:repo_hook');
                     LoginStore.emitChange();
                 })
                 .catch(utils.catchHandler);
@@ -43,6 +54,7 @@ LoginStore.dispatchToken = AshNazgDispatch.register((action) => {
                     if (!data.ok) throw "Logout failed";
                     _loggedIn = false;
                     _admin = false;
+                    _importGranted = false;
                     LoginStore.emitChange();
                 })
                 .catch(utils.catchHandler);

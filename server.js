@@ -106,6 +106,28 @@ router.get(
                                         scope:  [
                                                 "user:email"
                                             ,   "public_repo"
+                                            ,   "read:org"
+                                            ]
+                                    ,   callbackURL:    redir
+                                    }
+            )(req, res, next);
+        }
+);
+
+// Login page for admin (requires more permission to add webhooks)
+router.get(
+        "/admin/auth/github"
+    ,   function (req, res, next) {
+            var redir = config.url + "auth/github/callback";
+            if (req.query.back) redir += "?back=" + req.query.back;
+            log.info("auth github, with redir=" + redir);
+            passport.authenticate(
+                                    "github"
+                                ,   {
+                                        // these are the permissions we request
+                                        scope:  [
+                                                "user:email"
+                                            ,   "public_repo"
                                             ,   "write:repo_hook"
                                             ,   "read:org"
                                             ]
@@ -338,6 +360,18 @@ router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), functio
         data.actions = ["Moved repository to groups with id " + req.body.groups.join(", ")];
         makeRes(res)(null, data);
     });
+});
+
+// get the permissions granted by the user
+router.get("/api/scope-granted", function (req, res) {
+      if (req.user) {
+          const gh = new GH(req.user);
+          gh.getUser(req.user.username, function(err, user) {
+              res.json({ scopes: user.scopes });
+          });
+      } else {
+          res.json({ scopes: "" });
+      }
 });
 
 // GITHUB HOOKS

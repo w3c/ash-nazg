@@ -247,7 +247,7 @@ GH.prototype = {
     }
 ,   getUser:    function (username, cb) {
         const ret = this.octo.request("GET /users/:username", {username})
-            .then(function ({data: user}) {
+            .then(function ({data: user, headers: headers}) {
                 var u = {
                         accessToken:        null
                     ,   admin:              false
@@ -265,6 +265,7 @@ GH.prototype = {
                     ,   username:           username
                     ,   w3capi:             null
                     ,   w3cid:              null
+                    ,   scopes:             headers['x-oauth-scopes']
                 };
                 if (user.email) u.emails.push({ value: user.email });
                 if (user.avatar_url) u.photos.push({ value: user.avatar_url });

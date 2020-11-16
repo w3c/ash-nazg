@@ -37,7 +37,7 @@ let utils = require("./application/utils")
 ;
 
 function getState () {
-    return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin() };
+    return { loggedIn: LoginStore.isLoggedIn(), admin: LoginStore.isAdmin(), importGranted: LoginStore.isImportGranted() };
 }
 
 class AshNazg extends React.Component {
@@ -73,13 +73,15 @@ class AshNazg extends React.Component {
                     </NavBox>
             ;
         }
-        if (st.loggedIn === true) {
+        if (st.importGranted) {
             repoNav = <div>
                 <NavItem><Link to={`${pp}repo/new`}>New Repository</Link></NavItem>
                 <NavItem><Link to={`${pp}repo/import`}>Import Repository</Link></NavItem>
                 </div>
                 ;
+        }
 
+        if (st.loggedIn) {
             userNav = <NavBox title="User">
                 <NavItem><LogoutButton/></NavItem>
                 </NavBox>

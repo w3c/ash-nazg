@@ -198,7 +198,9 @@ GH.prototype = {
             .then(function () {
                 cb(null, { actions: report, repo: simpleRepo });
             })
-            .catch(cb)
+            .catch(function (e) {
+                cb({code: e.status});
+            })
         ;
     }
 ,   getRepoContacts: function (repofullname, cb) {

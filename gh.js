@@ -3,6 +3,7 @@ const Octokit = require("@octokit/core").Octokit.plugin(require("@octokit/plugin
 ,   pg = require("password-generator")
 ,   crypto = require("crypto")
 ,   template = require("./template")
+,   config = require("./config.json")
 ;
 
 // helpers
@@ -81,7 +82,8 @@ GH.prototype = {
         }, cb);
     }
 ,   commentOnPR: function({owner, shortName, num, comment}, cb) {
-        this.octo.request("POST /repos/:owner/:shortName/issues/:num/comments", { owner, shortName, num, data: {body: comment}}).then(({data: comment}) => cb(null, comment), cb);
+        const w3cBotOcto = new Octokit({ auth: config.w3cBotGHToken });
+        w3cBotOcto.request("POST /repos/:owner/:shortName/issues/:num/comments", { owner, shortName, num, data: {body: comment}}).then(({data: comment}) => cb(null, comment), cb);
     }
 ,   createRepo: function (data, config, cb) {
         this.createOrImportRepo(data, makeNewRepo, newFile, config, cb);

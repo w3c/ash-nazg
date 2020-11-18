@@ -8,7 +8,8 @@
 ,   "ghClientSecret":   "5678"
 ,   "logToConsole":     false
 ,   "logToFile":        "test/logs"
-,   "couchDB":  "ashnazg-test"
-,   "w3cAPIKey": "foobar"
-,   "notifyFrom": "test@localhost.test"
+,   "couchDB":          "ashnazg-test"
+,   "w3cAPIKey":        "foobar"
+,   "notifyFrom":       "test@localhost.test"
+,   "w3cBotGHToken":    "123"
 }

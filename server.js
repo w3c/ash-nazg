@@ -105,7 +105,6 @@ router.get(
                                         // these are the permissions we request
                                         scope:  [
                                                 "user:email"
-                                            ,   "public_repo"
                                             ,   "read:org"
                                             ]
                                     ,   callbackURL:    redir
@@ -367,7 +366,7 @@ router.get("/api/scope-granted", function (req, res) {
       if (req.user) {
           const gh = new GH(req.user);
           gh.getUser(req.user.username, function(err, user) {
-              res.json({ scopes: user.scopes });
+              res.json(user ? { scopes: user.scopes } : {});
           });
       } else {
           res.json({ scopes: "" });
@@ -537,7 +536,7 @@ router.post("/api/pr/:owner/:shortName/:num/markAs(|Non)Substantive", ensureAPIA
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prChecker.validate(updatedPR, delta, function(err, pr) {
                     if (err) return error(res, err);
-                    pr.comment = "Marked as " + qualifier + " substantive for IPR from ash-nazg.";
+                    pr.comment = `[${req.user.username}](https://github.com/${req.user.username}) marked as ${qualifier} substantive for IPR from ash-nazg.`;
                     req.gh.commentOnPR(pr, function(err, comment) {
                         makeRes(res)(err, pr);
                     });

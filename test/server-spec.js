@@ -61,43 +61,53 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
             contents_url: "https://api.github.com/repos/" + full_name + "/contents/{+path}"
         };
     }
-      function mockGH(username, nonAdmin = false, existinghook = false) {
+    function mockGH(username, nonAdmin = false, existinghook = false, advancedPrivs = true) {
         var contentRE = new RegExp('/repos/' + full_name + '/contents/.*');
         if (files.length === 0) {
             nock('https://api.github.com')
-                .post('/orgs/' + owner + '/repos', {name: name})
-                .reply(200, toGH());
+            .post('/orgs/' + owner + '/repos', {name: name})
+            .reply(200, toGH());
         } else {
             nock('https://api.github.com')
-                .get('/repos/' + full_name)
-                .reply(200, toGH());
+            .get('/repos/' + full_name)
+            .reply(200, toGH());
         }
-      nock('https://api.github.com')
-        .get(`/orgs/${_owner}/memberships/${username}`)
-        .reply(nonAdmin ? 404 : 200, {
-          role: nonAdmin ? "none" : "admin"
+
+        if (advancedPrivs) {
+            nock('https://api.github.com')
+            .get(`/orgs/${_owner}/memberships/${username}`)
+            .reply(nonAdmin ? 404 : 200, {
+                role: nonAdmin ? "none" : "admin"
+            });
+        }
+
+        nock('https://api.github.com')
+        .put(contentRE)
+        .times(files.length === 0 ? expectedFilesInCreatedRepo.length : expectedFilesInImportedRepo.length)
+        .reply(function(uri) {
+            var filename = uri.split("/").slice(5).join("/");
+            if (addFile(filename)) {
+                return [201, {message:"OK"}];
+            } else {
+                return [422, {message:"File already exists"}];
+            }
         });
 
-      nock('https://api.github.com')
-            .put(contentRE)
-            .times(files.length === 0 ? expectedFilesInCreatedRepo.length : expectedFilesInImportedRepo.length)
-            .reply(function(uri) {
-                var filename = uri.split("/").slice(5).join("/");
-                if (addFile(filename)) {
-                    return [201, {message:"OK"}];
-                } else {
-                    return [422, {message:"File already exists"}];
-                }
-            });
         nock('https://api.github.com')
-            .get('/repos/' + full_name + '/hooks')
-            .reply(200, hooks);
+        .get('/repos/' + full_name + '/hooks')
+        .reply(200, hooks);
         if (!existinghook) {
-          nock('https://api.github.com')
-            .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
-            .reply(201, function(uri, body) {
-              addHook(JSON.parse(body));
-            });
+            if (advancedPrivs) {
+                nock('https://api.github.com')
+                .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+                .reply(201, function(uri, body) {
+                    addHook(JSON.parse(body));
+                });
+            } else {
+                nock('https://api.github.com')
+                .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+                .reply(403, {message: "Forbidden"});
+            }
         }
     }
 
@@ -201,7 +211,7 @@ function erroringroutes(httpmethod, routes, errorcode, cb) {
     }
 }
 
-function login(agent, cb) {
+function login(agent, admin, cb) {
 
     nock('https://github.com')
     .post('/login/oauth/access_token', {
@@ -219,7 +229,7 @@ function login(agent, cb) {
     .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
 
     agent
-        .get('/auth/github')
+        .get(`${admin ? "/admin" : ""}/auth/github`)
         .expect(302)
         .end(function(err, res) {
             if (err) return cb(err);
@@ -379,7 +389,7 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     it('manages Github auth', function testAuthCB(done) {
-        login(authAgent, done);
+        login(authAgent, false, done);
     });
 
     it('responds to login query correctly when logged in', function testLoggedIn(done) {
@@ -480,7 +490,7 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 });
 
-describe('Server manages requests in a set up repo', function () {
+describe('Server manages requests from advanced privileged users in a set up repo', function () {
     var app, req, http, authAgent, store;
 
     before(function (done) {
@@ -489,7 +499,7 @@ describe('Server manages requests in a set up repo', function () {
         req = request(app);
         authAgent = request.agent(app);
         store = new Store(config);
-        login(authAgent, function(err) {
+        login(authAgent, true, function(err) {
             if (err) return done(err);
             addgroup(authAgent, w3cGroup, function(err, res) {
                 addgroup(authAgent, w3cGroup3, done);
@@ -502,6 +512,9 @@ describe('Server manages requests in a set up repo', function () {
         function cleanStore(task) {
             return curry(store[task].bind(store));
         }
+
+        // clean testNewRepo
+        testNewRepo = new RepoMock(123, "newrepo", "acme", [], []);
 
         async.parallel([
             http.close.bind(http),
@@ -519,6 +532,7 @@ describe('Server manages requests in a set up repo', function () {
             cleanStore("deleteUser")(testUser2.username),
             cleanStore("deleteUser")(testUser3.username)
         ], emptyNock(done));
+
     });
 
     it('prevents from importing an existing GH repo if the user doesn’t have admin on the hosting org and there is no known secret for it', function testImportRepo(done) {
@@ -893,4 +907,49 @@ describe('Server manages requests in a set up repo', function () {
                 done();
             });
     });
+});
+
+describe('Server manages requests from regular users', function () {
+  var app, req, http, authAgent, store;
+
+  before(function (done) {
+      http = server.run(config, transporter);
+      app = server.app;
+      req = request(app);
+      authAgent = request.agent(app);
+      store = new Store(config);
+
+      login(authAgent, false, function(err) {
+          if (err) return done(err);
+          addgroup(authAgent, w3cGroup, function(err, res) {
+              addgroup(authAgent, w3cGroup3, done);
+          });
+      });
+  });
+
+  after(function (done) {
+      expect(JSON.stringify(transport.sentMail.map(x => x.message.content), null, 2)).to.be.equal("[]");
+      function cleanStore(task) {
+          return curry(store[task].bind(store));
+      }
+
+      async.parallel([
+          http.close.bind(http),
+          cleanStore("deleteGroup")("" + w3cGroup.id),
+          cleanStore("deleteGroup")("" + w3cGroup3.id)
+      ], emptyNock(done));
+  });
+
+
+  it('Does not allows to create a new GH repo if the user has not granted write access', function testCreateRepo(done) {
+      testNewRepo.mockGH(testUser.username, false, false, false);
+      authAgent
+          .post('/api/create-repo')
+          .send({org:testOrg.login, repo: testNewRepo.name, groups:["" + w3cGroup.id], includeW3cJson: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeContributing: true, includeSpec: true})
+          .expect(500, function(err, res) {
+              if (err) return done(err);
+              expect(res.body.error.code).to.be.equal(403);
+              done();
+          });
+  });
 });

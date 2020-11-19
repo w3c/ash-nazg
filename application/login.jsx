@@ -36,15 +36,12 @@ export default class LoginWelcome extends React.Component {
                         credentials.
                     </p>
                     <p>
-                        Given that the actions we need to carry out are fairly extensive, the level
-                        of permissions we require is relatively high. Worry not, we promise to
-                        almost never use it for anything evil.
+                        Pull requests contributors can <a href={`${pp}auth/github?back=${redir}`}>log in using GitHub</a>.
                     </p>
                     <p>
-                        Go ahead and <a href={`${pp}auth/github?back=${redir}`}>log in using GitHub</a>.
+                        <em>Note</em>: People who wish to import repositories should use <a href={`${pp}admin/auth/github?back=${redir}`}>this link to log in</a> as we require more permissions.
                     </p>
                 </div>
         ;
     }
 }
-

@@ -82,8 +82,10 @@ You now need to configure the system so that it can find various bits and pieces
     // hopefully at some point the origin won't be needed anymore
 ,   "w3cAPIKey":    "deadbeef"
 ,   "w3cAPIOrigin": "http://foo.bar/"
- // address from which notifications are setn
+    // address from which notifications are set
 ,   "notifyFrom": "foo@example.com"
+    // w3cbot GitHub token with `public_repo` privileges to comment on the PR
+,   "w3cBotGHToken": "1234"
 }
 ```
 

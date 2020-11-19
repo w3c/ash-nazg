@@ -105,6 +105,27 @@ router.get(
                                         // these are the permissions we request
                                         scope:  [
                                                 "user:email"
+                                            ,   "read:org"
+                                            ]
+                                    ,   callbackURL:    redir
+                                    }
+            )(req, res, next);
+        }
+);
+
+// Login page for admin (requires more permission to add webhooks)
+router.get(
+        "/admin/auth/github"
+    ,   function (req, res, next) {
+            var redir = config.url + "auth/github/callback";
+            if (req.query.back) redir += "?back=" + req.query.back;
+            log.info("auth github, with redir=" + redir);
+            passport.authenticate(
+                                    "github"
+                                ,   {
+                                        // these are the permissions we request
+                                        scope:  [
+                                                "user:email"
                                             ,   "public_repo"
                                             ,   "write:repo_hook"
                                             ,   "read:org"
@@ -340,6 +361,18 @@ router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), functio
     });
 });
 
+// get the permissions granted by the user
+router.get("/api/scope-granted", function (req, res) {
+      if (req.user) {
+          const gh = new GH(req.user);
+          gh.getUser(req.user.username, function(err, user) {
+              res.json(user ? { scopes: user.scopes } : {});
+          });
+      } else {
+          res.json({ scopes: "" });
+      }
+});
+
 // GITHUB HOOKS
 function parseMessage (msg) {
     var ret = {
@@ -503,7 +536,7 @@ router.post("/api/pr/:owner/:shortName/:num/markAs(|Non)Substantive", ensureAPIA
                 if (err || !updatedPR) return error(res, (err || "PR not found: " + pr.fullName + "/pulls/" + pr.num));
                 prChecker.validate(updatedPR, delta, function(err, pr) {
                     if (err) return error(res, err);
-                    pr.comment = "Marked as " + qualifier + " substantive for IPR from ash-nazg.";
+                    pr.comment = `[${req.user.username}](https://github.com/${req.user.username}) marked as ${qualifier} substantive for IPR from ash-nazg.`;
                     req.gh.commentOnPR(pr, function(err, comment) {
                         makeRes(res)(err, pr);
                     });

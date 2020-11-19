@@ -3,6 +3,7 @@ const Octokit = require("@octokit/core").Octokit.plugin(require("@octokit/plugin
 ,   pg = require("password-generator")
 ,   crypto = require("crypto")
 ,   template = require("./template")
+,   config = require("./config.json")
 ;
 
 // helpers
@@ -81,7 +82,8 @@ GH.prototype = {
         }, cb);
     }
 ,   commentOnPR: function({owner, shortName, num, comment}, cb) {
-        this.octo.request("POST /repos/:owner/:shortName/issues/:num/comments", { owner, shortName, num, data: {body: comment}}).then(({data: comment}) => cb(null, comment), cb);
+        const w3cBotOcto = new Octokit({ auth: config.w3cBotGHToken });
+        w3cBotOcto.request("POST /repos/:owner/:shortName/issues/:num/comments", { owner, shortName, num, data: {body: comment}}).then(({data: comment}) => cb(null, comment), cb);
     }
 ,   createRepo: function (data, config, cb) {
         this.createOrImportRepo(data, makeNewRepo, newFile, config, cb);
@@ -198,7 +200,9 @@ GH.prototype = {
             .then(function () {
                 cb(null, { actions: report, repo: simpleRepo });
             })
-            .catch(cb)
+            .catch(function (e) {
+                cb({code: e.status});
+            })
         ;
     }
 ,   getRepoContacts: function (repofullname, cb) {
@@ -247,7 +251,7 @@ GH.prototype = {
     }
 ,   getUser:    function (username, cb) {
         const ret = this.octo.request("GET /users/:username", {username})
-            .then(function ({data: user}) {
+            .then(function ({data: user, headers: headers}) {
                 var u = {
                         accessToken:        null
                     ,   admin:              false
@@ -265,6 +269,7 @@ GH.prototype = {
                     ,   username:           username
                     ,   w3capi:             null
                     ,   w3cid:              null
+                    ,   scopes:             headers['x-oauth-scopes']
                 };
                 if (user.email) u.emails.push({ value: user.email });
                 if (user.avatar_url) u.photos.push({ value: user.avatar_url });

@@ -120,7 +120,7 @@ export default class PRViewer extends React.Component {
                 action = <span>{revert}{ revert && merge ? " — or " : (merge ? " — " : "")}{merge}</span>;
             } else {
                 let nplc;
-                if ((this.props.isAdmin || st.isTeamcontact) && st.pr.repoId) {
+                if ((this.props.isAdmin || st.isTeamcontact) && st.pr.repoId && !Object.keys(cs).some(u => cs[u] === "undetermined affiliation")) {
                     let st = this.state
                     ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.pr.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
                     ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')

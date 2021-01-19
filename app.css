@@ -132,6 +132,7 @@ button, a.button {
     color:  #fff;
     text-decoration:    none;
     padding:    0 5px;
+    cursor: pointer;
 }
 button:disabled {
     background: silver;

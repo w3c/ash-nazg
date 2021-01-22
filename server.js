@@ -62,7 +62,7 @@ function ensureAPIAuth (req, res, next) {
 // same as above, but user has to be admin too
 function ensureAdmin (req, res, next) {
     ensureAPIAuth(req, res, function () {
-        if (!req.user.admin) res.status(403).json({ error: "Forbidden" });
+        if (!req.user.admin) return res.status(403).json({ error: "Forbidden" });
         next();
     });
 }
@@ -639,7 +639,7 @@ function addClientSideRoutes(app) {
     app.get("/login", showIndex);
     app.get("/repo/*", showIndex);
     app.get("/repos", showIndex);
-    app.get("/admin/*", showIndex);
+    app.get("/admin/*", ensureAdmin, showIndex);
     app.get("/pr/*", showIndex);
 }
 

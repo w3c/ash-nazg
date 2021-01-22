@@ -597,6 +597,9 @@ router.get("/api/team-contact-of", ensureAPIAuth, function (req, res) {
         if (err) {
             return makeRes(res)(err);
         }
+        if (!user.w3capi) {
+            return error(res, err);
+        }
         w3c.user(user.w3capi).teamcontactofgroups().fetch(function(err, teamcontactof) {
             if (err || teamcontactof[0] === undefined) {
                 return error(res, err);

@@ -243,7 +243,7 @@ export default class RepoNew extends React.Component {
                 </RadioGroup></div>
             : "";
         let customization = st.mode === "edit" ? "" : <div className="formline">
-          <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist" : ""}:</p>
+          <p>Add the following files to the repository {st.mode === "import" ? "if they don't already exist (existing files will NOT be overwritten)" : ""}:</p>
           <ul>
           <li><label><input defaultChecked ref="w3c" type="checkbox" name="w3c" /> <a href="https://github.com/w3c/ash-nazg/blob/master/templates/w3c.json" target="_blank">w3c.json</a> [<a href="https://w3c.github.io/w3c.json.html" target="_blank" title="What is the w3c.json file">?</a>]</label> (<label className="inline">administrative contacts: <input ref="contacts" name="contacts" defaultValue={st.lastAddedRepo.w3cJsonContacts ? st.lastAddedRepo.w3cJsonContacts.join(",") : st.login + ","}/></label>)</li>
           <li><label><input type="checkbox" ref="contributing" name="CONTRIBUTING" defaultChecked/> <a href={contributingLink} target="_blank">CONTRIBUTING.md</a></label></li>
@@ -347,10 +347,12 @@ export default class RepoNew extends React.Component {
             return  <div className="primary-app">
                         <h2>Import Repository</h2>
                         <p>
-                            Use the form below to import an existing repository under either your user
-                            or one of the organisations that you have write access to. Your existing
-                            files will no be overwritten, it is your responsibility to check that you
-                            are set up correctly. New files will, however, be added.
+                            Use this form to turn an unmanaged W3C organization repository into a W3C-managed repository. This tool does the following:
+                            <ol>
+                                <li>associates the repository with one or more groups (for patent policy and other integration)</li>
+                                <li>configures repository settings</li>
+                                <li>makes it easy to add files that are important to group work (e.g., the code of conduct)</li>
+                            </ol>
                         </p>
                         {content}
                         {results}

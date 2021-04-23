@@ -347,10 +347,10 @@ export default class RepoNew extends React.Component {
             return  <div className="primary-app">
                         <h2>Import Repository</h2>
                         <p>
-                            Use this form to turn an unmanaged W3C organization repository into a W3C-managed repository. This tool does the following:
+                            Use this form to turn an unmanaged repository into a W3C-managed repository. This tool does the following:
                             <ol>
                                 <li>associates the repository with one or more groups (for patent policy and other integration)</li>
-                                <li>configures repository settings</li>
+                                <li>checks that pull requests made on the repository from now on match the IPR commitments of the submitters</li>
                                 <li>makes it easy to add files that are important to group work (e.g., the code of conduct)</li>
                             </ol>
                         </p>

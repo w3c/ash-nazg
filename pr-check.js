@@ -171,7 +171,24 @@ function prChecker(config, argLog, argStore, GH, mailer) {
             pr.contribStatus[username] = "undetermined affiliation";
             return "undetermined affiliation";
           }
-          let result = await w3ciprcheck(w3c, user.w3capi, user.displayName, repoGroups, store);
+
+          let groups = [];
+          for (g of repoGroups) {
+            // get group type and shortname
+            await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
+              if (err) return rej(err);
+              const types = {
+                'working group': 'wg',
+                'interest group': 'ig',
+                'community group': 'cg',
+                'business group': 'bg'
+              };
+              groups.push({id: group.id, type: types[group.type], shortname: group.shortname});
+              res();
+            }));
+          }
+
+          let result = await w3ciprcheck(w3c, user.w3capi, user.displayName, groups, store);
           let ok = result.ok;
           if (ok) {
             pr.affiliations[result.affiliation.id] = result.affiliation.name;

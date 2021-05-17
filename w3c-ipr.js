@@ -1,10 +1,10 @@
 const fromUrlToId = url => url.replace(/.*\//, "");
 
-module.exports = async function iprcheck(w3c, w3cprofileid, name, w3cgroupids, store, cb) {
+module.exports = async function iprcheck(w3c, w3cprofileid, name, w3cgroups, store, cb) {
   return Promise.all(
-    w3cgroupids.map(
-      g => new Promise((res, rej) => {
-        store.getGroup(g, function(err, group) {
+    w3cgroups.map(
+      ({id, type, shortname}) => new Promise((res, rej) => {
+        store.getGroup(id, function(err, group) {
           if (err) return rej(err);
           w3c.user(w3cprofileid)
             .participations()
@@ -15,7 +15,7 @@ module.exports = async function iprcheck(w3c, w3cprofileid, name, w3cgroupids, s
                        var p = participations[i];
                        var org = p._links.organization;
                        var affiliation = p.individual ? {id: w3cprofileid, name: name} : {id: fromUrlToId(org.href), name: org.title};
-                       if (p._links.group.href === "https://api.w3.org/groups/" + g) {
+                       if (p._links.group.href === `https://api.w3.org/groups/${type}/${shortname}`) {
                          return res({ok: true, affiliation: affiliation});
                        }
                      }
@@ -27,7 +27,7 @@ module.exports = async function iprcheck(w3c, w3cprofileid, name, w3cgroupids, s
                      }
                      // For WGs, we check if the user is affiliated
                      // with an organization that is participating
-                     w3c.group(g)
+                     w3c.group({type, shortname})
                        .participations()
                        .fetch({embed: true}, function(err, participations) {
                          if (err) return rej(err);

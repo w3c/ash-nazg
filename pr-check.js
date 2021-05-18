@@ -2,7 +2,13 @@ const async = require("async")
 ,   notification = require('./notification')
 ,   w3ciprcheck = require('./w3c-ipr')
 ,   doAsync = require('doasync') // rather than utils.promisy to get "free" support for object methods
-,   w3c = require("node-w3capi");
+,   w3c = require("node-w3capi")
+,   types = {
+      'working group': 'wg',
+      'interest group': 'ig',
+      'community group': 'cg',
+      'business group': 'bg'
+    };
 
 let store, log;
 
@@ -171,7 +177,19 @@ function prChecker(config, argLog, argStore, GH, mailer) {
             pr.contribStatus[username] = "undetermined affiliation";
             return "undetermined affiliation";
           }
-          let result = await w3ciprcheck(w3c, user.w3capi, user.displayName, repoGroups, store);
+
+          let groups = [];
+
+          for (g of repoGroups) {
+            // get group type and shortname
+            await new Promise((res, rej) => w3c.group(parseInt(g, 10)).fetch((err, group) => {
+              if (err) return rej(err);
+              groups.push({id: g, type: types[group.type], shortname: group.shortname});
+              res();
+            }));
+          }
+
+          let result = await w3ciprcheck(w3c, user.w3capi, user.displayName, groups, store);
           let ok = result.ok;
           if (ok) {
             pr.affiliations[result.affiliation.id] = result.affiliation.name;

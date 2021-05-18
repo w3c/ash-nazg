@@ -2,7 +2,13 @@ const async = require("async")
 ,   notification = require('./notification')
 ,   w3ciprcheck = require('./w3c-ipr')
 ,   doAsync = require('doasync') // rather than utils.promisy to get "free" support for object methods
-,   w3c = require("node-w3capi");
+,   w3c = require("node-w3capi")
+,   types = {
+      'working group': 'wg',
+      'interest group': 'ig',
+      'community group': 'cg',
+      'business group': 'bg'
+    };
 
 let store, log;
 
@@ -173,12 +179,6 @@ function prChecker(config, argLog, argStore, GH, mailer) {
           }
 
           let groups = [];
-          const types = {
-            'working group': 'wg',
-            'interest group': 'ig',
-            'community group': 'cg',
-            'business group': 'bg'
-          };
 
           for (g of repoGroups) {
             // get group type and shortname

@@ -182,7 +182,7 @@ function prChecker(config, argLog, argStore, GH, mailer) {
 
           for (g of repoGroups) {
             // get group type and shortname
-            await new Promise((res, rej) => w3c.group(parseInt(g, 10)).fetch((err, group) => {
+            await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
               if (err) return rej(err);
               groups.push({id: g, type: types[group.type], shortname: group.shortname});
               res();

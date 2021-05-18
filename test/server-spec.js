@@ -35,12 +35,12 @@ var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"}
 var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc", w3capi: "aaaaa", emails:[]};
 var testUser3 = {ghID: '115', emails: ["barfoo@example.com"], username: "--barfoo", w3cid: 124};
 var testUser3_w3capi = "bbbbb";
-var w3cGroup = {id: 42, type: "working group", name: "Test Working Group"};
-var w3cGroup2 = {id: 12, type: "working group", name: "Other Test Working Group"};
-var w3cGroup3 = {id: 15, type: "community group", name: "Test Community Group"};
+var w3cGroup = {id: 42, type: "working group", shortType: "wg", shortname: "test", name: "Test Working Group"};
+var w3cGroup2 = {id: 12, type: "working group", shortType: "wg", shortname: "othertest", name: "Other Test Working Group"};
+var w3cGroup3 = {id: 15, type: "community group", shortType: "cg", shortname: "testcg", name: "Test Community Group"};
 var testOrg = {login: "acme", id:12};
 var w3cAff = {id: 456, name: "ACME Inc"};
-var w3cApify = function(g, type) { return {href:'https://api.w3.org/' + (type ? type : 'groups') + '/' + g.id, title: g.name};};
+var w3cApify = function(g, type) { return {href:`https://api.w3.org/${type ? `${type}/${g.id}` : `groups/${g.shortType}/${g.shortname}`}`, title: g.name};};
 
 function RepoMock(_id, _name, _owner, _files, _hooks) {
     var id = _id;
@@ -246,7 +246,13 @@ function login(agent, admin, cb) {
 }
 
 function addgroup(agent, group, cb) {
-    var wg = {name: group.name, w3cid: group.id, groupType: group.type == "working group" ? "WG" : "CG"};
+    var wg = {
+        name: group.name,
+        w3cid: group.id.toString(10),
+        groupType: group.type == "working group" ? "WG" : "CG",
+        shortType: group.shortType,
+        shortname: group.shortname
+    };
     agent
         .post('/api/groups')
         .send(wg)
@@ -267,9 +273,9 @@ function mockUserAffiliation(user, groups, blessByAffiliation) {
                                              }};})
                                                             }});
     if (blessByAffiliation) {
-        var gid = blessByAffiliation.groupid;
+        const group = blessByAffiliation.group;
         nock('https://api.w3.org')
-            .get('/groups/' + gid + '/participations')
+            .get(`/groups/${group.shortType}/${group.shortname}/participations`)
             .query({embed:"true"})
             .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [{individual: false, _links: {organization: w3cApify(w3cAff, "affiliations")}}] }});
         nock('https://api.w3.org')
@@ -459,7 +465,13 @@ describe('Server manages requests from regular logged-in users', function () {
                 req
                     .get('/api/groups')
                     .expect(function(res) {
-                        res.body = res.body.map(function(g) { return {name:g.name, id: "" + g.w3cid, type: g.groupType === "WG" ? "working group": "error"};}).sort((a,b) => a.w3cid-b.w3cid);
+                        res.body = res.body.map(g => ({
+                            name: g.name,
+                            id: "" + g.w3cid,
+                            type: g.groupType === "WG" ? "working group": "error",
+                            shortType: g.shortType,
+                            shortname: g.shortname
+                        })).sort((a,b) => a.w3cid-b.w3cid);
                     })
                     .expect(200, [w3cGroup2, w3cGroup], done);
             });
@@ -694,10 +706,13 @@ describe('Server manages requests from advanced privileged users in a set up rep
       nock('https://api.w3.org')
             .get('/users/connected/github/' + testUser3.ghID)
             .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser3_w3capi}}});
+      nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
       testUser3.w3capi = testUser3_w3capi;
       mockUserAffiliation(testUser3, []);
       nock('https://api.w3.org')
-        .get('/groups/' + w3cGroup.id + '/participations')
+        .get(`/groups/${w3cGroup.shortType}/${w3cGroup.shortname}/participations`)
         .query({embed:"true"})
         .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [] }});
       // Still no affiliation for testUser3
@@ -725,7 +740,13 @@ describe('Server manages requests from advanced privileged users in a set up rep
       nock('https://api.w3.org')
             .get('/users/connected/github/' + testUser2.ghID)
             .reply(200, {_links: {self: {href: 'https://api.w3.org/users/' + testUser2.w3capi}}});
+      nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
       mockUserAffiliation(testUser2, [w3cGroup]);
+      nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: "working group", shortname: w3cGroup.shortname});
       mockUserAffiliation(testUser3, [w3cGroup]);
 
       mockPRStatus(testPR, 'success', /.*/);
@@ -793,10 +814,17 @@ describe('Server manages requests from advanced privileged users in a set up rep
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testPR.number + '/files')
         .reply(200, testPR.files);
+
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
         mockUserAffiliation(testUser2, [w3cGroup]);
 
         // we assume that testUser3 has in the meantime linked his Github account
-        mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
+        mockUserAffiliation(testUser3, [], {group: w3cGroup});
         mockPRStatus(testPR, 'success', /.*/);
         authAgent
             .post('/api/pr/' + testExistingRepo.full_name + '/' + testPR.number + '/revalidate')
@@ -811,8 +839,14 @@ describe('Server manages requests from advanced privileged users in a set up rep
         nock('https://api.github.com')
         .get('/repos/' + testExistingRepo.full_name + '/pulls/' + forcedPR.number + '/files')
         .reply(200, forcedPR.files);
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
         mockUserAffiliation(testUser2, [w3cGroup]);
-        mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
+        mockUserAffiliation(testUser3, [], {group: w3cGroup});
         mockPRStatus(forcedPR, 'success', /.*/);
 
         req.post('/' + config.hookPath)
@@ -827,6 +861,9 @@ describe('Server manages requests from advanced privileged users in a set up rep
         nock('https://api.github.com')
             .get('/repos/' + testCGRepo.full_name + '/pulls/' + testCGPR.number + '/files')
         .reply(200, testCGPR.files);
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup3.id)
+            .reply(200, {id: w3cGroup3.id, type: w3cGroup3.type, shortname: w3cGroup3.shortname});
         mockUserAffiliation(testUser3, []);
         nock('https://api.github.com')
             .get('/repos/' + testCGRepo.full_name + '/contents/w3c.json')
@@ -856,7 +893,10 @@ describe('Server manages requests from advanced privileged users in a set up rep
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testWGPR.number + '/files')
         .reply(200, testWGPR.files);
-        mockUserAffiliation(testUser3, [], {groupid: w3cGroup.id});
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
+        mockUserAffiliation(testUser3, [], {group: w3cGroup});
 
         mockPRStatus(testWGPR, 'success', /.*/);
         req.post('/' + config.hookPath)
@@ -872,9 +912,12 @@ describe('Server manages requests from advanced privileged users in a set up rep
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/pulls/' + testWGPR.number + '/files')
         .reply(200, testWGPR.files);
+        nock('https://api.w3.org')
+            .get('/groups/' + w3cGroup.id)
+            .reply(200, {id: w3cGroup.id, type: w3cGroup.type, shortname: w3cGroup.shortname});
         mockUserAffiliation(testUser3, []);
         nock('https://api.w3.org')
-            .get('/groups/' + w3cGroup.id + '/participations')
+            .get(`/groups/${w3cGroup.shortType}/${w3cGroup.shortname}/participations`)
             .query({embed:"true"})
             .reply(200, {page: 1, total:1, pages: 1, _embedded: {participations: [] }});
         nock('https://api.w3.org')

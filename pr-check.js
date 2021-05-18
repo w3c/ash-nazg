@@ -173,17 +173,18 @@ function prChecker(config, argLog, argStore, GH, mailer) {
           }
 
           let groups = [];
+          const types = {
+            'working group': 'wg',
+            'interest group': 'ig',
+            'community group': 'cg',
+            'business group': 'bg'
+          };
+
           for (g of repoGroups) {
             // get group type and shortname
-            await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
+            await new Promise((res, rej) => w3c.group(parseInt(g, 10)).fetch((err, group) => {
               if (err) return rej(err);
-              const types = {
-                'working group': 'wg',
-                'interest group': 'ig',
-                'community group': 'cg',
-                'business group': 'bg'
-              };
-              groups.push({id: group.id, type: types[group.type], shortname: group.shortname});
+              groups.push({id: g, type: types[group.type], shortname: group.shortname});
               res();
             }));
           }

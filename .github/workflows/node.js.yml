@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Start CouchDB
-      uses: iamssen/couchdb-github-action@master
+      uses: iamssen/couchdb-github-action@0.3.0
       with:
         couchdb-version: 3.1
     - name: Use Node.js ${{ matrix.node-version }}

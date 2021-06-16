@@ -1,0 +1,29 @@
+name: ash-nazg tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Start CouchDB
+      uses: iamssen/couchdb-github-action@0.3.0
+      with:
+        couchdb-version: 3.1
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm i
+    - run: cp ./test/config-test.json ./config.json
+    - run: node store.js "./test/config-test.json"
+    - run: npm test

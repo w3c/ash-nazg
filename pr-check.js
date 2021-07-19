@@ -182,11 +182,15 @@ function prChecker(config, argLog, argStore, GH, mailer) {
 
           for (g of repoGroups) {
             // get group type and shortname
-            await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
-              if (err) return rej(err);
-              groups.push({id: g, type: types[group.type], shortname: group.shortname});
-              res();
-            }));
+            try {
+              await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
+                if (err) return rej(err);
+                groups.push({id: g, type: types[group.type], shortname: group.shortname});
+                res();
+              }));
+            } catch (err) {
+              return cb(err);
+            }
           }
 
           let result = await w3ciprcheck(w3c, user.w3capi, user.displayName, groups, store);

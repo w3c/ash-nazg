@@ -280,10 +280,13 @@ GH.prototype = {
     }
 };
 
+GH.signPayload = function (algo, secret, buffer) {
+    return algo + "=" + crypto.createHmac(algo, secret).update(buffer).digest("hex");
+};
+
 GH.checkPayloadSignature = function (algo, secret, buffer, remotesig) {
     const sig = Buffer.from(remotesig, 'utf-8');
-    const hmac = crypto.createHmac(algo, secret);
-    const digest = Buffer.from(algo + '=' + hmac.update(buffer).digest('hex'), 'utf8')
+    const digest = Buffer.from(GH.signPayload(algo, secret, buffer), 'utf8')
     
     return (sig.length === digest.length && crypto.timingSafeEqual(digest, sig));
 }

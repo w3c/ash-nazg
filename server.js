@@ -423,29 +423,34 @@ function addGHHook(app, path) {
             ;
             store.getSecret(repo, async function (err, data) {
                 if (err || !data) {
-                    const { token } = await doAsync(store).getToken(owner);
-                    const gh = new GH({ accessToken: token });
-                    const statusData = {
-                        owner,
-                        shortName: repoShortname,
-                        sha: event.pull_request.head.sha,
-                        payload: {
-                            state: "failure",
-                            target_url: config.url + "pr/id/" + owner + "/" + repo.split('/')[1] + "/" + event.number,
-                            description: `The repository manager doesn't know the following repository: ${repo}`,
-                            context: "ipr"
-                        }
-                    };
-                    gh.status(statusData, err => {
-                        if (err) {
-                            log.error(err);
-                        }
-                    });
+                    try {
+                        const { token } = await doAsync(store).getToken(owner);
+                        const gh = new GH({ accessToken: token });
+                        const statusData = {
+                            owner,
+                            shortName: repoShortname,
+                            sha: event.pull_request.head.sha,
+                            payload: {
+                                state: "failure",
+                                target_url: `${config.url}pr/id/${owner}/${repoShortname}/${event.number}`,
+                                description: `The repository manager doesn't know the following repository: ${repo}`,
+                                context: "ipr"
+                            }
+                        };
+                        gh.status(statusData, err => {
+                            if (err) {
+                                console.log(err);
+                                log.error(err);
+                            }
+                        });
+                    } catch (e) {
+                        log.error(`Token not found for ${owner}`);
+                    }
                     return error(res, "Secret for " + repo + " not found: " + (err || "simply not there."));
                 }
 
                 // we have the secret, crypto check becomes possible
-                if (!GH.checkPayloadSignature("sha1", data.secret, buffer, req.headers["x-hub-signature"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
+                if (!GH.checkPayloadSignature("sha256", data.secret, buffer, req.headers["x-hub-signature"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
 
                 // for status we need: owner, repoShort, and sha
                 var repoShort = event.repository.name

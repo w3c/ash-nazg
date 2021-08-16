@@ -640,7 +640,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testPR2)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR2))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR2))))
             .expect(500, done);
     });
 
@@ -668,7 +668,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
             .expect(200, function(err, res) {
                 if (err) return done(err);
                 expect(transport.sentMail.length).to.be.equal(2);
@@ -698,7 +698,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testIPRFreePR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testIPRFreePR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testIPRFreePR))))
             .expect(200, done);
     });
 
@@ -884,7 +884,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(forcedPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(forcedPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(forcedPR))))
             .expect(200, done);
     });
 
@@ -908,7 +908,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testCGPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testCGPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testCGPR))))
             .expect(200, function(err) {
                 if (err) return done(err);
                 expect(transport.sentMail.length).to.be.equal(1);
@@ -934,7 +934,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testWGPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testWGPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testWGPR))))
             .expect(200, done);
 
     });

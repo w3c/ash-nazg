@@ -450,7 +450,7 @@ function addGHHook(app, path) {
                 }
 
                 // we have the secret, crypto check becomes possible
-                if (!GH.checkPayloadSignature("sha256", data.secret, buffer, req.headers["x-hub-signature"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
+                if (!GH.checkPayloadSignature("sha256", data.secret, buffer, req.headers["x-hub-signature-256"])) return error(res, "GitHub signature does not match known secret for " + repo + ".");
 
                 // for status we need: owner, repoShort, and sha
                 var repoShort = event.repository.name

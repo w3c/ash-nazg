@@ -285,7 +285,10 @@ GH.signPayload = function (algo, secret, buffer) {
 };
 
 GH.checkPayloadSignature = function (algo, secret, buffer, remotesig) {
-    return crypto.timingSafeEqual(Buffer.from(GH.signPayload(algo, secret, buffer)), Buffer.from(remotesig));
-};
+    const sig = Buffer.from(remotesig, 'utf-8');
+    const digest = Buffer.from(GH.signPayload(algo, secret, buffer), 'utf8')
+    
+    return (sig.length === digest.length && crypto.timingSafeEqual(digest, sig));
+}
 
 module.exports = GH;

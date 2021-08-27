@@ -429,13 +429,13 @@ function addGHHook(app, path) {
                           target_url: `${config.url}pr/id/${owner}/${repoShortname}/${event.number}`,
                           context: "ipr"
                       }
-                  };
+                  }
             ;
             store.getSecret(repo, async function (err, data) {
+                const { token } = await doAsync(store).getToken(owner)
+                ,     gh = new GH({ accessToken: token });
                 if (err || !data) {
                     try {
-                        const { token } = await doAsync(store).getToken(owner);
-                        const gh = new GH({ accessToken: token });
                         statusData.payload.description = `The repository manager doesn't know the following repository: ${repo}`;
                         gh.status(statusData, err => {
                             if (err) {

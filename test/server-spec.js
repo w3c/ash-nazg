@@ -644,6 +644,16 @@ describe('Server manages requests from advanced privileged users in a set up rep
             .expect(500, done);
     });
 
+    it('reacts to pull requests notifications with the wrong signature', function testWrongSignature(done) {
+        mockPRStatus(testPR, 'failure', /GitHub signature does not match known secret for .*/);
+
+        req.post('/' + config.hookPath)
+            .send(testPR)
+            .set('X-Github-Event', 'pull_request')
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", Array(20).join("@"), new Buffer(JSON.stringify(testPR))))
+            .expect(500, done);
+    });
+
     it('reacts to pull requests notifications from GH users without a known W3C account', function testPullRequestNotif(done) {
         mockPRStatus(testPR, 'pending', /.*/);
         nock('https://api.github.com')

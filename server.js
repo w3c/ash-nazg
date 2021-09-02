@@ -423,7 +423,6 @@ function addGHHook(app, path) {
             ,     statusData = {
                       owner,
                       shortName: repoShortname,
-                      sha: event.pull_request.head.sha,
                       payload: {
                           state: "failure",
                           target_url: `${config.url}pr/id/${owner}/${repoShortname}/${event.number}`,
@@ -431,6 +430,9 @@ function addGHHook(app, path) {
                       }
                   }
             ;
+            if (event.pull_request && event.pull_request.head && event.pull_request.head.sha) {
+                statusData.sha = event.pull_request.head.sha;
+            }
             store.getSecret(repo, async function (err, data) {
                 const { token } = await doAsync(store).getToken(owner)
                 ,     gh = new GH({ accessToken: token });

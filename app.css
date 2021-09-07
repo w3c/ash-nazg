@@ -19,7 +19,7 @@ h1, div.app-body, footer {
     margin: auto;
 }
 h1 {
-    color: #f1647c;
+    color: #b13737;
     font-size:  50px;
     font-weight:    300;
     padding:    0 0 0 10px;
@@ -30,12 +30,12 @@ h2 {
     margin-bottom:  10px;
 }
 a[href] {
-    color:  #f1647c;
+    color:  #b13737;
     text-decoration:    underline #84df5d;
 }
 a[href]:hover {
     color:  #84df5d;
-    text-decoration:    underline #f1647c;
+    text-decoration:    underline #b13737;
 }
 
 /* navigation */
@@ -57,7 +57,7 @@ a[href]:hover {
     margin: 0;
 }
 .nav-box li a, .nav-box li button {
-    color:  #f1647c;
+    color:  #b13737;
     display:    block;
     width:  100%;
     text-align: left;
@@ -69,7 +69,7 @@ a[href]:hover {
     font:   inherit;
 }
 .nav-box li a:hover, .nav-box li button:hover {
-    background: #f1647c;
+    background: #b13737;
     color:  #fff;
 }
 .nav-box li a.active, .nav-box li button:active {
@@ -126,7 +126,7 @@ td > ul {
     padding-left:   20px;
 }
 button, a.button {
-    background: #f1647c;
+    background: #b13737;
     border: none;
     border-radius:  5px;
     color:  #fff;

@@ -31,11 +31,9 @@ h2 {
 }
 a[href] {
     color:  #b13737;
-    text-decoration:    underline #84df5d;
 }
 a[href]:hover {
-    color:  #84df5d;
-    text-decoration:    underline #b13737;
+    color:  #003366;
 }
 
 /* navigation */
@@ -157,13 +155,13 @@ button:disabled {
     position:   relative;
 }
 .flash-success {
-    border: 1px solid #84df5d;
+    border: 1px solid green;
 }
 .flash-error {
     border: 1px solid #df5d5d;
 }
 .flash-success button {
-    background: #84df5d;
+    background: green;
 }
 .flash-error button {
     background: #df5d5d;

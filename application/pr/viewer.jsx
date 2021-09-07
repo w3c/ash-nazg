@@ -178,8 +178,9 @@ export default class PRViewer extends React.Component {
                var groupDoc, groups = utils.andify(st.groupDetails.map(g => g.name), "or");
                // we assume that all groups are of the same type
                if (!st.groupDetails || !st.groupDetails.length || st.groupDetails[0].groupType === 'WG') {
+                   let instructions = <a href="https://www.w3.org/2019/12/05-dak-nplc/">instructions</a>
                    groupDoc = [<li key={1}>if the said contributor works for a <a href="https://www.w3.org/Consortium/Member/List">W3C Member organization</a> participating to {groups}, they should <a href="https://www.w3.org/accounts/request">get a W3C account</a>. Once done or if they already have one, they should then <a href="https://www.w3.org/users/myprofile/connectedaccounts">link their W3C and github accounts together</a>.</li>,
-                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments{!st.pr.repoId ? " (missing repository ID in the database)" : ""}</li>]
+                   <li key={2}>Otherwise, the WG’s team contacts will request the contributors to sign the non-participant licensing commitments{!st.pr.repoId ? " (missing repository ID in the database)" : ""}{(this.props.isAdmin || st.isTeamcontact) ? [" - ", instructions] : ""}</li>]
                } else {
                    groupDoc = <li>Otherwise, the group’s chairs will need to figure how to get the proper IPR commitment from the contributor.</li>
                }

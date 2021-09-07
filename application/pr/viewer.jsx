@@ -37,11 +37,20 @@ export default class PRViewer extends React.Component {
                 this.setState({ pr: data  });
             })
             .then(() => {
+                const types = {
+                    'working group': 'wg',
+                    'interest group': 'ig',
+                    'community group': 'cg',
+                    'business group': 'bg'
+                  };
                 return Promise.all(groupDetails
                                    .map(g => fetch(pp + "api/w3c/group/" + g.w3cid)
                                         .then(utils.jsonHandler)
                                         .then(groupdata => {
-                                          groupDetails.find(gg => gg.w3cid === g.w3cid).joinhref = groupdata._links.join.href;
+                                          const group = groupDetails.find(gg => gg.w3cid === g.w3cid);
+                                          group.joinhref = groupdata._links.join.href;
+                                          group.shortname = groupdata.shortname;
+                                          group.type = types[groupdata.type];
                                         })
                                        ));
             })
@@ -49,7 +58,7 @@ export default class PRViewer extends React.Component {
                             .then(utils.jsonHandler)
                             .then((data) => {
                                 if (!data.hasOwnProperty('error')) {
-                                    isTeamcontact = data.some(wg => groupDetails.map(g => "https://api.w3.org/groups/" + g.w3cid).includes(wg.href));
+                                    isTeamcontact = data.some(wg => groupDetails.map(g => `https://api.w3.org/groups/${g.type}/${g.shortname}`).includes(wg.href));
                                 }
                             })
             )

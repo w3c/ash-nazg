@@ -22,8 +22,8 @@ exports.notifyContacts = async function (gh, pr, status, mailer, emailConfig, st
       from: emailConfig.from,
       to: actualEmails.join(","),
       cc: emailConfig.cc.join(","),
-      subject: "IPR check failed for PR #" + pr.num+ " on " + pr.fullName,
-      text: status.payload.description + "\n\n See " + status.payload.target_url
+      subject: `IPR check failed for PR #${pr.num} on ${pr.fullName}`,
+      text: `${status.payload.description}\n\nSee ${status.payload.target_url}\nand https://github.com/${pr.fullName}/pull/${pr.num}`
   });
   for await (let user of  pr.unaffiliatedUsers
                  .map(u => doAsync(store).getUser(u))) {

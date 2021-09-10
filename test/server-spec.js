@@ -63,6 +63,7 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
     }
     function mockGH(username, nonAdmin = false, existinghook = false, advancedPrivs = true) {
         var contentRE = new RegExp('/repos/' + full_name + '/contents/.*');
+        const hookId = 123;
         if (files.length === 0) {
             nock('https://api.github.com')
             .post('/orgs/' + owner + '/repos', {name: name})
@@ -101,13 +102,19 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
                 nock('https://api.github.com')
                 .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
                 .reply(201, function(uri, body) {
-                    addHook(JSON.parse(body));
+                    const hook = JSON.parse(body);
+                    hook.id = hookId;
+                    addHook(hook);
                 });
             } else {
                 nock('https://api.github.com')
                 .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
                 .reply(403, {message: "Forbidden"});
             }
+        } else {
+            nock('https://api.github.com')
+                .patch(`/repos/${full_name}/hooks/${hookId}`, {"config":{url: config.hookURL, content_type:'json', secret: /.*/}})
+                .reply(200, {message:"OK"});
         }
     }
 

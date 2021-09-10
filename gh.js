@@ -175,7 +175,9 @@ GH.prototype = {
                                            owner: self.currentRepo.owner.login, name: self.currentRepo.name
                                          })
                         .then(function ({data: hooks}) {
-                            if (!hooks || !hooks.length || !hooks.some(function (h) { return h && h.config && h.config.url === hookURL; })) {
+                            const hook = (hooks || hooks.length) ? hooks.find(function(h) { return h && h.config && h.config.url === hookURL; }) : null;
+                            
+                            if (!hook) {
                                 return self.octo.request("POST /repos/:owner/:name/hooks",
                                          {
                                            owner: self.currentRepo.owner.login, name: self.currentRepo.name, data: {
@@ -192,7 +194,23 @@ GH.prototype = {
                                 ;
                             }
                             else {
-                                report.push("Hook already present.");
+                                return self.octo.request("PATCH /repos/:owner/:name/hooks/:hook",
+                                        {
+                                            owner: self.currentRepo.owner.login,
+                                            name: self.currentRepo.name,
+                                            hook: hook.id,
+                                            data: {
+                                                config: {
+                                                    url:          config.hookURL || (config.url + "api/hook"),
+                                                    content_type: "json",
+                                                    secret:       simpleRepo.secret
+                                                }
+                                            }
+                                            
+                                        })
+                                        .then(function() { report.push("Hook already present. Secret updated"); })
+                                ;
+                                
                             }
                         })
                 ;

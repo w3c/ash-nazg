@@ -424,7 +424,7 @@ function addGHHook(app, path) {
             ,     repoId = event.repository.id
             ;
 
-            // for repository, action is needed only for renames
+            // for repository, action is needed only for renames and transfers
             if (eventType === "repository") {
                 let previousRepo;
                 if (event.action === "renamed") {
@@ -436,6 +436,7 @@ function addGHHook(app, path) {
                 }
                 log.info(`Repository ${event.action} from ${previousRepo} to ${repo}`);
 
+                // update secret, repository and all associated PRs
                 await doAsync(store).updateSecret(previousRepo, {repo: repo});
                 await doAsync(store).updateRepo(previousRepo, {name: repoShortname, fullName: repo, owner});
                 store.getPRsByRepo(previousRepo, async function(err, prs) {

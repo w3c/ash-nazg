@@ -187,7 +187,7 @@ GH.prototype = {
                                                             ,   content_type:   "json"
                                                             ,   secret:         simpleRepo.secret
                                                             }
-                                                        ,   events: ["pull_request", "issue_comment"]
+                                                        ,   events: ["pull_request", "issue_comment", "repository"]
                                                         ,   active: true
                                            }})
                                                         .then(function () { report.push("Hook installed."); })

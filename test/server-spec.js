@@ -124,6 +124,7 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
 var testNewRepo = new RepoMock(123, "newrepo", "acme", [], []);
 var testExistingRepo = new RepoMock(456, "existingrepo","acme", ["README.md"], []);
 var testCGRepo = new RepoMock(789, "cgrepo","acme", ["README.md", "index.html"], []);
+const renamedRepo = "existingrepo-bis";
 
 var testPR = {
     repository: testExistingRepo.toGH(),
@@ -564,13 +565,13 @@ describe('Server manages requests from advanced privileged users in a set up rep
             cleanStore("deleteGroup")("" + w3cGroup.id),
             cleanStore("deleteGroup")("" + w3cGroup3.id),
             cleanStore("deleteRepo")(testNewRepo.full_name),
-            cleanStore("deleteRepo")(testExistingRepo.full_name),
+            cleanStore("deleteRepo")(`${testExistingRepo.owner}/${renamedRepo}`),
             cleanStore("deleteRepo")(testCGRepo.full_name),
             cleanStore("deleteToken")(testOrg.login),
-            cleanStore("deletePR")(testExistingRepo.full_name, 5),
+            cleanStore("deletePR")(`${testExistingRepo.owner}/${renamedRepo}`, 5),
             cleanStore("deletePR")(testCGRepo.full_name, 6),
-            cleanStore("deletePR")(testExistingRepo.full_name, 7),
-            cleanStore("deletePR")(testExistingRepo.full_name, 8),
+            cleanStore("deletePR")(`${testExistingRepo.owner}/${renamedRepo}`, 7),
+            cleanStore("deletePR")(`${testExistingRepo.owner}/${renamedRepo}`, 8),
             cleanStore("deleteUser")(testUser2.username),
             cleanStore("deleteUser")(testUser3.username)
         ], emptyNock(done));
@@ -998,6 +999,30 @@ describe('Server manages requests from advanced privileged users in a set up rep
                 expect((res.body.acceptable === "yes"));
                 done();
             });
+    });
+
+    it('reacts to repository renames', function testRepoRename(done) {
+        const body = {
+            "action": "renamed",
+            "changes": {
+              "repository": {
+                "name": {
+                  "from": testExistingRepo.name
+                }
+              }
+            },
+            "repository": {
+              "name": renamedRepo,
+              "full_name": `${testExistingRepo.owner}/${renamedRepo}`,
+              "owner": {
+                "login": testExistingRepo.owner
+              }
+            }
+        };
+        req.post('/' + config.hookPath)
+            .send(body)
+            .set('X-Github-Event', 'repository')
+            .expect(200, done);
     });
 });
 

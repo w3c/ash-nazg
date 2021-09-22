@@ -1022,7 +1022,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(body)
             .set('X-Github-Event', 'repository')
-            .expect(200, done);
+            .expect(200, done); // PRs from the renamed repository are deleted in the `after` function which will fail if the renaming didn't work
     });
 });
 

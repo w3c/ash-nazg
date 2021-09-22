@@ -402,7 +402,7 @@ function addGHHook(app, path) {
     app.post("/" + path, function (req, res) {
         // we can't use bp.json(), that'll wreck secret checking by consuming the buffer
         // first, req.pipe(bl(function (err, data))) to save the buffer
-        req.pipe(bl(function (err, buffer) {
+        req.pipe(bl(async function (err, buffer) {
             if (err) return error(res, err);
             // get us some JSON
             var event;
@@ -412,122 +412,152 @@ function addGHHook(app, path) {
             // run checks before getting the secret to check the crypto
             var eventType = req.headers["x-github-event"];
             log.info("Hook got GH event " + eventType);
-            // we only care about these events, and for issue_comment we only care about those on PRs
-            if (eventType !== "pull_request" && eventType !== "issue_comment") return ok(res);
-            if (eventType === "issue_comment" && !event.issue.pull_request) return ok(res);
+            // we only care about PRs, issue comments on PR and repository
+            if (!["pull_request", "issue_comment", "repository"].includes(eventType)
+                || (eventType === "issue_comment" && !event.issue.pull_request)) {
+                return ok(res);
+            }
 
             const owner = event.repository.owner.login
             ,     repo = event.repository.full_name
             ,     repoShortname = event.repository.name
             ,     repoId = event.repository.id
-            ,     statusData = {
-                      owner,
-                      shortName: repoShortname,
-                      payload: {
-                          state: "failure",
-                          target_url: `${config.url}pr/id/${owner}/${repoShortname}/${event.number}`,
-                          context: "ipr"
-                      }
-                  }
             ;
-            if (event.pull_request && event.pull_request.head && event.pull_request.head.sha) {
-                statusData.sha = event.pull_request.head.sha;
-            }
-            store.getSecret(repo, async function (err, data) {
-                const { token } = await doAsync(store).getToken(owner)
-                ,     gh = new GH({ accessToken: token });
-                if (err || !data) {
-                    try {
-                        statusData.payload.description = `The repository manager doesn't know the following repository: ${repo}`;
+
+            // for repository, action is needed only for renames and transfers
+            if (eventType === "repository") {
+                let previousRepo;
+                if (event.action === "renamed") {
+                    previousRepo = `${owner}/${event.changes.repository.name.from}`;
+                } else if (event.action === "transferred") {
+                    previousRepo = `${event.changes.owner.from.user.login}/${repoShortname}`;
+                } else {
+                    return ok(res);
+                }
+                log.info(`Repository ${event.action} from ${previousRepo} to ${repo}`);
+
+                // update secret, repository and all associated PRs
+                await doAsync(store).updateSecret(previousRepo, {repo: repo});
+                await doAsync(store).updateRepo(previousRepo, {name: repoShortname, fullName: repo, owner});
+                store.getPRsByRepo(previousRepo, async function(err, prs) {
+                    if (err) {
+                        return error(res, `Error fetching PRs from the repository: ${previousRepo}`);
+                    }
+                    for (const pr of prs) {
+                        await doAsync(store).updatePR(pr.fullName, pr.num, {fullName: repo, shortName: repoShortname, owner});
+                    }
+                    return ok(res);
+                });
+            } else {
+                const statusData = {
+                        owner,
+                        shortName: repoShortname,
+                        payload: {
+                            state: "failure",
+                            target_url: `${config.url}pr/id/${owner}/${repoShortname}/${event.number}`,
+                            context: "ipr"
+                        }
+                    }
+                ;
+                if (event.pull_request && event.pull_request.head && event.pull_request.head.sha) {
+                    statusData.sha = event.pull_request.head.sha;
+                }
+                store.getSecret(repo, async function (err, data) {
+                    const { token } = await doAsync(store).getToken(owner)
+                    ,     gh = new GH({ accessToken: token });
+                    if (err || !data) {
+                        try {
+                            statusData.payload.description = `The repository manager doesn't know the following repository: ${repo}`;
+                            gh.status(statusData, err => {
+                                if (err) {
+                                    console.log(err);
+                                    log.error(err);
+                                }
+                            });
+                        } catch (e) {
+                            log.error(`Token not found for ${owner}`);
+                        }
+                        return error(res, "Secret for " + repo + " not found: " + (err || "simply not there."));
+                    }
+
+                    // we have the secret, crypto check becomes possible
+                    if (!GH.checkPayloadSignature("sha256", data.secret, buffer, req.headers["x-hub-signature-256"])) {
+                        statusData.payload.description = `GitHub signature does not match known secret for ${repo}.`;
                         gh.status(statusData, err => {
                             if (err) {
                                 console.log(err);
                                 log.error(err);
                             }
                         });
-                    } catch (e) {
-                        log.error(`Token not found for ${owner}`);
+                        return error(res, `GitHub signature does not match known secret for ${repo}.`);
                     }
-                    return error(res, "Secret for " + repo + " not found: " + (err || "simply not there."));
-                }
 
-                // we have the secret, crypto check becomes possible
-                if (!GH.checkPayloadSignature("sha256", data.secret, buffer, req.headers["x-hub-signature-256"])) {
-                    statusData.payload.description = `GitHub signature does not match known secret for ${repo}.`;
-                    gh.status(statusData, err => {
-                        if (err) {
-                            console.log(err);
-                            log.error(err);
+                    // for status we need: owner, repoShort, and sha
+                    var repoShort = event.repository.name
+                    ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
+                    ;
+
+                    // pull request events
+                    if (eventType === "pull_request") {
+                        var sha = event.pull_request.head.sha;
+
+                        //  if event.action === "closed" we have to store the new head SHA in
+                        //  the DB, but other than that we can ignore it
+                        if (event.action === "closed") {
+                            return store.updatePR(
+                                    repo
+                                ,   prNum
+                                ,   {
+                                        status:     "closed"
+                                    ,   sha:        sha
+                                    }
+                                ,   makeOK(res)
+                            );
+                        //  if event.action === "synchronize" we have to store the new head SHA in
+                        //  the DB, and re-send the pr status to github based on stored data
+                        } else if (event.action === "synchronize") {
+                            return store.getPR(repo, prNum, function (err, storedpr) {
+                                if (err || !storedpr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
+                                storedpr.sha = sha;
+                                prChecker.validate(storedpr, parseMessage(""), makeOK(res));
+                            });
+                        } else if (event.action === "opened" || event.action === "reopened") {
+                            var pr = {
+                                    fullName:       repo
+                                ,   repoId:         repoId
+                                ,   shortName:      repoShort
+                                ,   owner:          owner
+                                ,   num:            prNum
+                                ,   sha:            sha
+                                ,   status:         "open"
+                                ,   acceptable:     "pending"
+                                ,   unknownUsers:   []
+                                ,   outsideUsers:   []
+                                ,   contributors:   [event.pull_request.user.login]
+                                ,   contribStatus:  {}
+                            }
+                            ,   delta = parseMessage(event.pull_request.body)
+                            ;
+                            store.addPR(pr, function (err) {
+                                if (err) return error(res, err);
+                                prChecker.validate(pr, delta, makeOK(res));
+                            });
+                        } else {
+                            // we ignore other pull request events
+                            return ok(res);
                         }
-                    });
-                    return error(res, `GitHub signature does not match known secret for ${repo}.`);
-                }
-
-                // for status we need: owner, repoShort, and sha
-                var repoShort = event.repository.name
-                ,   prNum = (eventType === "pull_request") ? event.number : event.issue.number
-                ;
-
-                // pull request events
-                if (eventType === "pull_request") {
-                    var sha = event.pull_request.head.sha;
-
-                    //  if event.action === "closed" we have to store the new head SHA in
-                    //  the DB, but other than that we can ignore it
-                    if (event.action === "closed") {
-                        return store.updatePR(
-                                repo
-                            ,   prNum
-                            ,   {
-                                    status:     "closed"
-                                ,   sha:        sha
-                                }
-                            ,   makeOK(res)
-                        );
-                    //  if event.action === "synchronize" we have to store the new head SHA in
-                    //  the DB, and re-send the pr status to github based on stored data
-                    } else if (event.action === "synchronize") {
-                        return store.getPR(repo, prNum, function (err, storedpr) {
-                            if (err || !storedpr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
-                            storedpr.sha = sha;
-                            prChecker.validate(storedpr, parseMessage(""), makeOK(res));
-                        });
-                    } else if (event.action === "opened" || event.action === "reopened") {
-                        var pr = {
-                                fullName:       repo
-                            ,   repoId:         repoId
-                            ,   shortName:      repoShort
-                            ,   owner:          owner
-                            ,   num:            prNum
-                            ,   sha:            sha
-                            ,   status:         "open"
-                            ,   acceptable:     "pending"
-                            ,   unknownUsers:   []
-                            ,   outsideUsers:   []
-                            ,   contributors:   [event.pull_request.user.login]
-                            ,   contribStatus:  {}
-                        }
-                        ,   delta = parseMessage(event.pull_request.body)
-                        ;
-                        store.addPR(pr, function (err) {
-                            if (err) return error(res, err);
+                    }
+                    // issue comment events
+                    else if (eventType === "issue_comment") {
+                        var delta = parseMessage(event.comment.body);
+                        if (!delta.total) return ok(res);
+                        store.getPR(repo, prNum, function (err, pr) {
+                            if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
                             prChecker.validate(pr, delta, makeOK(res));
                         });
-                    } else {
-                        // we ignore other pull request events
-                        return ok(res);
                     }
-                }
-                // issue comment events
-                else if (eventType === "issue_comment") {
-                    var delta = parseMessage(event.comment.body);
-                    if (!delta.total) return ok(res);
-                    store.getPR(repo, prNum, function (err, pr) {
-                        if (err || !pr) return error(res, (err || "PR not found: " + repo + "-" + prNum));
-                        prChecker.validate(pr, delta, makeOK(res));
-                    });
-                }
-            });
+                });
+            }
         }));
     });
 }

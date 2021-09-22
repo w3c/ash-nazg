@@ -137,12 +137,18 @@ Store.prototype = {
                                     emit([doc.fullName, doc.num + ""], doc);
                                 }.toString()
                     }
+                ,   by_fullname: {
+                        map:    function (doc) {
+                                    if (!doc.type || doc.type !== "pr") return;
+                                    emit(doc.fullName, doc);
+                                }.toString()
+                }
                 ,   by_date: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "pr") return;
                                     emit(doc.lastUpdated, doc);
                                 }.toString()
-                    }
+                }
                 ,   by_status: {
                         map:    function (doc) {
                                     if (!doc.type || doc.type !== "pr") return;
@@ -344,6 +350,18 @@ Store.prototype = {
             this.remove(doc, cb);
         }.bind(this));
     }
+,   updateSecret:    function (repo, data, cb) {
+        var store = this;
+        this.getSecret(repo, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error("Store: Can not find secret of " + repo + " to update"));
+            for (var k in data) doc[k] = data[k];
+            doc.lastUpdated = couchNow();
+            log.info("Updating secret " + doc.repo);
+            store.add(doc, cb);
+        });
+
+    }
 
 
     // TOKENS
@@ -456,6 +474,13 @@ Store.prototype = {
             if (err) return cb(err);
             log.info("Returning PR for " + fullName + "-" + num + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
             cb(null, docs.length ? docs[0].value : null);
+        });
+    }
+,   getPRsByRepo:   function (fullName, cb) {
+        log.info("Looking for PRs for " + fullName);
+        this.db.view("prs/by_fullname", { key: fullName }, function (err, docs) {
+            log.info("Returning PRs for " + fullName + ": " + (docs.length ? "FOUND" : "NOT FOUND"));
+            cb(null, docs.toArray());
         });
     }
 ,   updatePR:  function (fullName, num, pr, cb) {

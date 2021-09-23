@@ -42,7 +42,7 @@ if (require.main === module) {
                                 config: {
                                     url:          config.hookURL || (config.url + "api/hook"),
                                     content_type: "json",
-                                    secret:       secret
+                                    secret:       secret.secret
                                 }
                                 ,   events: ["pull_request", "issue_comment", "repository"]
                             }

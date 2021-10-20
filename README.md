@@ -17,7 +17,8 @@ it requires are rather broad; that is because it is difficult to be granular wit
 permissions. The tool isn't doing anything unholy.
 
 Once you log in your user will be created; if you need to be an admin just ask someone to give you
-that flag from the "Edit User" page.
+that flag from the "Edit User" page. *Note:* there are curretnly two distinct login flows. Some features
+such as create and import repositories do not appear unless you sign in via the second link. 
 
 If you need to deploy or to hack on this tool, you will want to read the
 [Development Guide](https://github.com/w3c/ash-nazg/blob/master/DEVELOPMENT.md)

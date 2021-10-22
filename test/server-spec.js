@@ -252,7 +252,7 @@ function login(agent, admin, cb) {
         client_secret: config.ghClientSecret,
         code: 'abcd'
     })
-    .reply(302, {location: config.url + '?access_token=bcdef&scope='+ encodeURIComponent(ghScope) + '&token_type=bearer'});
+    .reply(302, {location: config.url, access_token: "bcdef", scope: encodeURIComponent(ghScope), token_type: "bearer"});
 
 
     nock('https://api.github.com')

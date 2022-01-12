@@ -15,8 +15,7 @@ let store, log;
 async function findW3CUserFromGithub(user) {
   log.info("Looking for github user with id " + user.ghID + " in W3C API");
   try {
-    // can't easily promisify w3c API :(
-    let w3cuser = await new Promise((res, rej) => w3c.user({type: 'github', id: user.ghID}).fetch((err, u) => { if (err) return rej(err); return res(u);}));
+    let w3cuser = await  w3c.user({type: 'github', id: user.ghID}).fetch();
     log.info(JSON.stringify(w3cuser, null, 2));
     await doAsync(store).mergeOnUser(user.username, {
       w3cid:  w3cuser.id,
@@ -180,14 +179,11 @@ function prChecker(config, argLog, argStore, GH, mailer) {
 
           let groups = [];
 
-          for (g of repoGroups) {
+          for (let g of repoGroups) {
             // get group type and shortname
             try {
-              await new Promise((res, rej) => w3c.group(g).fetch((err, group) => {
-                if (err) return rej(err);
-                groups.push({id: g, type: types[group.type], shortname: group.shortname});
-                res();
-              }));
+              const group = await w3c.group(g).fetch();
+              groups.push({id: g, type: types[group.type], shortname: group.shortname});
             } catch (err) {
               return cb(err);
             }
@@ -208,7 +204,7 @@ function prChecker(config, argLog, argStore, GH, mailer) {
               if (pr.repoId) {
                 let nplc;
                 try {
-                  nplc = await new Promise((res, rej) => w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch((err, n) => { if (err) return rej(err); return res(n);}));
+                  nplc = await w3c.nplc({repoId: pr.repoId, pr: pr.num}).fetch();
                 } catch (err) {
                   // Non-participant licensing contribution doesn't exist
                   pr.contribStatus[username] = "not in group";

@@ -25,12 +25,18 @@ If you need to deploy or to hack on this tool, you will want to read the
 
 ## Common Tool
 
-### New Repository
+### [New Repository](https://labs.w3.org/repo-manager/repo/new)
 
 This is basically what people should use when they want to start a new specification with the WG/CG.
-It gives you a choice of the organisations under which you are allowed to create a new repo
+It gives you a choice of the organizations under which you are allowed to create a new repo
 (including  your own user), and you can pick the name of the repo and the groups to which it 
 belongs.
+
+*Note*: the list of organizations depends on the user's GitHub organizations. If you are owner of an
+organization and you don't see it in the list, you need to grant the repository manager access to that
+organization. To do so, go in your
+['Authorized OAuth Apps' settings`](https://github.com/settings/applications), click on 'W3C Repository
+Manager' and grant access to the new organization.
 
 Hitting "Create" can take a little while as the tool does all of the following, live:
 
@@ -43,7 +49,10 @@ Hitting "Create" can take a little while as the tool does all of the following, 
 
 Most users should only ever have to use that. Once done they can go and play in their repo.
 
-### Import Repository
+**Important**: [`w3cbot`](https://github.com/w3cbot) should be able to comment on the different pull
+requests so you should consider adding @w3cbot as a member of the organization.
+
+### [Import Repository](https://labs.w3.org/repo-manager/repo/import)
 
 This is the same as "New" but for an existing repo. It will ***never*** overwrite something there so
 it is the user's responsibility to check that the repo is okay once imported.

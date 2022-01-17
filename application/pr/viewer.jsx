@@ -120,7 +120,7 @@ export default class PRViewer extends React.Component {
             if (st.pr.acceptable === "yes") {
                 let revert = "";
                 if (st.pr.markedAsNonSubstantiveBy) {
-                     revert = <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button><a href="https://www.w3.org/Consortium/Process/#substantive-change" title="definition of a substantive change in the W3C Process">🛈</a></span>;
+                     revert = <span><button name="substantive" onClick={this.markSubstantiveOrNot.bind(this)}>Unmark as non-substantive</button><a href="https://www.w3.org/Consortium/Process/#substantive-change" title="definition of a substantive change in the W3C Process">ℹ </a></span>;
                 }
                 let merge = "";
                 if (st.pr.status === "open") {
@@ -137,7 +137,7 @@ export default class PRViewer extends React.Component {
                     nplcUrl.search = qs;
                     nplc = <a className="button" target="_blank" href={nplcUrl}>Ask for non-participant commitment</a>
                 }
-                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button><a href="https://www.w3.org/Consortium/Process/#substantive-change" title="definition of a substantive change in the W3C Process">🛈</a>{nplc}</span>;
+                action = <span><button  onClick={this.revalidate.bind(this)}>Revalidate</button> <button name="nonsubstantive" onClick={this.markSubstantiveOrNot.bind(this)}>Mark as non-substantive</button><a href="https://www.w3.org/Consortium/Process/#substantive-change" title="definition of a substantive change in the W3C Process">ℹ </a>{nplc}</span>;
             }
             content =   <table className="users-list">
                             <tr>

@@ -242,8 +242,7 @@ function erroringroutes(httpmethod, routes, errorcode, cb) {
     }
 }
 
-function login(agent, admin, cb) {
-
+function login(agent, admin, accessToken, cb) {
     nock('https://github.com')
     .post('/login/oauth/access_token', {
         grant_type:'authorization_code',
@@ -252,7 +251,7 @@ function login(agent, admin, cb) {
         client_secret: config.ghClientSecret,
         code: 'abcd'
     })
-    .reply(302, {location: config.url, access_token: "bcdef", scope: encodeURIComponent(ghScope), token_type: "bearer"});
+    .reply(302, {location: config.url, access_token: accessToken ?? "gho_bcdef", scope: encodeURIComponent(ghScope), token_type: "bearer"});
 
 
     nock('https://api.github.com')
@@ -426,7 +425,7 @@ describe('Server manages requests from regular logged-in users', function () {
     });
 
     it('manages Github auth', function testAuthCB(done) {
-        login(authAgent, false, done);
+        login(authAgent, false, null, done);
     });
 
     it('responds to login query correctly when logged in', function testLoggedIn(done) {
@@ -531,6 +530,15 @@ describe('Server manages requests from regular logged-in users', function () {
                     .expect(200, {ok: false, login: null, admin: false}, done);
             });
     });
+
+    it('disconnects users with old format tokens', function testLoggedInOldToken(done) {
+        login(authAgent, false, "12345", function(err) {
+            if (err) return done(err);
+            authAgent
+                .get('/api/logged-in')
+                .expect(200, {ok: false, login: null, admin: false}, done);
+        });
+    });
 });
 
 describe('Server manages requests from advanced privileged users in a set up repo', function () {
@@ -542,7 +550,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req = request(app);
         authAgent = request.agent(app);
         store = new Store(config);
-        login(authAgent, true, function(err) {
+        login(authAgent, true, null, function(err) {
             if (err) return done(err);
             addgroup(authAgent, w3cGroup, function(err, res) {
                 addgroup(authAgent, w3cGroup3, done);
@@ -1036,7 +1044,7 @@ describe('Server manages requests from regular users', function () {
       authAgent = request.agent(app);
       store = new Store(config);
 
-      login(authAgent, false, function(err) {
+      login(authAgent, false, null, function(err) {
           if (err) return done(err);
           addgroup(authAgent, w3cGroup, function(err, res) {
               addgroup(authAgent, w3cGroup3, done);

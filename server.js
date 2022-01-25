@@ -163,6 +163,11 @@ router.get("/api/logout", function (req, res) {
 
 // check if the user is logged in
 router.get("/api/logged-in", function (req, res) {
+    // Format of github OAuth access tokens per https://github.blog/changelog/2021-03-31-authentication-token-format-updates-are-generally-available/
+    if (req.user && req.user.accessToken && !req.user.accessToken.startsWith("gho_")) {
+        log.info(`Force disconnect of ${req.user.username}`);
+        req.logout();
+    }
     res.json({ ok: req.isAuthenticated(), login: req.user ? req.user.username : null, admin: req.user ? req.user.admin : false });
 });
 

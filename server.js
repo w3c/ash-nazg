@@ -336,7 +336,7 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
       return res(groupPRs);
     }));
   } else {
-    return error(res, "Invalid request sent to revalidate endpoint");
+    return res.json({msg: "Skipped revalidation for this event."});
   }
 
   try {

@@ -24,7 +24,7 @@ var ghScope = "user:email,public_repo,write:repo_hook,read:org";
 // simplify debugging of missed nock requests
 nock.emitter.on('no match', function(req, options, requestBody) {
     if (!req || req.hostname !== '127.0.0.1') {
-        console.error("No match for nock request on " + JSON.stringify(req, null, 2));
+        console.error("No match for nock request on " + JSON.stringify(req.options, null, 2));
     }
 });
 
@@ -35,9 +35,9 @@ var testUser = {ghID: '111', emails: ["test@example.com"], username: "--ghtest"}
 var testUser2 = {ghID: '112', emails: ["foobar@example.com"], username: "--foobar", w3cid: 123, affiliation: 456, affiliationName: "ACME Inc", w3capi: "aaaaa", emails:[]};
 var testUser3 = {ghID: '115', emails: ["barfoo@example.com"], username: "--barfoo", w3cid: 124};
 var testUser3_w3capi = "bbbbb";
-var w3cGroup = {id: 42, type: "working group", shortType: "wg", shortname: "test", name: "Test Working Group"};
-var w3cGroup2 = {id: 12, type: "working group", shortType: "wg", shortname: "othertest", name: "Other Test Working Group"};
-var w3cGroup3 = {id: 15, type: "community group", shortType: "cg", shortname: "testcg", name: "Test Community Group"};
+var w3cGroup = {id: "42", type: "working group", shortType: "wg", shortname: "test", name: "Test Working Group"};
+var w3cGroup2 = {id: "12", type: "working group", shortType: "wg", shortname: "othertest", name: "Other Test Working Group"};
+var w3cGroup3 = {id: "15", type: "community group", shortType: "cg", shortname: "testcg", name: "Test Community Group"};
 var testOrg = {login: "acme", id:12};
 var w3cAff = {id: 456, name: "ACME Inc"};
 var w3cApify = function(g, type) { return {href:`https://api.w3.org/${type ? `${type}/${g.id}` : `groups/${g.shortType}/${g.shortname}`}`, title: g.name};};
@@ -95,25 +95,25 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
         });
 
         nock('https://api.github.com')
-        .get('/repos/' + full_name + '/hooks')
+        .get(`/repos/${full_name}/hooks`)
         .reply(200, hooks);
         if (!existinghook) {
             if (advancedPrivs) {
                 nock('https://api.github.com')
-                .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+                .post(`/repos/${full_name}/hooks`, {name:"web", config:{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment", "repository"], active: true})
                 .reply(201, function(uri, body) {
-                    const hook = JSON.parse(body);
+                    const hook = body;
                     hook.id = hookId;
                     addHook(hook);
                 });
             } else {
                 nock('https://api.github.com')
-                .post('/repos/' + full_name + '/hooks', {name:"web", "config":{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment"], active: true})
+                .post(`/repos/${full_name}/hooks`, {name:"web", config:{url: config.hookURL, content_type:'json', secret: /.*/}, events:["pull_request","issue_comment", "repository"], active: true})
                 .reply(403, {message: "Forbidden"});
             }
         } else {
             nock('https://api.github.com')
-                .patch(`/repos/${full_name}/hooks/${hookId}`, {"config":{url: config.hookURL, content_type:'json', secret: /.*/}})
+                .patch(`/repos/${full_name}/hooks/${hookId}`, {config:{url: config.hookURL, content_type:'json', secret: /.*/}})
                 .reply(200, {message:"OK"});
         }
     }
@@ -656,7 +656,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testPR2)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR2))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(testPR2))))
             .expect(500, done);
     });
 
@@ -666,7 +666,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", Array(20).join("@"), new Buffer(JSON.stringify(testPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", Array(20).join("@"), Buffer.from(JSON.stringify(testPR))))
             .expect(500, done);
     });
 
@@ -677,7 +677,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         .reply(200, testPR.files);
         nock('https://api.github.com')
             .get('/repos/' + testExistingRepo.full_name + '/contents/w3c.json')
-            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
+            .reply(200, {content: Buffer.from(JSON.stringify({contacts:[testUser.username, testUser2.username]})).toString('base64'), encoding: "base64"});
 
         mockGHUser(testUser);
         mockGHUser(testUser2);
@@ -694,7 +694,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(testPR))))
             .expect(200, function(err, res) {
                 if (err) return done(err);
                 expect(transport.sentMail.length).to.be.equal(2);
@@ -724,7 +724,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testIPRFreePR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testIPRFreePR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(testIPRFreePR))))
             .expect(200, done);
     });
 
@@ -910,7 +910,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(forcedPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(forcedPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(forcedPR))))
             .expect(200, done);
     });
 
@@ -925,7 +925,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         mockUserAffiliation(testUser3, []);
         nock('https://api.github.com')
             .get('/repos/' + testCGRepo.full_name + '/contents/w3c.json')
-            .reply(200, {content: new Buffer(JSON.stringify({contacts:[testUser.username]})).toString('base64'), encoding: "base64"});
+            .reply(200, {content: Buffer.from(JSON.stringify({contacts:[testUser.username]})).toString('base64'), encoding: "base64"});
         nock('https://api.github.com')
             .get('/users/' + testUser.username)
             .reply(200, {login:testUser.username, id: testUser.ghID, email: testUser.emails[0]});
@@ -934,7 +934,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testCGPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testCGPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(testCGPR))))
             .expect(200, function(err) {
                 if (err) return done(err);
                 expect(transport.sentMail.length).to.be.equal(1);
@@ -960,7 +960,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
         req.post('/' + config.hookPath)
             .send(testWGPR)
             .set('X-Github-Event', 'pull_request')
-            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), new Buffer(JSON.stringify(testWGPR))))
+            .set('X-Hub-Signature-256', GH.signPayload("sha256", passwordGenerator(20), Buffer.from(JSON.stringify(testWGPR))))
             .expect(200, done);
 
     });

@@ -37,7 +37,7 @@ function newFile (gh, name, content, report) {
           name,
           data:{
             message:    "Adding baseline " + name
-            ,   content:    new Buffer(content).toString("base64")
+            ,   content:    new Buffer.from(content).toString("base64")
           }})
         .then(function () {
           report.push("Added file " + name);
@@ -232,7 +232,7 @@ GH.prototype = {
                file: 'w3c.json'
              })
            .then(function({data: w3cinfodesc}) {
-               var w3cinfo = JSON.parse(new Buffer(w3cinfodesc.content, 'base64').toString('utf8'));
+               var w3cinfo = JSON.parse(Buffer.from(w3cinfodesc.content, 'base64').toString('utf8'));
                return Promise.all(w3cinfo.contacts.map(function(username) {
                    return self.octo.request("GET /users/:username", {username})
                        .then(({data: user}) => user.email);

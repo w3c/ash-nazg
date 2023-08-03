@@ -78,10 +78,6 @@ You now need to configure the system so that it can find various bits and pieces
     }
     // the database name in Couch
 ,   "couchDB": "ashnazg"
-    // accessing the W3C API, which we do, requires a key and a matching origin
-    // hopefully at some point the origin won't be needed anymore
-,   "w3cAPIKey":    "deadbeef"
-,   "w3cAPIOrigin": "http://foo.bar/"
     // address from which notifications are set
 ,   "notifyFrom": "foo@example.com"
     // w3cbot GitHub token with `public_repo` privileges to comment on the PR

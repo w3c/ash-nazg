@@ -11,8 +11,9 @@
 ,   "couchDB":          "ashnazg-test"
 ,   "couchAuth": {
         "username": "admin",
-        "password": "password"
+        "password": "toto55"
     }
+,   "w3cAPIKey":        "foobar"
 ,   "notifyFrom":       "test@localhost.test"
 ,   "w3cBotGHToken":    "123"
 }

@@ -731,9 +731,6 @@ function run(configuration, configuredmailer) {
 
     mailer = configuredmailer;
 
-    // set up the W3C API so that it works
-    w3c.apiKey = config.w3cAPIKey;
-
     // logging
     app.use(exwin.logger({
         winstonInstance:    log

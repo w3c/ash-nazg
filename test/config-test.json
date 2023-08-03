@@ -13,7 +13,6 @@
         "username": "admin",
         "password": "password"
     }
-,   "w3cAPIKey":        "foobar"
 ,   "notifyFrom":       "test@localhost.test"
 ,   "w3cBotGHToken":    "123"
 }

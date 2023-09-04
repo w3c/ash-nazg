@@ -131,7 +131,7 @@ export default class PRViewer extends React.Component {
                 let nplc;
                 if ((this.props.isAdmin || st.isTeamcontact) && st.pr.repoId && !Object.keys(cs).some(u => cs[u] === "undetermined affiliation")) {
                     let st = this.state
-                    ,   nplcUrl = new URL(['/2004/01/pp-impl/nplc', st.pr.repoId, st.num, 'edit'].join("/"), 'https://www.w3.org/')
+                    ,   nplcUrl = new URL(['/standards/licensing/contributions', st.pr.repoId, st.num, 'edit/'].join("/"), 'https://www.w3.org/')
                     ,   qs = st.pr.contributors.map(c => 'contributors[]=' + c).concat(st.pr.groups.map(g => 'groups[]=' + g)).join('&')
                     ;
                     nplcUrl.search = qs;

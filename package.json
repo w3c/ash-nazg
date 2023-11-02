@@ -45,7 +45,7 @@
   "dependencies": {
     "@octokit/core": "^3.1.0",
     "@octokit/plugin-paginate-rest": "^2.2.3",
-    "async": "2.5.0",
+    "async": "2.6.4",
     "bl": "4.0.3",
     "body-parser": "1.17.2",
     "cradle": "0.7.1",

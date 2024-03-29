@@ -238,8 +238,8 @@ export default class RepoNew extends React.Component {
         let licensePicker = selectedGroupType === 'WG' ?
            <div className="formLine">License of the specification in that repository:
              <RadioGroup ref="wglicense" name="wglicense" selectedValue={st.license} onChange={this.updateWGLicense.bind(this)}>
-                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/Consortium/Legal/copyright-documents" target="_blank">W3C Document license</a> </label>
-                <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/Consortium/Legal/copyright-software" target="_blank">W3C Software and Document license</a> </label>
+                <label className="inline"><Radio value='doc' /><a href="https://www.w3.org/copyright/document-license/" target="_blank">W3C Document license</a> </label>
+                <label className="inline"><Radio value='SW' /><a href="https://www.w3.org/copyright/software-license/" target="_blank">W3C Software and Document license</a> </label>
                 </RadioGroup></div>
             : "";
         let customization = st.mode === "edit" ? "" : <div className="formline">

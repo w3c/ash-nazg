@@ -55,9 +55,9 @@ export default class ContributorsList extends React.Component {
                     {[substantiveKeys, nonSubstantiveKeys].map((type) => {
                         if (type.length > 0) {
                             return (
-                                <div>
+                                <div key={type}>
                                     <h3>{type === substantiveKeys ? "Substantive" : "Non-substantive"} contributions</h3>
-                                    <table className={`${type}-contributors-list`}>
+                                    <table>
                                         <thead>
                                             <tr>
                                                 <th>Contributor</th>

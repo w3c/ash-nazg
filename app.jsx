@@ -23,6 +23,7 @@ import LoginWelcome from "./application/login.jsx";
 import LogoutButton from "./application/logout-button.jsx";
 import RepoManager from "./application/repo-manager.jsx";
 import RepoList from "./application/repo-list.jsx";
+import ContributorsList from "./application/contributors-list.jsx";
 import AdminUsers from "./application/admin/users.jsx";
 import AdminGroups from "./application/admin/groups.jsx";
 import EditUser from "./application/admin/edit-user.jsx";
@@ -142,6 +143,7 @@ ReactDOM.render(
             <Route path="repo/:owner/:shortname/:mode" component={RepoManager}/>
             <Route path="repo/:mode" component={RepoManager}/>
             <Route path="repos" component={RepoList} public="true"/>
+            <Route path="repos/:owner/:shortName/contributors" component={ContributorsList} public="true"/>
             <Route path="pr/id/:owner/:shortName/:num" component={PRViewer} public="true"/>
             <Route path="pr/open" component={PROpen} public="true"/>
             <Route path="pr/last-week" component={PRLastWeek} public="true"/>

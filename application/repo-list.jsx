@@ -38,6 +38,7 @@ export default class RepoList extends React.Component {
                                 <tr>
                                     <th>Full name</th>
                                     <th>Groups</th>
+                                    <th>Contributors list</th>
                                 </tr>
                             </thead>
                             {
@@ -49,6 +50,7 @@ export default class RepoList extends React.Component {
                                     return <tr key={r.id} style={{paddingLeft: "20px"}}>
                                             <td><a href={`https://github.com/${r.fullName}`} target="_blank">{r.fullName}</a></td>
                                             <td>{r.groups.map((g) => { return g.name; }).join(", ")}</td>
+                                            <td><a href={`repos/${r.fullName}/contributors`}>Contributors</a></td>
                                             {admin}
                                         </tr>
                                     ;

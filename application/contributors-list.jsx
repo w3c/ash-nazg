@@ -15,7 +15,6 @@ export default class ContributorsList extends React.Component {
         ,   owner:                      null
         ,   shortName:                  null
         ,   substantiveContributors:    []
-        ,   nonSubstantiveContributors: []
         };
     }
     componentDidMount () {
@@ -26,7 +25,6 @@ export default class ContributorsList extends React.Component {
             .then((data) => {
                 this.setState({ 
                     substantiveContributors: data.substantiveContributors
-                    , nonSubstantiveContributors: data.nonSubstantiveContributors
                     , owner: owner
                     , shortName: shortName
                     , status: "ready"
@@ -40,54 +38,44 @@ export default class ContributorsList extends React.Component {
         let st = this.state
         ,   content
         ,   repositoryLink = ""
-        ,   substantiveKeys
-        ,   nonSubstantiveKeys
         ;
         if (st.status === "loading") {
             content = <Spinner prefix={pp}/>;
         }
         else if (st.status === "ready") {
             repositoryLink = <a href={`https://github.com/${st.owner}/${st.shortName}`}>{`${st.owner}/${st.shortName}`}</a>;
-            substantiveKeys = Object.keys(st.substantiveContributors);
-            nonSubstantiveKeys = Object.keys(st.nonSubstantiveContributors);
             content = (
-                <div>
-                    {[substantiveKeys, nonSubstantiveKeys].map((type) => {
-                        if (type.length > 0) {
-                            return (
-                                <div key={type}>
-                                    <h3>{type === substantiveKeys ? "Substantive" : "Non-substantive"} contributions</h3>
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Contributor</th>
-                                                <th>PR</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {
-                                                type.map((i) => {
-                                                    return <tr key={(type === substantiveKeys ? st.substantiveContributors : st.nonSubstantiveContributors)[i].name}>
-                                                        <td>{(type === substantiveKeys ? st.substantiveContributors : st.nonSubstantiveContributors)[i].name}</td>
-                                                        <td>
-                                                            <ul>
-                                                                {(type === substantiveKeys ? st.substantiveContributors : st.nonSubstantiveContributors)[i].prs.map((pr) => {
-                                                                    return <li key={pr}><a href={`${pp}pr/id/${st.owner}/${st.shortName}/${pr}`}>PR #{pr}</a></li>
-                                                                })}
-                                                            </ul>
-                                                        </td>
-                                                    </tr>
-                                                })
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                            );
-                        }
-                    }
-                    )}
-                </div>
-        )}
+                Object.keys(st.substantiveContributors).length > 0) &&
+                (
+                    <div>
+                        <h3>Substantive contributions</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Contributor</th>
+                                    <th>PR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {
+                                    Object.keys(st.substantiveContributors).map((i) => {
+                                        return <tr key={i}>
+                                            <td>{st.substantiveContributors[i].name}</td>
+                                            <td>
+                                                <ul>
+                                                    {st.substantiveContributors[i].prs.map((pr) => {
+                                                        return <li key={pr}><a href={`https://www.w3.org/${st.owner}/${st.shortName}/pull/${pr}`}>PR #{pr}</a></li>
+                                                    })}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    })
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                );
+        }
         
         return  <div className="primary-app">
                     <h2>List of contributors on {repositoryLink}</h2>

@@ -64,7 +64,7 @@ export default class ContributorsList extends React.Component {
                                             <td>
                                                 <ul>
                                                     {st.substantiveContributors[i].prs.map((pr) => {
-                                                        return <li key={pr}><a href={`https://www.w3.org/${st.owner}/${st.shortName}/pull/${pr}`}>PR #{pr}</a></li>
+                                                        return <li key={pr}><a href={`https://github.com/${st.owner}/${st.shortName}/pull/${pr}`}>PR #{pr}</a></li>
                                                     })}
                                                 </ul>
                                             </td>

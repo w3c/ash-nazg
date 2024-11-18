@@ -659,6 +659,37 @@ router.get("/api/repos", function (req, res) {
         );
     });
 });
+
+// list contributors to a repo
+router.get("/api/repos/:owner/:shortName/contributors", function (req, res) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    const prms = req.params;
+    store.getPRsByRepo(prms.owner + "/" + prms.shortName, function (err, docs) {
+        if (err) return error(res, err);
+        const substantiveContributors = {};
+        const nonSubstantiveContributors = {};
+        docs.forEach(function (doc) {
+            if (doc.markedAsNonSubstantiveBy) {
+                for (const contributor of doc.contributors) {
+                    if (!nonSubstantiveContributors[contributor]) {
+                        nonSubstantiveContributors[contributor] = { name: contributor, prs: []};
+                    }
+                    nonSubstantiveContributors[contributor].prs.push(doc.num);
+                }
+            } else {
+                for (const affiliationId in doc.affiliations) {
+                    if (!substantiveContributors[affiliationId]) {
+                        substantiveContributors[affiliationId] = { name: doc.affiliations[affiliationId], prs: []};
+                    }
+                    substantiveContributors[affiliationId].prs.push(doc.num);
+                }
+            }
+        });
+        res.json({substantiveContributors, nonSubstantiveContributors});
+    });
+});
+
+
 // router.del("/api/repo/:owner/:name", ensureAdmin, function (req, res) {
 //     // delete repo
 //     // remove hook
@@ -716,6 +747,7 @@ function addClientSideRoutes(app) {
     app.get("/login", showIndex);
     app.get("/repo/*", showIndex);
     app.get("/repos", showIndex);
+    app.get("/repos/*", showIndex);
     app.get("/admin/*", ensureAdmin, showIndex);
     app.get("/pr/*", showIndex);
 }

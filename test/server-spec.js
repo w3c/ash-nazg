@@ -399,6 +399,58 @@ describe('Server starts and responds with no login', function () {
         var protectedPOSTs = ["api/groups", "api/create-repo", "api/import-repo"];
         erroringroutes(req.post, protectedPOSTs, 401, done);
     });
+
+    describe('Returns list of contributors', function () {
+        const pr = {
+            "fullName": "acme/existingrepo",
+            "shortName": "existingrepo",
+            "owner": "acme",
+            "num": "42",
+            "status": "opened",
+            "contributors": [
+                "--ghtest"
+            ],
+            "affiliations": {
+                "456": "ACME Inc"
+            }
+        }
+        const prNonSubstantive = {
+            "fullName": "acme/existingrepo",
+            "shortName": "existingrepo",
+            "owner": "acme",
+            "num": "43",
+            "status": "opened",
+            "contributors": [
+                "--ghtest"
+            ],
+            "affiliations": {
+                "456": "ACME Inc"
+            },
+            "markedAsNonSubstantiveBy": "--foobar"
+        }
+        before(function (done) {
+            store.addPR(pr, function(err, res) {
+                store.addPR(prNonSubstantive, done);
+            });
+        });
+
+        after(function (done) {
+            store.deletePR(pr.fullName, pr.num, function(err, res) {
+                store.deletePR(prNonSubstantive.fullName, prNonSubstantive.num, done);
+            });
+        });
+
+        it('responds with an empty list of contributors', function testProtectedPOSTRoutes(done) {
+            req
+                .get('/api/repos/acme/newrepo/contributors')
+                .expect(200, {substantiveContributors: {}, nonSubstantiveContributors:{}}, done);
+        });
+        it('responds with the list of contributors', function testProtectedPOSTRoutes(done) {
+            req
+                .get('/api/repos/acme/existingrepo/contributors')
+                .expect(200, {substantiveContributors: {"456": {"name": "ACME Inc", "prs": ["42"]}}, nonSubstantiveContributors:{"--ghtest": {"name": "--ghtest", "prs": ["43"]}}}, done);
+        });
+    });
 });
 
 describe('Server manages requests from regular logged-in users', function () {

@@ -1,7 +1,7 @@
 # {{name}}
 
 This repository is being used for work in the W3C {{name}}, governed by the [W3C Community License
-Agreement (CLA)](http://www.w3.org/community/about/agreements/cla/). To make substantive contributions,
+Agreement (CLA)](http://www.w3.org/community/about/process/cla/). To make substantive contributions,
 you must join the CG.
 
 If you are not the sole contributor to a contribution (pull request), please identify all

@@ -4,7 +4,7 @@ Thank you for submitting a pull request (PR #{{prnum}}) on the W3C specification
   https://github.com/{{repo}}/pull/{{prnum}}
 
 To ensure that the Web can be used and developed by anyone free of charge, W3C develops specifications under a Royalty-Free Patent Policy:
-  https://www.w3.org/Consortium/Patent-Policy/
+  https://www.w3.org/policies/patent-policy/
 
 As part of this policy, W3C groups must be able to assess the IPR context of contributions made to their repositories.
 
@@ -13,12 +13,12 @@ As our automated tool was not able to determine with what organization (if any) 
 * if your contribution does not concern a normative part of a specification, or is editorial in nature (e.g. fixing typos or examples), you don't need to do anything
 
 * if you are a member of the group that maintains this repository, please link your W3C and github accounts together at
-     https://www.w3.org/users/myprofile/connectedaccounts
+     https://www.w3.org/users/myprofile/connectedaccounts/
 
 * if you work for a W3C Member organization, please get a W3C account at
-     https://www.w3.org/accounts/request
+     https://www.w3.org/account/request/
    once that is done, or if you already have a W3C account, please link your W3C and github accounts together at
-     https://www.w3.org/users/myprofile/connectedaccounts
+     https://www.w3.org/users/myprofile/connectedaccounts/
 
 * otherwise, please contact {{contacts}} to see how to proceed with your contribution.
 

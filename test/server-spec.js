@@ -910,7 +910,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
     it('allows admins to update the association of a repo to a group', function testReassociateRepo(done) {
         authAgent
             .post('/api/repos/' + testNewRepo.full_name + '/edit')
-            .send({org: testNewRepo.owner, repo: testNewRepo.name, groups:[w3cGroup2.id]})
+            .send({groups:[w3cGroup2.id]})
             .expect(200)
             .end(function(err, res) {
                 req.get('/api/repos')
@@ -924,12 +924,12 @@ describe('Server manages requests from advanced privileged users in a set up rep
     it('allows admins to update a repository owner and/or name', function testUpdateRepoOwnerName(done) {
         authAgent
             .post('/api/repos/' + testNewRepo.full_name + '/edit')
-            .send({org: repoNewOwner, repo: repoNewName, groups:[w3cGroup.id]})
+            .send({org: repoNewOwner, repo: repoNewName})
             .expect(200)
             .end(function(err, res) {
                 req.get('/api/repos')
                     .expect(200, function(err, res) {
-                        expect(res.body.filter(g => g.fullName === `${repoNewOwner}/${repoNewName}`)[0].groups[0].w3cid).to.be("" + w3cGroup.id);
+                        expect(res.body.filter(g => g.fullName === `${repoNewOwner}/${repoNewName}`)[0].groups[0].w3cid).to.be("" + w3cGroup2.id);
                         done();
                     });
             });

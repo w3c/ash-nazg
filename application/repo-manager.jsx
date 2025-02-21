@@ -51,7 +51,12 @@ export default class RepoNew extends React.Component {
             fetch(pp + "api/repos")
                 .then(utils.jsonHandler)
                 .then(repos => {
-                    this.updateState({initGroups: repos.find(r => r.owner === st.org && r.name === st.repo).groups.map(g => g.w3cid)});
+                    const repo = repos.find(r => r.owner === st.org && r.name === st.repo);
+                    if (!repo) {
+                        MessageActions.error("Repository not found");
+                        return this.updateState({status: "ready"});
+                    }
+                    this.updateState({initGroups: repo.groups.map(g => g.w3cid)});
                 });
         }
         fetch(pp + "api/my/last-added-repo", { credentials: "include" })
@@ -336,7 +341,7 @@ export default class RepoNew extends React.Component {
             return  <div className="primary-app">
                         <h2>Update Repository Data</h2>
                         <p>
-                            Use the form below to update the group(s) to which an existing managed repository is associated.
+                            Use the form below to update the owner/name of the repository and/or the group(s) to which this repository is associated with.
                         </p>
                         {content}
                         {results}

@@ -362,18 +362,24 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
 router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), async function(req, res) {
-    await doAsync(store).updateSecret(`${req.params.owner}/${req.params.shortname}`, {repo: `${req.body.org}/${req.body.repo}`});
+    const owner = req.body.org;
+    const repo = req.body.repo;
+    const groups = req.body.groups || [];
+    if (owner || repo) {
+        await doAsync(store).updateSecret(`${req.params.owner}/${req.params.shortname}`, {repo: `${owner}/${repo}`});
+    }
+    
     store.updateRepo(`${req.params.owner}/${req.params.shortname}`, {
-        owner: req.body.org,
-        name: req.body.repo,
-        fullName: `${req.body.org}/${req.body.repo}`,
-        groups: req.body.groups
+        ...(owner && {owner}),
+        ...(repo && {name: repo}),
+        ...((owner || repo) && {fullName: `${owner}/${repo}`}),
+        ...(groups.length > 0 && {groups})
     }, function(err, data) {
         if (err) return makeRes(res)(err);
         data.actions = [
-            `moved repository to groups with id ${req.body.groups.join(", ")}`,
-            `changed repository owner to ${req.body.org}`,
-            `changed repository name to ${req.body.repo}`
+            ...(groups.length > 0 ? [`moved repository to groups with id ${groups.join(", ")}`] : []),
+            ...(owner ? [`changed repository owner to ${owner}`] : []),
+            ...(repo ? [`changed repository name to ${repo}`] : [])
         ];
         makeRes(res)(null, data);
     });

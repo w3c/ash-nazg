@@ -98,16 +98,17 @@ export default class RepoNew extends React.Component {
         if (!Object.keys(this.state.orgRepos).length) return;
         let org = utils.val(this.refs.org);
         switch(this.state.mode) {
-        case "new":
-            if (this.state.orgRepos[org].indexOf(ev.target.value) !== -1) {
-                return ev.target.setCustomValidity("Can't create a repo with that name - already exists");
-            }
-            break;
-        case "import":
-            if (this.state.orgRepos[org].indexOf(ev.target.value) === -1) {
-                return ev.target.setCustomValidity("Can't import a repo with that name - does not exist");
-            }
-            break;
+            case "new":
+                if (this.state.orgRepos[org].indexOf(ev.target.value) !== -1) {
+                    return ev.target.setCustomValidity("Can't create a repo with that name - already exists");
+                }
+                break;
+            case "import":
+            case "edit":
+                if (this.state.orgRepos[org].indexOf(ev.target.value) === -1) {
+                    return ev.target.setCustomValidity(`Can't ${this.state.mode} a repo with that name - does not exist`);
+                }
+                break;
         }
         ev.target.setCustomValidity("");
     }
@@ -149,7 +150,7 @@ export default class RepoNew extends React.Component {
             apiPath = "api/create-repo";
             break;
         case "edit":
-            apiPath = "api/repos/" + org + "/" + repo + "/edit";
+            apiPath = "api/repos/" + this.props.params.owner + "/" + this.props.params.shortname + "/edit";
             break;
         case "import":
             apiPath = "api/import-repo";
@@ -220,8 +221,7 @@ export default class RepoNew extends React.Component {
     
     render () {
         let st = this.state
-        ,   results = ""
-        ,   readonly = st.mode === "edit";
+        ,   results = "";
         let org = st.org || (st.orgs ? st.orgs[0] : null);
         let repos = org && Object.keys(st.orgRepos).length ? st.orgRepos[org] : [];
         let selectedGroupType = st.repoGroups.length ? st.groups.filter(g => g.w3cid == st.repoGroups[0])[0].groupType : null;
@@ -261,12 +261,12 @@ export default class RepoNew extends React.Component {
                         <form onSubmit={this.onSubmit.bind(this)} ref="form">
                             <div className="formline">
                                 <label htmlFor="repo">pick organisation or account, and repository name</label>
-                                <select disabled={readonly} ref="org" defaultValue={st.org ? st.org : st.lastAddedRepo.org} required onChange={this.updateOrg.bind(this)}>
+                                <select ref="org" defaultValue={st.org ? st.org : st.lastAddedRepo.org} required onChange={this.updateOrg.bind(this)}>
                                     {st.orgs.map((org) => { return <option value={org} key={org}>{org}</option>; })}
                                 </select>
                                 {" / "}
-                                <input readOnly={readonly} type="text" ref="repo" id="repo" defaultValue={st.repo} required list="repos" onChange={this.onRepoNameChange.bind(this)}/>
-                                {(st.mode === "import") ?
+                                <input type="text" ref="repo" id="repo" defaultValue={st.repo} required list="repos" onChange={this.onRepoNameChange.bind(this)}/>
+                                {(st.mode === "import" || st.mode === "edit") ?
                                 <datalist id="repos">
                                    {repos.map(repo => {
                                      return <option key={org +"/" + repo}>{repo}</option>;

@@ -122,9 +122,11 @@ function RepoMock(_id, _name, _owner, _files, _hooks) {
 }
 
 var testNewRepo = new RepoMock(123, "newrepo", "acme", [], []);
-var testExistingRepo = new RepoMock(456, "existingrepo","acme", ["README.md"], []);
-var testCGRepo = new RepoMock(789, "cgrepo","acme", ["README.md", "index.html"], []);
+var testExistingRepo = new RepoMock(456, "existingrepo", "acme", ["README.md"], []);
+var testCGRepo = new RepoMock(789, "cgrepo", "acme", ["README.md", "index.html"], []);
 const renamedRepo = "existingrepo-bis";
+const repoNewOwner = "acme2";
+const repoNewName = "newrepo2";
 
 var testPR = {
     repository: testExistingRepo.toGH(),
@@ -624,7 +626,7 @@ describe('Server manages requests from advanced privileged users in a set up rep
             cleanStore("deleteUser")(testUser.username),
             cleanStore("deleteGroup")("" + w3cGroup.id),
             cleanStore("deleteGroup")("" + w3cGroup3.id),
-            cleanStore("deleteRepo")(testNewRepo.full_name),
+            cleanStore("deleteRepo")(`${repoNewOwner}/${repoNewName}`),
             cleanStore("deleteRepo")(`${testExistingRepo.owner}/${renamedRepo}`),
             cleanStore("deleteRepo")(testCGRepo.full_name),
             cleanStore("deleteToken")(testOrg.login),
@@ -914,6 +916,20 @@ describe('Server manages requests from advanced privileged users in a set up rep
                 req.get('/api/repos')
                     .expect(200, function(err, res) {
                         expect(res.body.filter(g => g.fullName === 'acme/newrepo')[0].groups[0].w3cid).to.be("" + w3cGroup2.id);
+                        done();
+                    });
+            });
+    });
+
+    it('allows admins to update a repository owner and/or name', function testUpdateRepoOwnerName(done) {
+        authAgent
+            .post('/api/repos/' + testNewRepo.full_name + '/edit')
+            .send({org: repoNewOwner, repo: repoNewName})
+            .expect(200)
+            .end(function(err, res) {
+                req.get('/api/repos')
+                    .expect(200, function(err, res) {
+                        expect(res.body.filter(g => g.fullName === `${repoNewOwner}/${repoNewName}`)[0].groups[0].w3cid).to.be("" + w3cGroup2.id);
                         done();
                     });
             });

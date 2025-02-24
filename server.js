@@ -361,10 +361,26 @@ router.post("/api/revalidate", bp.json(), async (req, res) => {
 // GITHUB APIs
 router.post("/api/create-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("create"));
 router.post("/api/import-repo", ensureAPIAuth, bp.json(), loadGH, makeCreateOrImportRepo("import"));
-router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), function(req, res) {
-    store.updateRepo(req.params.owner + "/" + req.params.shortname, {groups: req.body.groups}, function(err, data) {
+router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), async function(req, res) {
+    const owner = req.body.org;
+    const repo = req.body.repo;
+    const groups = req.body.groups || [];
+    if (owner || repo) {
+        await doAsync(store).updateSecret(`${req.params.owner}/${req.params.shortname}`, {repo: `${owner}/${repo}`});
+    }
+    
+    store.updateRepo(`${req.params.owner}/${req.params.shortname}`, {
+        ...(owner && {owner}),
+        ...(repo && {name: repo}),
+        ...((owner || repo) && {fullName: `${owner}/${repo}`}),
+        ...(groups.length > 0 && {groups})
+    }, function(err, data) {
         if (err) return makeRes(res)(err);
-        data.actions = ["Moved repository to groups with id " + req.body.groups.join(", ")];
+        data.actions = [
+            ...(groups.length > 0 ? [`moved repository to groups with id ${groups.join(", ")}`] : []),
+            ...(owner ? [`changed repository owner to ${owner}`] : []),
+            ...(repo ? [`changed repository name to ${repo}`] : [])
+        ];
         makeRes(res)(null, data);
     });
 });

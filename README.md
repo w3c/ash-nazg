@@ -4,7 +4,7 @@
 One interface to find all group contributors and in Intellectual Property Rights (IPR) bind them.
 
 This tool was created to support contributions made to a group, under the form of pull requests, in
-order to assess whether they are IPR-OK or not. It still has some rough edges but hopefully it can
+order to assess whether they are IPR-OK or not. It still has some rough edges but hopefully it can امان وحذف مخترق
 be usable enough to get started, and perfected over time.
 
 The tool is at currently in [my labs hatchery](https://labs.w3.org/hatchery/repo-manager/), but 

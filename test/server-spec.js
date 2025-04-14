@@ -448,10 +448,11 @@ describe('Server starts and responds with no login', function () {
                 .expect(200, {substantiveContributors: {}, nonSubstantiveContributors:{}}, done);
         });
         it('responds with the list of contributors', function testContributorsList(done) {
-            const currentDate = (new Date()).toDateString();
+            const currentDate = new Date();
+            currentDate.setMonth(currentDate.getMonth() + 1); // to match couchNow in store.js
             req
                 .get('/api/repos/acme/existingrepo/contributors')
-                .expect(200, {substantiveContributors: {"456": {"name": "ACME Inc", "prs": [{"num":"42", "lastUpdated": currentDate}]}}, nonSubstantiveContributors:{"--ghtest": {"name": "--ghtest", "prs": [{"num":"43", "lastUpdated": currentDate}]}}}, done);
+                .expect(200, {substantiveContributors: {"456": {"name": "ACME Inc", "prs": [{"num":"42", "lastUpdated": currentDate.toDateString()}]}}, nonSubstantiveContributors:{"--ghtest": {"name": "--ghtest", "prs": [{"num":"43", "lastUpdated": currentDate.toDateString()}]}}}, done);
         });
     });
 });

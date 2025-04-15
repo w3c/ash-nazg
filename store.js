@@ -438,7 +438,7 @@ Store.prototype = {
         store.db.view("repos/by_fullname", function (err, docs) {
             if (err) return cb(err);
             log.info("Found " + docs.length + " repos");
-            // sort them by fullName and remove the soft deletes repos
+            // sort them by fullName and remove the soft deleted repos
             docs = docs.toArray()
                 .filter(function (doc) {
                     return !doc.deleted;

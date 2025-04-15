@@ -24,6 +24,23 @@ export default class RepoList extends React.Component {
             .catch(utils.catchHandler)
         ;
     }
+
+    deleteRepo (repo) {
+        let st = this.state;
+        let repos = st.repos;
+        this.setState({ status: "loading" });
+        if (confirm("Are you sure you want to delete this repository?")) {
+            fetch(pp + `api/repos/${repo}`, { method: "DELETE", credentials: "include" })
+                .then(utils.jsonHandler)
+                .then((data) => {
+                    const newRepos = repos.filter(r => r.fullName !== repo)
+                    this.setState({ repos: newRepos, status: "ready" });
+                })
+                .catch(utils.catchHandler)
+            ;
+            console.log(`Delete repo: ${repo}`);
+        }
+    }
     
     render () {
         let st = this.state
@@ -43,15 +60,18 @@ export default class RepoList extends React.Component {
                             </thead>
                             {
                                 st.repos.map((r) => {
-                                    let admin = "";
+                                    let updateAction = "";
+                                    let deleteAction = "";
                                     if (this.props.isAdmin) {
-                                        admin = <td><a href={`repo/${r.fullName}/edit`} className="button">Update</a></td>;
+                                        updateAction = <td><a href={`repo/${r.fullName}/edit`}>Update</a></td>
+                                        deleteAction = <td><button onClick={() => this.deleteRepo(r.fullName)}>Delete</button></td>;
                                     }
                                     return <tr key={r.id} style={{paddingLeft: "20px"}}>
                                             <td><a href={`https://github.com/${r.fullName}`} target="_blank">{r.fullName}</a></td>
                                             <td>{r.groups.map((g) => { return g.name; }).join(", ")}</td>
                                             <td><a href={`repos/${r.fullName}/contributors`}>Contributors</a></td>
-                                            {admin}
+                                            {updateAction}
+                                            {deleteAction}
                                         </tr>
                                     ;
                                 })

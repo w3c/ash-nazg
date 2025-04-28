@@ -438,10 +438,14 @@ Store.prototype = {
         store.db.view("repos/by_fullname", function (err, docs) {
             if (err) return cb(err);
             log.info("Found " + docs.length + " repos");
-            // sort them by fullName
-            docs = docs.toArray().sort(function (a, b) {
-                return (a.fullName || "").localeCompare(b.fullName);
-            });
+            // sort them by fullName and remove the soft deleted repos
+            docs = docs.toArray()
+                .filter(function (doc) {
+                    return !doc.deleted;
+                })
+                .sort(function (a, b) {
+                    return (a.fullName || "").localeCompare(b.fullName);
+                });
             cb(null, docs);
         });
     }
@@ -451,6 +455,28 @@ Store.prototype = {
             if (!doc) return cb(new Error("Store: Can not find repo " + fullName + " for deletion"));
             this.remove(doc, function(err) {
                 this.deleteSecret(fullName, cb);
+            }.bind(this));
+        }.bind(this));
+    }
+,   softDeleteRepo:   function (fullName, cb) {
+        this.getRepo(fullName, function (err, doc) {
+            if (err) return cb(err);
+            if (!doc) return cb(new Error(`Store: Cannot find repo ${fullName} for deletion`));
+            doc.lastUpdated = couchNow();
+            doc.deleted = true;
+            log.info(`Mark repo ${doc.fullName} as deleted`);
+            this.add(doc, function(err) {
+                if (err) return cb(err);
+                this.getPRsByRepo(fullName, function (err, prs) {
+                    if (err) return cb(err);
+                    for (const pr of prs) {
+                        this.updatePR(pr.fullName, pr.num, {deleted: true}, function (err) {
+                            if (err) return log.error(err);
+                            log.info(`Mark PR ${pr.fullName}-${pr.num} as deleted`);
+                        });
+                    }
+                    cb(null, prs);
+                }.bind(this));
             }.bind(this));
         }.bind(this));
     }
@@ -498,8 +524,9 @@ Store.prototype = {
         log.info("Looking for open PRs");
         this.db.view("prs/by_status", { key: "open" }, function (err, docs) {
             if (err) return cb(err);
+            docs = docs.toArray().filter(doc => !doc.deleted);
             log.info("Returning open PRs: " + (docs.length ? "FOUND" : "NOT FOUND"));
-            cb(null, docs.toArray());
+            cb(null, docs);
         });
     }
 ,   getLastWeekPRs: function (cb) {
@@ -507,8 +534,9 @@ Store.prototype = {
         var lastWeek = couchNow(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
         this.db.view("prs/by_date", { endkey: couchNow(), startkey: lastWeek }, function (err, docs) {
             if (err) return cb(err);
+            docs = docs.toArray().filter(doc => !doc.deleted);
             log.info("Returning PRs from the past week: " + (docs.length ? "FOUND" : "NOT FOUND"));
-            cb(null, docs.toArray());
+            cb(null, docs);
         });
     }
 ,   getUnaffiliatedUserPRs: function (username, cb) {

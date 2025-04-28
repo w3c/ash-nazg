@@ -384,6 +384,12 @@ router.post("/api/repos/:owner/:shortname/edit", ensureAdmin, bp.json(), async f
         makeRes(res)(null, data);
     });
 });
+router.delete("/api/repos/:owner/:shortname", ensureAdmin, function (req, res) {
+    store.softDeleteRepo(req.params.owner + "/" + req.params.shortname, function (err, data) {
+        if (err) return makeRes(res)(err);
+        makeRes(res)(null, data);
+    });
+});
 
 // get the permissions granted by the user
 router.get("/api/scope-granted", function (req, res) {

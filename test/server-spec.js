@@ -572,6 +572,10 @@ describe('Server manages requests from regular logged-in users', function () {
         erroringroutes(req.put, protectedPUTs, 403, done);
     });
 
+    it('responds with 403 to admin DELETE routes', function testAdminDELETERoutes(done) {
+        var protectedDELETEs = ["api/repos/acme/existingrepo"];
+        erroringroutes(req.delete, protectedDELETEs, 403, done);
+    });
 
     it('responds to login query correctly when logged out', function testLoggedOut(done) {
      authAgent
@@ -684,6 +688,20 @@ describe('Server manages requests from advanced privileged users in a set up rep
             .post('/api/import-repo')
             .send({org:testOrg.login, repo: testCGRepo.name, groups:["" + w3cGroup3.id], includeContributing: true, includeReadme: true, includeCodeOfConduct: true, includeLicense: true, includeW3cJson: true})
             .expect(200, done);
+    });
+
+    it('allows admins to soft delete a repository', function testAddUser(done) {
+        store.makeUserAdmin(testUser.username, function() {
+            authAgent
+                .delete('/api/repos/acme/existingrepo')
+                .expect(200, function(err, res) {
+                    if (err) return done(err);
+                    store.getRepo('acme/existingrepo', function(err, repo) {
+                        expect(repo.deleted).to.be(true);
+                    });
+                    done();
+                });
+        });
     });
 
     it('recognizes an admin user', function testAdmin(done) {

@@ -690,23 +690,25 @@ router.get("/api/repos/:owner/:shortName/contributors", function (req, res) {
         if (err) return error(res, err);
         const substantiveContributors = {};
         const nonSubstantiveContributors = {};
-        docs.forEach(function (doc) {
-            if (doc.markedAsNonSubstantiveBy) {
-                for (const contributor of doc.contributors) {
-                    if (!nonSubstantiveContributors[contributor]) {
-                        nonSubstantiveContributors[contributor] = { name: contributor, prs: []};
+        docs
+            .filter(doc => doc.status === "closed")
+            .forEach(function (doc) {
+                if (doc.markedAsNonSubstantiveBy) {
+                    for (const contributor of doc.contributors) {
+                        if (!nonSubstantiveContributors[contributor]) {
+                            nonSubstantiveContributors[contributor] = { name: contributor, prs: []};
+                        }
+                        nonSubstantiveContributors[contributor].prs.push({num: doc.num, lastUpdated: new Date(...doc.lastUpdated).toDateString()});
                     }
-                    nonSubstantiveContributors[contributor].prs.push(doc.num);
-                }
-            } else {
-                for (const affiliationId in doc.affiliations) {
-                    if (!substantiveContributors[affiliationId]) {
-                        substantiveContributors[affiliationId] = { name: doc.affiliations[affiliationId], prs: []};
+                } else {
+                    for (const affiliationId in doc.affiliations) {
+                        if (!substantiveContributors[affiliationId]) {
+                            substantiveContributors[affiliationId] = { name: doc.affiliations[affiliationId], prs: []};
+                        }
+                        substantiveContributors[affiliationId].prs.push({num: doc.num, lastUpdated: new Date(...doc.lastUpdated).toDateString()});
                     }
-                    substantiveContributors[affiliationId].prs.push(doc.num);
                 }
-            }
-        });
+            });
         res.json({substantiveContributors, nonSubstantiveContributors});
     });
 });

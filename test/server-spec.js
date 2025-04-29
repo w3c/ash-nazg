@@ -408,7 +408,7 @@ describe('Server starts and responds with no login', function () {
             "shortName": "existingrepo",
             "owner": "acme",
             "num": "42",
-            "status": "opened",
+            "status": "closed",
             "contributors": [
                 "--ghtest"
             ],
@@ -421,7 +421,7 @@ describe('Server starts and responds with no login', function () {
             "shortName": "existingrepo",
             "owner": "acme",
             "num": "43",
-            "status": "opened",
+            "status": "closed",
             "contributors": [
                 "--ghtest"
             ],
@@ -442,15 +442,17 @@ describe('Server starts and responds with no login', function () {
             });
         });
 
-        it('responds with an empty list of contributors', function testProtectedPOSTRoutes(done) {
+        it('responds with an empty list of contributors', function testContributorsList(done) {
             req
                 .get('/api/repos/acme/newrepo/contributors')
                 .expect(200, {substantiveContributors: {}, nonSubstantiveContributors:{}}, done);
         });
-        it('responds with the list of contributors', function testProtectedPOSTRoutes(done) {
+        it('responds with the list of contributors', function testContributorsList(done) {
+            const currentDate = new Date();
+            currentDate.setMonth(currentDate.getMonth() + 1); // to match couchNow in store.js
             req
                 .get('/api/repos/acme/existingrepo/contributors')
-                .expect(200, {substantiveContributors: {"456": {"name": "ACME Inc", "prs": ["42"]}}, nonSubstantiveContributors:{"--ghtest": {"name": "--ghtest", "prs": ["43"]}}}, done);
+                .expect(200, {substantiveContributors: {"456": {"name": "ACME Inc", "prs": [{"num":"42", "lastUpdated": currentDate.toDateString()}]}}, nonSubstantiveContributors:{"--ghtest": {"name": "--ghtest", "prs": [{"num":"43", "lastUpdated": currentDate.toDateString()}]}}}, done);
         });
     });
 });

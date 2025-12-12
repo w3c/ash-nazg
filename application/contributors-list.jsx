@@ -1,7 +1,6 @@
 
 import React from "react";
 import Spinner from "../components/spinner.jsx";
-import { Link } from "react-router";
 
 require("isomorphic-fetch");
 let utils = require("./utils")

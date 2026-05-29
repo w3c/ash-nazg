@@ -94,13 +94,15 @@ app.use(serveStatic("public"));
 
 var router = express.Router();
 
+const isW3Url = (url) => typeof url === "string" && /^https:\/\/(www|labs)\.w3\.org\//.test(url);
+
 // GET this (not as an API), it will redirect the user to GitHub to authenticate
 // use ?back=http://... for the URL to which to return later
 router.get(
         "/auth/github"
     ,   function (req, res, next) {
             var redir = config.url + "auth/github/callback";
-            if (req.query.back) redir += "?back=" + req.query.back;
+            if (isW3Url(req.query.back)) redir += "?back=" + req.query.back;
             log.info("auth github, with redir=" + redir);
             passport.authenticate(
                                     "github"
@@ -121,7 +123,7 @@ router.get(
         "/admin/auth/github"
     ,   function (req, res, next) {
             var redir = config.url + "auth/github/callback";
-            if (req.query.back) redir += "?back=" + req.query.back;
+            if (isW3Url(req.query.back)) redir += "?back=" + req.query.back;
             log.info("auth github, with redir=" + redir);
             passport.authenticate(
                                     "github"

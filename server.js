@@ -459,7 +459,8 @@ function addGHHook(app, path) {
                 if (event.action === "renamed") {
                     previousRepo = `${owner}/${event.changes.repository.name.from}`;
                 } else if (event.action === "transferred") {
-                    previousRepo = `${event.changes.owner.from.user.login}/${repoShortname}`;
+                    const previousOwner = event.changes.owner.from.organization ?? event.changes.owner.from.user;
+                    previousRepo = `${previousOwner.login}/${repoShortname}`;
                 } else {
                     return ok(res);
                 }

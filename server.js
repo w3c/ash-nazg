@@ -94,7 +94,10 @@ app.use(serveStatic("public"));
 
 var router = express.Router();
 
-const isW3Url = (url) => typeof url === "string" && /^https:\/\/(www|labs)\.w3\.org\//.test(url);
+const safeBack = (url) =>
+  typeof url === "string" && /^https:\/\/(www|labs)\.w3\.org\//.test(url)
+    ? url
+    : config.url;
 
 // GET this (not as an API), it will redirect the user to GitHub to authenticate
 // use ?back=http://... for the URL to which to return later
@@ -102,7 +105,7 @@ router.get(
         "/auth/github"
     ,   function (req, res, next) {
             var redir = config.url + "auth/github/callback";
-            if (isW3Url(req.query.back)) redir += "?back=" + req.query.back;
+            if (req.query.back) redir += "?back=" + safeBack(req.query.back);
             log.info("auth github, with redir=" + redir);
             passport.authenticate(
                                     "github"
@@ -123,7 +126,7 @@ router.get(
         "/admin/auth/github"
     ,   function (req, res, next) {
             var redir = config.url + "auth/github/callback";
-            if (isW3Url(req.query.back)) redir += "?back=" + req.query.back;
+            if (req.query.back) redir += "?back=" + safeBack(req.query.back);
             log.info("auth github, with redir=" + redir);
             passport.authenticate(
                                     "github"
@@ -147,12 +150,13 @@ router.get(
 router.get(
         "/auth/github/callback"
     ,   function (req, res, next) {
-            var redir = req.query.back;
+            const redir = safeBack(req.query.back);
             passport.authenticate("github", { failureRedirect: redir + "?failure" })(req, res, next);
         }
     ,   function (req, res) {
-            log.info("GitHub auth success, redirecting to " + (req.query.back || "/"));
-            res.redirect(req.query.back || "/");
+            const redir = safeBack(req.query.back);
+            log.info("GitHub auth success, redirecting to " + redir);
+            res.redirect(redir);
         }
 );
 

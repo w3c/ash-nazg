@@ -97,7 +97,7 @@ var router = express.Router();
 const safeBack = (url) =>
   typeof url === "string" && /^https:\/\/(www|labs)\.w3\.org\//.test(url)
     ? url
-    : "/";
+    : config.url;
 
 // GET this (not as an API), it will redirect the user to GitHub to authenticate
 // use ?back=http://... for the URL to which to return later

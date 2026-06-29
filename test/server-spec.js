@@ -270,7 +270,7 @@ function login(agent, admin, accessToken, cb) {
                 .end(function(err, res) {
                     agent.get('/auth/github/callback?code=' + githubCode)
                         .expect(302)
-                        .expect('location', '/')
+                        .expect('location', config.url)
                         .expect('set-cookie', /ash-nazg=.*; Path=\//, cb)
 ;
                 });
